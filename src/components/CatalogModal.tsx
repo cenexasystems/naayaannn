@@ -8,13 +8,11 @@ interface CatalogModalProps {
   isOpen: boolean
   onClose: () => void
   onAdd: (product: Product) => void
-  /** Show only services (billing panel “Add Service”) */
-  serviceOnly?: boolean
 }
 
 type CategoryOption = { id: string | number; name_en: string; is_active?: boolean; sort_order?: number }
 
-export default function CatalogModal({ isOpen, onClose, onAdd, serviceOnly = false }: CatalogModalProps) {
+export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalProps) {
   const { fetchProducts, products, loading, error } = useProductStore()
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
@@ -75,7 +73,7 @@ export default function CatalogModal({ isOpen, onClose, onAdd, serviceOnly = fal
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    let src = products.filter(p => p.isActive && (!serviceOnly || p.itemType === 'service'))
+    let src = products.filter(p => p.isActive)
     if (activeCategory !== 'All') src = src.filter(p => p.category === activeCategory)
     if (q) src = src.filter(p =>
       p.name.toLowerCase().includes(q) ||
@@ -83,7 +81,7 @@ export default function CatalogModal({ isOpen, onClose, onAdd, serviceOnly = fal
       p.category.toLowerCase().includes(q)
     )
     return src
-  }, [products, search, activeCategory, serviceOnly])
+  }, [products, search, activeCategory])
 
   const startEdit = (p: Product) => {
     setEditingProduct(p)
@@ -200,7 +198,7 @@ export default function CatalogModal({ isOpen, onClose, onAdd, serviceOnly = fal
             <div className="flex items-center justify-between p-5 border-b border-[#F3F4F6]/40 bg-[#F9FAFB]">
               <h2 className="text-[18px] font-black text-[#111111] flex items-center gap-2">
                 <Search size={18} className="text-primary-hover" />
-                {serviceOnly ? 'Add Service' : 'Search Catalog'}
+                Search Catalog
               </h2>
               <button onClick={onClose} className="p-2 rounded-xl hover:bg-black/5 text-[#374151]">
                 <X size={20} />

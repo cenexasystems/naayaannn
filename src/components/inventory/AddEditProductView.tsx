@@ -9,7 +9,6 @@ import {
   Boxes,
   ArrowLeft,
   Edit2,
-  Scissors,
 } from 'lucide-react'
 import { useProductStore, type Product } from '../../store/store'
 import { fetchVariantsByProduct } from '../../services/variantService'
@@ -17,6 +16,7 @@ import { inventoryService, type CategoryRecord } from '../../services/inventoryS
 import { normalizeBarcode } from '../../lib/barcode'
 import { db } from '../../lib/db'
 import { confirmDelete } from '../../lib/confirmDelete'
+import OfferFields from './OfferFields'
 
 export const STANDARD_LETTER_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', 'Free Size'] as const
 export const STANDARD_NUMERIC_SIZES = ['28', '30', '32', '34', '36', '38', '40', '42', '44', '46', '48'] as const
@@ -57,10 +57,6 @@ export const AddEditProductView: React.FC<{
   const [lowStockAlert, setLowStockAlert] = useState<string>('5')
   const [barcode, setBarcode] = useState<string>('')
   const [description, setDescription] = useState<string>('')
-  const [itemType, setItemType] = useState<'product' | 'service'>('product')
-  const [gstPercent, setGstPercent] = useState<string>('5')
-  const [hsnCode, setHsnCode] = useState<string>('')
-  const [offerPercent, setOfferPercent] = useState<string>('')
   const [offerPrice, setOfferPrice] = useState<string>('')
   const [isActive, setIsActive] = useState<boolean>(true)
   const [hasVariants, setHasVariants] = useState<boolean>(false)
@@ -90,10 +86,6 @@ export const AddEditProductView: React.FC<{
     setLowStockAlert('5')
     setBarcode('')
     setDescription('')
-    setItemType('product')
-    setGstPercent('5')
-    setHsnCode('')
-    setOfferPercent('')
     setOfferPrice('')
     setIsActive(true)
     setHasVariants(false)
@@ -135,15 +127,11 @@ export const AddEditProductView: React.FC<{
     setLowStockAlert(p.lowStockAlert ? String(p.lowStockAlert) : '5')
     setBarcode(p.barcode || '')
     setDescription(p.description || '')
-    setItemType(p.itemType === 'service' ? 'service' : 'product')
-    setGstPercent(String(p.gstPercent ?? 0))
-    setHsnCode(p.hsnCode || '')
     {
       const base = Number(p.price) || 0
       const op = Number(p.offerPrice) || 0
       const hasOffer = op > 0 && base > 0 && op < base
       setOfferPrice(hasOffer ? String(op) : '')
-      setOfferPercent(hasOffer ? String(Math.round((1 - op / base) * 10000) / 100) : '')
     }
     setIsActive(p.isActive !== false)
     setHasVariants(Boolean(p.hasVariants))
@@ -348,12 +336,6 @@ export const AddEditProductView: React.FC<{
       return
     }
     const offerNum = offerPrice ? offerInput : priceNum
-    const gstNum = Number(gstPercent || 0)
-    if (!(gstNum >= 0 && gstNum <= 28)) {
-      setStatusMessage({ type: 'error', text: 'GST rate must be between 0 and 28%' })
-      return
-    }
-    const isService = itemType === 'service'
 
     const selectedCat = categories.find((c) => Number(c.id) === Number(categoryId))
     const categoryName = selectedCat ? selectedCat.name_en : 'General'
@@ -365,7 +347,7 @@ export const AddEditProductView: React.FC<{
       if (selectedProductId) {
         // UPDATE EXISTING PRODUCT
         if (!hasVariants) {
-          const inputStock = isService ? 0 : Math.max(0, parseInt(stockQuantity) || 0)
+          const inputStock = Math.max(0, parseInt(stockQuantity) || 0)
 
           // Check previous stock
           const { data: currentProd } = await db
@@ -388,9 +370,6 @@ export const AddEditProductView: React.FC<{
               offer_price: offerNum,
               purchase_price: costNum,
               low_stock_alert: alertThreshold,
-              item_type: itemType,
-              gst_percent: gstNum,
-              hsn_code: hsnCode.trim(),
               is_active: isActive,
               barcode: barcode.trim() || null,
               description: description.trim() || '',
@@ -526,9 +505,6 @@ export const AddEditProductView: React.FC<{
               offer_price: offerNum,
               purchase_price: costNum,
               low_stock_alert: alertThreshold,
-              item_type: itemType,
-              gst_percent: gstNum,
-              hsn_code: hsnCode.trim(),
               is_active: isActive,
               barcode: null,
               description: description.trim() || '',
@@ -546,7 +522,7 @@ export const AddEditProductView: React.FC<{
       } else {
         // CREATE NEW PRODUCT
         if (!hasVariants) {
-          const inputStock = isService ? 0 : Math.max(0, parseInt(stockQuantity) || 0)
+          const inputStock = Math.max(0, parseInt(stockQuantity) || 0)
 
           const { data: newProd, error: insErr } = await db
             .from('products')
@@ -559,9 +535,6 @@ export const AddEditProductView: React.FC<{
               offer_price: offerNum,
               purchase_price: costNum,
               low_stock_alert: alertThreshold,
-              item_type: itemType,
-              gst_percent: gstNum,
-              hsn_code: hsnCode.trim(),
               is_active: isActive,
               barcode: barcode.trim() || null,
               description: description.trim() || '',
@@ -626,9 +599,6 @@ export const AddEditProductView: React.FC<{
               offer_price: offerNum,
               purchase_price: costNum,
               low_stock_alert: alertThreshold,
-              item_type: itemType,
-              gst_percent: gstNum,
-              hsn_code: hsnCode.trim(),
               is_active: isActive,
               barcode: null,
               description: description.trim() || '',
@@ -970,34 +940,6 @@ export const AddEditProductView: React.FC<{
               </div>
             )}
 
-            {/* Item type */}
-            <div>
-              <span className="block text-[11px] font-bold text-gray-700 mb-1.5 h-4 flex items-center">Item Type</span>
-              <div className="grid grid-cols-2 gap-3">
-                {([
-                  ['product', <Package key="p" size={15} />, 'Product'],
-                  ['service', <Scissors key="s" size={15} />, 'Service'],
-                ] as const).map(([type, icon, text]) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setItemType(type)}
-                    aria-pressed={itemType === type}
-                    className={`h-10 inline-flex items-center justify-center gap-2 rounded-xl border text-xs font-black uppercase tracking-wider transition-colors ${
-                      itemType === type ? 'border-primary bg-primary text-primary-ink' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {icon} {text}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-1.5 text-[11px] text-gray-500 font-medium">
-                {itemType === 'service'
-                  ? 'Services = delivery, packing, add-ons and other chargeable work. No stock is tracked.'
-                  : 'Products = physical items sold. Stock and low-stock alerts are tracked.'}
-              </p>
-            </div>
-
             {/* Name Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -1125,7 +1067,7 @@ export const AddEditProductView: React.FC<{
                   />
                 </div>
 
-                {itemType !== 'service' && (<div>
+                <div>
                   <label htmlFor="prod-stock-quantity" className="block text-[11px] font-bold text-emerald-800 mb-1.5 h-4 flex items-center gap-1">
                     <Boxes size={13} className="text-emerald-600 shrink-0" />
                     <span>Received / Current Stock</span>
@@ -1140,98 +1082,19 @@ export const AddEditProductView: React.FC<{
                     onChange={(e) => setStockQuantity(e.target.value)}
                     className="w-full h-10 px-3.5 rounded-xl border border-emerald-300 bg-emerald-50/50 text-xs font-bold text-emerald-950 outline-none focus:border-emerald-600 focus:bg-white"
                   />
-                </div>)}
+                </div>
               </div>
             )}
 
-            {/* GST, HSN / SAC */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="prod-gst-percent" className="block text-[11px] font-bold text-gray-700 mb-1.5 h-4 flex items-center">
-                  GST Rate (%)
-                </label>
-                <input
-                  id="prod-gst-percent"
-                  name="gstPercent"
-                  type="number"
-                  min="0"
-                  max="28"
-                  step="0.01"
-                  value={gstPercent}
-                  onChange={(e) => setGstPercent(e.target.value)}
-                  className="w-full h-10 px-3.5 rounded-xl border border-gray-300 bg-white text-xs font-bold text-gray-900 outline-none focus:border-[#111111]"
-                />
-                <p className="mt-1 text-[11px] text-gray-500 font-medium">Pre-fills the GST % when this item is on a GST invoice.</p>
-              </div>
-              <div>
-                <label htmlFor="prod-hsn-code" className="block text-[11px] font-bold text-gray-700 mb-1.5 h-4 flex items-center">
-                  HSN / SAC Code <span className="text-gray-400 font-normal ml-1">(Optional)</span>
-                </label>
-                <input
-                  id="prod-hsn-code"
-                  name="hsnCode"
-                  type="text"
-                  maxLength={12}
-                  placeholder="e.g. 5208"
-                  value={hsnCode}
-                  onChange={(e) => setHsnCode(e.target.value)}
-                  className="w-full h-10 px-3.5 rounded-xl border border-gray-300 bg-white text-xs font-bold text-gray-900 outline-none focus:border-[#111111]"
-                />
-              </div>
-            </div>
-
             {/* Special offer */}
-            <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/60">
-              <p className="mb-3 flex items-center gap-1.5 text-[11px] font-black text-amber-800">
-                <Tag size={14} /> {itemType === 'service' ? 'Service Offer' : 'Product Special Offer'} (automatic on billing)
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="prod-offer-percent" className="block text-[11px] font-bold text-amber-800 mb-1.5">Offer Discount (%)</label>
-                  <input
-                    id="prod-offer-percent"
-                    name="offerPercent"
-                    type="number"
-                    min="0"
-                    max="99"
-                    step="0.01"
-                    placeholder="e.g. 10"
-                    value={offerPercent}
-                    onChange={(e) => {
-                      const v = e.target.value
-                      const base = parseFloat(price) || 0
-                      const pct = Number(v)
-                      setOfferPercent(v)
-                      setOfferPrice(v && base > 0 && pct > 0 && pct < 100 ? String(Math.round(base * (1 - pct / 100) * 100) / 100) : '')
-                    }}
-                    className="w-full h-10 px-3.5 rounded-xl border border-amber-200 bg-white text-xs font-bold text-gray-900 outline-none focus:border-[#111111]"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="prod-offer-price" className="block text-[11px] font-bold text-amber-800 mb-1.5">Discounted Offer Price (₹)</label>
-                  <input
-                    id="prod-offer-price"
-                    name="offerPrice"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Offer Price"
-                    value={offerPrice}
-                    onChange={(e) => {
-                      const v = e.target.value
-                      const base = parseFloat(price) || 0
-                      const op = Number(v)
-                      setOfferPrice(v)
-                      setOfferPercent(v && base > 0 && op > 0 && op < base ? String(Math.round((1 - op / base) * 10000) / 100) : '')
-                    }}
-                    className="w-full h-10 px-3.5 rounded-xl border border-amber-200 bg-white text-xs font-bold text-gray-900 outline-none focus:border-[#111111]"
-                  />
-                </div>
-              </div>
-              <p className="mt-2 text-[11px] font-medium text-amber-800">
-                Whenever this {itemType === 'service' ? 'service' : 'product'} is added to a bill, the offer price is applied automatically and shown on the invoice.
-              </p>
-            </div>
+            <OfferFields
+              idPrefix="prod-offer"
+              price={parseFloat(price) || 0}
+              offerPrice={offerPrice}
+              onChange={setOfferPrice}
+              inputClassName="w-full h-10 px-3.5 rounded-xl border bg-white text-xs font-bold text-gray-900 outline-none focus:border-[#111111]"
+              labelClassName="block text-[11px] font-bold text-amber-800 mb-1.5"
+            />
 
             {/* Active */}
             <label htmlFor="prod-is-active" className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700 cursor-pointer">

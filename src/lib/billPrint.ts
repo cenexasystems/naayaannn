@@ -18,7 +18,8 @@ export function invoiceToThermal(props: InvoiceProps): ThermalReceiptData {
     phone: props.phone,
     items: props.items.map(item => {
       const n = normalizeStructuredOrderItem(item as unknown as Record<string, unknown>)
-      return { name: n.name, qty: n.quantity, unit: n.unit, price: n.base_price, line_total: n.line_total }
+      const mrp = Number(n.mrp ?? item.mrp ?? (item.offerPrice && item.price > item.offerPrice ? item.price : 0)) || 0
+      return { name: n.name, qty: n.quantity, unit: n.unit, price: n.base_price, line_total: n.line_total, mrp: mrp > n.base_price ? mrp : null }
     }),
     subtotal: props.subtotal,
     shipping: props.deliveryCharge || props.shipping || 0,

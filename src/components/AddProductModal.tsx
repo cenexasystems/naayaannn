@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { X, Package, Scissors, PackagePlus, Tag, Plus, Trash2 } from 'lucide-react'
+import { X, PackagePlus, Tag, Plus, Trash2 } from 'lucide-react'
 import { useProductStore } from '../store/store'
 import { db } from '../lib/db'
+import OfferFields from './inventory/OfferFields'
 import { normalizeBarcode } from '../lib/barcode'
-
-type ItemType = 'product' | 'service'
 
 interface VariantRow { id: string; name: string; price: string; cost: string; stock: string; barcode: string }
 const newVariant = (): VariantRow => ({ id: `v_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', price: '', cost: '', stock: '0', barcode: '' })
@@ -13,8 +12,6 @@ interface AddProductModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
-  /** Which tab the dialog opens on */
-  initialType?: ItemType
 }
 
 const emptyForm = {
@@ -27,9 +24,6 @@ const emptyForm = {
   price: '',
   cost: '',
   stock: '0',
-  gst: '5',
-  hsn: '',
-  offerPercent: '',
   offerPrice: '',
   active: true,
 }
@@ -39,18 +33,15 @@ const input =
   'h-10 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-[#111111] placeholder:font-medium placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15'
 const help = 'mt-1.5 text-[11.5px] font-medium leading-snug text-gray-400'
 
-const round2 = (n: number) => Math.round(n * 100) / 100
 
-export default function AddProductModal({ isOpen, onClose, onSuccess, initialType = 'product' }: AddProductModalProps) {
+export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProductModalProps) {
   const { fetchProducts, products } = useProductStore()
-  const [itemType, setItemType] = useState<ItemType>(initialType)
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [categoryOptions, setCategoryOptions] = useState<string[]>([])
   const [hasVariants, setHasVariants] = useState(false)
   const [variants, setVariants] = useState<VariantRow[]>([])
-  const isService = itemType === 'service'
 
   const existingCategories = categoryOptions.length > 0
     ? categoryOptions
@@ -58,7 +49,6 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
 
   useEffect(() => {
     if (!isOpen) return
-    setItemType(initialType)
     setForm(emptyForm)
     setHasVariants(false)
     setVariants([])
@@ -68,7 +58,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
       if (!cancelled) setCategoryOptions((data || []).map(row => String(row.name_en || '')).filter(Boolean))
     })
     return () => { cancelled = true }
-  }, [isOpen, initialType])
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -82,35 +72,18 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
   const set = (key: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [key]: e.target.value }))
 
-  // Offer % and offer price stay in step with each other and with the price
-  const setOfferPercent = (v: string) => {
-    const price = Number(form.price) || 0
-    const pct = Number(v)
-    setForm(f => ({ ...f, offerPercent: v, offerPrice: v && price > 0 && pct > 0 && pct < 100 ? String(round2(price * (1 - pct / 100))) : '' }))
-  }
-  const setOfferPrice = (v: string) => {
-    const price = Number(form.price) || 0
-    const op = Number(v)
-    setForm(f => ({ ...f, offerPrice: v, offerPercent: v && price > 0 && op > 0 && op < price ? String(round2((1 - op / price) * 100)) : '' }))
-  }
-  const setPrice = (v: string) => {
-    const price = Number(v) || 0
-    const pct = Number(form.offerPercent)
-    setForm(f => ({ ...f, price: v, offerPrice: price > 0 && pct > 0 && pct < 100 ? String(round2(price * (1 - pct / 100))) : f.offerPrice }))
-  }
+  const setPrice = (v: string) => setForm(f => ({ ...f, price: v }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const useVariants = !isService && hasVariants
+    const useVariants = hasVariants
     const validVariants = useVariants ? variants.filter(v => v.name.trim()) : []
     if (useVariants && validVariants.length === 0) return setError('Add at least one variant (e.g. Size S, 32, Red)')
     const price = Number(form.price) || (useVariants ? Number(validVariants[0].price) || 0 : 0)
-    if (!form.name.trim()) return setError(`${isService ? 'Service' : 'Product'} name is required`)
+    if (!form.name.trim()) return setError('Product name is required')
     if (!price || price <= 0) return setError('Price must be greater than 0')
     const offerPrice = Number(form.offerPrice)
     if (form.offerPrice && (offerPrice <= 0 || offerPrice >= price)) return setError('Offer price must be lower than the price')
-    const gst = Number(form.gst || 0)
-    if (gst < 0 || gst > 28) return setError('GST rate must be between 0 and 28%')
 
     setLoading(true)
     setError('')
@@ -131,7 +104,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
       }
 
       const variantStock = validVariants.reduce((sum, v) => sum + Math.max(0, parseInt(v.stock) || 0), 0)
-      const stockNum = isService ? 0 : useVariants ? variantStock : Math.max(0, parseInt(form.stock) || 0)
+      const stockNum = useVariants ? variantStock : Math.max(0, parseInt(form.stock) || 0)
       const productBarcode = useVariants ? '' : form.barcode.trim()
       const { data: newProd, error: dbErr } = await db
         .from('products')
@@ -141,22 +114,19 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
           barcode: productBarcode || null,
           has_variants: useVariants,
           description: form.description.trim(),
-          category: categoryName || (isService ? 'Services' : 'General'),
+          category: categoryName || 'General',
           category_id: categoryId,
-          item_type: itemType,
           price,
           offer_price: form.offerPrice ? offerPrice : null,
           purchase_price: Number(form.cost) || 0,
-          gst_percent: gst,
-          hsn_code: form.hsn.trim(),
           stock: stockNum,
           stock_quantity: stockNum,
-          low_stock_alert: isService ? 0 : Math.max(0, parseInt(form.lowStockAlert) || 0),
+          low_stock_alert: Math.max(0, parseInt(form.lowStockAlert) || 0),
           is_active: form.active,
-          unit: isService ? 'service' : '1pc',
+          unit: '1pc',
           base_quantity: 1,
           unit_type: 'unit',
-          unit_label: isService ? 'service' : 'pc',
+          unit_label: 'pc',
         })
         .select('id')
         .single()
@@ -242,24 +212,11 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
       onSuccess()
       onClose()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : `Failed to add ${itemType}`)
+      setError(err instanceof Error ? err.message : 'Failed to add product')
     } finally {
       setLoading(false)
     }
   }
-
-  const typeBtn = (type: ItemType, icon: React.ReactNode, text: string) => (
-    <button
-      type="button"
-      onClick={() => setItemType(type)}
-      aria-pressed={itemType === type}
-      className={`inline-flex h-9 items-center justify-center gap-3 rounded-2xl border text-[11px] font-black uppercase tracking-[0.12em] transition-colors ${
-        itemType === type ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#374151] hover:bg-gray-50'
-      }`}
-    >
-      {icon} {text}
-    </button>
-  )
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -273,30 +230,17 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
         <div className="flex items-center gap-4 border-b border-gray-200 px-7 py-5">
           <span className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary"><PackagePlus size={24} strokeWidth={1.75} /></span>
           <div className="min-w-0 flex-1">
-            <h2 id="add-item-title" className="text-base font-black tracking-tight text-[#111111]">{isService ? 'Add New Service' : 'Add New Product'}</h2>
-            <p className="text-[13px] font-medium text-gray-500">{isService ? 'Register a chargeable service' : 'Set pricing, stock and category for this item'}</p>
+            <h2 id="add-item-title" className="text-base font-black tracking-tight text-[#111111]">Add New Product</h2>
+            <p className="text-[13px] font-medium text-gray-500">Set pricing, stock and category for this item</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-500 hover:text-[#111111]"><X size={20} /></button>
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-7 py-6">
-          <div>
-            <p className={label}>Item type</p>
-            <div className="grid grid-cols-2 gap-3">
-              {typeBtn('product', <Package size={19} strokeWidth={1.75} />, 'Product')}
-              {typeBtn('service', <Scissors size={19} strokeWidth={1.75} />, 'Service')}
-            </div>
-            <p className={help}>
-              {isService
-                ? 'Services = delivery, packing, add-ons and other chargeable work. No stock is tracked.'
-                : 'Products = physical items sold. Stock and low-stock alerts are tracked.'}
-            </p>
-          </div>
-
           <label className="block">
-            <span className={label}>{isService ? 'Service name' : 'Product name'} <span className="text-[#DC2626]">*</span></span>
+            <span className={label}>Product name <span className="text-[#DC2626]">*</span></span>
             <input className={input} value={form.name} onChange={set('name')} autoFocus maxLength={120}
-              placeholder={isService ? 'e.g., Alteration Charges / Delivery' : 'e.g., Cotton Shirt / Silk Saree'} />
+              placeholder="e.g., Cotton Shirt / Silk Saree" />
           </label>
 
           <div className="grid grid-cols-2 gap-4">
@@ -307,82 +251,55 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
             <label className="block">
               <span className={label}>Barcode (optional)</span>
               <input className={`${input} disabled:bg-gray-100 disabled:text-gray-400`} value={form.barcode} onChange={set('barcode')} maxLength={64}
-                disabled={!isService && hasVariants} placeholder={!isService && hasVariants ? 'Defined at variant level' : 'e.g., 8901234567'} />
+                disabled={hasVariants} placeholder={hasVariants ? 'Defined at variant level' : 'e.g., 8901234567'} />
             </label>
           </div>
 
           <label className="block">
             <span className={label}>Description / notes (optional)</span>
             <input className={input} value={form.description} onChange={set('description')} maxLength={300}
-              placeholder={isService ? 'e.g., Includes stitching and finishing' : 'e.g., Pure cotton, size 40, navy blue'} />
+              placeholder="e.g., Pure cotton, size 40, navy blue" />
           </label>
 
-          <div className={`grid gap-4 ${isService ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2'}`}>
+          <div className="grid grid-cols-2 gap-4">
             <label className="block">
               <span className={label}>Category</span>
               <input className={input} value={form.category} onChange={set('category')} list="add-item-categories" placeholder="e.g., Shirts, Sarees" />
               <datalist id="add-item-categories">{existingCategories.map(c => <option key={c} value={c} />)}</datalist>
               <p className={help}>Pick an existing category or type a new one (it will be added automatically)</p>
             </label>
-            {!isService && (
               <label className="block">
                 <span className={label}>Low stock alert</span>
                 <input className={input} value={form.lowStockAlert} onChange={set('lowStockAlert')} inputMode="numeric" />
                 <p className={help}>Warns you in Inventory when stock falls to this level.</p>
               </label>
-            )}
           </div>
 
-          <div className={`grid gap-4 ${isService ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          <div className="grid grid-cols-3 gap-4">
             <label className="block">
-              <span className={label}>{isService ? 'Service price (₹)' : 'Original price (₹)'} <span className="text-[#DC2626]">*</span></span>
+              <span className={label}>Original price (₹) <span className="text-[#DC2626]">*</span></span>
               <input className={input} value={form.price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" placeholder="0.00" />
             </label>
             <label className="block">
               <span className={label}>Cost price (₹)</span>
               <input className={input} value={form.cost} onChange={set('cost')} inputMode="decimal" placeholder="0.00" />
             </label>
-            {!isService && (
               <label className="block">
                 <span className={label}>Current stock{hasVariants ? ' (from variants)' : ''}</span>
                 <input className={`${input} disabled:bg-gray-100 disabled:text-gray-400`} value={hasVariants ? String(variants.reduce((n, v) => n + Math.max(0, parseInt(v.stock) || 0), 0)) : form.stock} onChange={set('stock')} disabled={hasVariants} inputMode="numeric" />
               </label>
-            )}
           </div>
           <p className={`${help} !-mt-2`}>Cost price is for your records only — it is never used in billing.</p>
 
-          <div className="grid grid-cols-2 gap-4">
-            <label className="block">
-              <span className={label}>GST rate (%)</span>
-              <input className={input} value={form.gst} onChange={set('gst')} inputMode="decimal" />
-              <p className={help}>Pre-fills the GST % when this item is on a GST invoice.</p>
-            </label>
-            <label className="block">
-              <span className={label}>HSN / SAC code</span>
-              <input className={input} value={form.hsn} onChange={set('hsn')} placeholder="Optional" maxLength={12} />
-            </label>
-          </div>
+          <OfferFields
+            idPrefix="add-item-offer"
+            price={Number(form.price) || 0}
+            offerPrice={form.offerPrice}
+            onChange={(v) => setForm(f => ({ ...f, offerPrice: v }))}
+            inputClassName={input}
+            labelClassName="mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-amber-800"
+          />
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
-            <p className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-800">
-              <Tag size={16} strokeWidth={1.75} /> {isService ? 'Service offer' : 'Product special offer'} (automatic on billing)
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <label className="block">
-                <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-amber-800">Offer discount (%)</span>
-                <input className={`${input} !border-amber-200`} value={form.offerPercent} onChange={(e) => setOfferPercent(e.target.value)} inputMode="decimal" placeholder="e.g. 10" />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-amber-800">Discounted offer price (₹)</span>
-                <input className={`${input} !border-amber-200`} value={form.offerPrice} onChange={(e) => setOfferPrice(e.target.value)} inputMode="decimal" placeholder="Offer Price" />
-              </label>
-            </div>
-            <p className="mt-3 text-[11.5px] font-medium text-amber-800">
-              Whenever this {isService ? 'service' : 'product'} is added to a bill, the offer price is applied automatically and shown on the invoice.
-            </p>
-          </div>
-
-          {!isService && (
             <div className="rounded-2xl border border-gray-200 p-5">
               <label className="flex items-center justify-between gap-4 cursor-pointer">
                 <span>
@@ -424,7 +341,6 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
                 </div>
               )}
             </div>
-          )}
 
           <label className="flex items-center gap-3 rounded-2xl border border-gray-200 px-5 py-4 text-sm font-bold text-[#374151]">
             <input type="checkbox" checked={form.active} onChange={(e) => setForm(f => ({ ...f, active: e.target.checked }))} className="h-5 w-5 rounded accent-[rgb(var(--primary))]" />
@@ -441,7 +357,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
             className="inline-flex h-9 w-full items-center justify-center gap-3 rounded-2xl bg-primary text-[11px] font-black uppercase tracking-[0.14em] text-primary-ink shadow-md hover:bg-primary-hover disabled:opacity-60"
           >
             <PackagePlus size={19} strokeWidth={1.75} />
-            {loading ? 'Saving…' : isService ? 'Save Service' : 'Save Product to Catalog'}
+            {loading ? 'Saving…' : 'Save Product to Catalog'}
           </button>
         </div>
       </form>

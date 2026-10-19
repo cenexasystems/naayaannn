@@ -15,6 +15,8 @@ export interface ThermalReceiptData {
     unit?: string
     price: number
     line_total?: number
+    /** Actual rate before the product offer */
+    mrp?: number | null
   }>
   subtotal: number
   shipping: number
@@ -146,7 +148,8 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData, width: Thermal
         return `<tr>
           <td class="l" style="word-break:break-word; padding-right:3px;">
             <div class="b">${esc(item.name)}</div>
-            ${item.qty !== 1 ? `<div class="muted">@ ${esc(money(item.price))}${unit}</div>` : ''}
+            ${Number(item.mrp) > item.price ? `<div class="muted">MRP <s>${esc(money(Number(item.mrp)))}</s> ${esc(String(Math.round(((Number(item.mrp) - item.price) / Number(item.mrp)) * 1000) / 10))}% off</div>` : ''}
+            ${item.qty !== 1 || Number(item.mrp) > item.price ? `<div class="muted">@ ${esc(money(item.price))}${unit}</div>` : ''}
           </td>
           <td style="text-align:center;">${esc(item.qty)}</td>
           <td class="r">${esc(money(lineTotal))}</td>

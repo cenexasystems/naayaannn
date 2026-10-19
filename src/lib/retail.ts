@@ -17,6 +17,8 @@ export type StructuredOrderItem = {
   unit_type: UnitType
   base_quantity: number
   base_price: number
+  /** Actual rate before the product offer (only when an offer was applied) */
+  mrp?: number | null
   line_total: number
   image_url: string | null
   source?: 'catalogue' | 'manual'
@@ -405,6 +407,8 @@ export const buildStructuredOrderItem = (input: {
   unitType: UnitType
   baseQuantity: number
   basePrice: number
+  /** Actual rate before the product offer */
+  mrp?: number | null
   imageUrl?: string | null
   source?: 'catalogue' | 'manual'
   isManual?: boolean
@@ -434,6 +438,7 @@ export const buildStructuredOrderItem = (input: {
     unit_type: input.unitType,
     base_quantity: safeBaseQuantity,
     base_price: safeBasePrice,
+    mrp: Number(input.mrp) > safeBasePrice ? Number(input.mrp) : null,
     line_total: calculateLineTotal(safeQuantity, input.unitType, safeBaseQuantity, safeBasePrice),
     image_url: input.imageUrl ? String(input.imageUrl) : null,
     source: isManual ? 'manual' : (input.source || 'catalogue'),
@@ -482,6 +487,7 @@ export const normalizeStructuredOrderItem = (raw: Record<string, unknown>): Stru
     unit_type: unitType,
     base_quantity: baseQuantity,
     base_price: basePrice,
+    mrp: toNumber(raw.mrp, 0) > basePrice ? toNumber(raw.mrp, 0) : null,
     line_total: lineTotal,
     image_url: raw.image_url ? String(raw.image_url) : (raw.image ? String(raw.image) : null),
     source: raw.source === 'manual' || raw.is_manual === true ? 'manual' : 'catalogue',

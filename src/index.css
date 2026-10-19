@@ -454,3 +454,11 @@ button, a[role="button"] {
     overflow: hidden;
   }
 }
+
+/* Date / time pickers read lighter than the bold labels around them */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"] {
+  font-weight: 500 !important;
+}

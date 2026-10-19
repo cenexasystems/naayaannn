@@ -4,7 +4,7 @@ import {
   Box, AlertCircle, ArrowUp, ArrowDown, Power, Download, TrendingUp, TrendingDown,
   Package, Search, RefreshCw, ShieldCheck, ShieldOff, Trophy,
   MessageCircle, ChevronDown, Eye, FileText, Printer, MoreVertical, X, Layers, Receipt,
-  SlidersHorizontal, Tag, Ticket, Percent, CheckCircle2, Info, Sparkles, Banknote, QrCode, CreditCard, Gift, Settings as SettingsIcon, LogOut, Clock, History, UserCheck, Boxes, ChartNoAxesColumn, Wallet, TicketPercent, Settings2,
+  SlidersHorizontal, Tag, Ticket, Percent, CheckCircle2, Info, Sparkles, Banknote, QrCode, CreditCard, Gift, Settings as SettingsIcon, LogOut, Clock, History, Boxes, ChartNoAxesColumn, Wallet, TicketPercent, Settings2,
 } from 'lucide-react'
 import { paymentBreakdown, formatPaymentLabel } from '../lib/payments'
 
@@ -60,7 +60,6 @@ import { CategoryManagerView } from '../components/inventory/CategoryManagerView
 import { ExpensesView } from '../components/expenses/ExpensesView'
 import { BirthdaysView } from '../components/birthdays/BirthdaysView'
 import { ShopSettingsView } from '../components/settings/ShopSettingsView'
-import { AttendanceView } from '../components/attendance/AttendanceView'
 import { expenseService, type ExpenseRecord } from '../services/expenseService'
 import { useNavigationStore } from '../store/navigationStore'
 import { useAlarmStore } from '../store/alarmStore'
@@ -99,7 +98,7 @@ type DashboardCoupon = {
   usage_count: number
   min_order_value: number
 }
-type TabKey = 'overview' | 'whatsapp' | 'pos_analytics' | 'billing' | 'advance_orders' | 'inventory' | 'expenses' | 'birthdays' | 'products' | 'categories' | 'coupons' | 'users' | 'history' | 'settings' | 'attendance'
+type TabKey = 'overview' | 'whatsapp' | 'pos_analytics' | 'billing' | 'advance_orders' | 'inventory' | 'expenses' | 'birthdays' | 'products' | 'categories' | 'coupons' | 'users' | 'history' | 'settings'
 type PosAnalyticsTab = 'revenue' | 'today' | 'products' | 'categories' | 'coupons'
 type ProfileUser = { id: string; email: string; name: string; mobile: string; role: string; created_at: string }
 
@@ -372,7 +371,7 @@ export default function Dashboard() {
       navigate('/dashboard?tab=advance_orders', { replace: true })
     } else if (tabKey === 'inventory') {
       navigate('/dashboard?tab=inventory', { replace: true })
-    } else if (tabKey === 'settings' || tabKey === 'attendance') {
+    } else if (tabKey === 'settings') {
       navigate(`/dashboard?tab=${tabKey}`, { replace: true })
     } else {
       navigate('/dashboard', { replace: true })
@@ -1892,7 +1891,6 @@ export default function Dashboard() {
         { id: 'inventory',      icon: <Boxes size={20} />,             label: 'Inventory', badge: lowStockCount },
         { id: 'pos_analytics',  icon: <ChartNoAxesColumn size={20} />, label: 'Analytics Dashboard' },
         { id: 'expenses',       icon: <Wallet size={20} />,            label: 'Expense Tracker' },
-        { id: 'attendance',     icon: <UserCheck size={20} />,         label: 'Attendance' },
         { id: 'birthdays',      icon: <Gift size={20} />,              label: 'Birthdays' },
         { id: 'coupons',        icon: <TicketPercent size={20} />,     label: 'Coupons' },
         { id: 'settings',       icon: <Settings2 size={20} />,         label: 'Settings' },
@@ -4718,14 +4716,9 @@ export default function Dashboard() {
           <BirthdaysView />
         )}
 
-        {/* ── ATTENDANCE TAB ── */}
-        {tab === 'attendance' && role === 'admin' && (
-          <AttendanceView />
-        )}
-
         {/* ── SETTINGS TAB ── */}
         {tab === 'settings' && role === 'admin' && (
-          <ShopSettingsView onOpenInventory={() => handleTabClick('inventory')} />
+          <ShopSettingsView />
         )}
         {/* Footer: sits at the end of the scrolling content, visible only when scrolled to the bottom */}
         <footer className="mt-10 border-t border-black/10 pt-10 pb-2 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-semibold uppercase tracking-wider text-[#000000] text-center print:hidden">

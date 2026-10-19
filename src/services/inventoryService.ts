@@ -22,8 +22,6 @@ export interface InventoryStockItem {
   is_active: boolean
   low_stock_threshold?: number
   updated_at?: string
-  /** 'service' items are billed without stock */
-  item_type?: 'product' | 'service'
 }
 
 export interface InventoryMovement {
@@ -97,7 +95,7 @@ export const inventoryService = {
     // 1. Fetch products
     const { data: products, error: prodErr } = await db
       .from('products')
-      .select('id, name, name_ta, price, offer_price, purchase_price, stock_quantity, low_stock_alert, unit, unit_type, category, category_id, image_url, barcode, sku, is_active, updated_at, item_type')
+      .select('id, name, name_ta, price, offer_price, purchase_price, stock_quantity, low_stock_alert, unit, unit_type, category, category_id, image_url, barcode, sku, is_active, updated_at')
       .order('name', { ascending: true })
 
     if (prodErr) {
@@ -204,7 +202,6 @@ export const inventoryService = {
           product_id: p.id,
           variant_id: null,
           entity_type: 'product',
-          item_type: p.item_type === 'service' ? 'service' : 'product',
           name: p.name,
           name_ta: p.name_ta,
           variant_name: undefined,

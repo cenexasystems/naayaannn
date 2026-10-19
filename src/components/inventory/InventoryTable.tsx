@@ -15,7 +15,6 @@ import {
   Trash2,
   Boxes,
   Download,
-  Scissors,
   Plus,
   ChevronDown,
   ScanBarcode,
@@ -56,7 +55,7 @@ export const InventoryTable: React.FC = () => {
   const [historyDrawerItem, setHistoryDrawerItem] = useState<InventoryStockItem | null>(null)
   const [priceModalItem, setPriceModalItem] = useState<InventoryStockItem | null>(null)
   const [editProductId, setEditProductId] = useState<number | string | null>(null)
-  const [addItemType, setAddItemType] = useState<'product' | 'service' | null>(null)
+  const [addOpen, setAddOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
@@ -68,7 +67,7 @@ export const InventoryTable: React.FC = () => {
 
       // Alert sound and modal when viewing inventory with low stock
       const lowStockFlagged = data
-        .filter((i) => i.is_active && i.item_type !== 'service' && i.stock <= (i.low_stock_threshold || 5))
+        .filter((i) => i.is_active && i.stock <= (i.low_stock_threshold || 5))
         .map((i) => ({
           id: i.variant_id ? `v-${i.variant_id}` : `p-${i.product_id}`,
           name: i.name,
@@ -135,7 +134,6 @@ export const InventoryTable: React.FC = () => {
     if (!matchesSearch) return false
 
     const threshold = item.low_stock_threshold || 5
-    if (filterStatus !== 'all' && item.item_type === 'service') return false
     if (filterStatus === 'out') return item.stock <= 0
     if (filterStatus === 'low') return item.stock > 0 && item.stock <= threshold
     if (filterStatus === 'in_stock') return item.stock > threshold
@@ -144,7 +142,7 @@ export const InventoryTable: React.FC = () => {
   })
 
   // Summary Metrics
-  const stocked = items.filter((i) => i.item_type !== 'service')
+  const stocked = items
   const totalSkus = items.length
   const totalUnits = stocked.reduce((sum, i) => sum + i.stock, 0)
   const outOfStockCount = stocked.filter((i) => i.stock <= 0).length
@@ -207,10 +205,10 @@ export const InventoryTable: React.FC = () => {
 
   const exportInventoryCsv = () => {
     const q = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-    const header = ['Product', 'Variant', 'Type', 'Category', 'Barcode', 'SKU', 'Stock', 'Low Stock Alert', 'Price', 'Offer Price', 'Cost Price', 'Active']
+    const header = ['Product', 'Variant', 'Category', 'Barcode', 'SKU', 'Stock', 'Low Stock Alert', 'Price', 'Offer Price', 'Cost Price', 'Active']
     const lines = filtered.map((i) => [
-      i.name, i.variant_name || '', i.item_type === 'service' ? 'Service' : 'Product', i.category || '', i.barcode || '', i.sku || '',
-      i.item_type === 'service' ? '' : i.stock, i.low_stock_threshold ?? '', i.price, i.offer_price ?? '', i.purchase_price ?? '', i.is_active ? 'Yes' : 'No',
+      i.name, i.variant_name || '', i.category || '', i.barcode || '', i.sku || '',
+      i.stock, i.low_stock_threshold ?? '', i.price, i.offer_price ?? '', i.purchase_price ?? '', i.is_active ? 'Yes' : 'No',
     ].map(q).join(','))
     void downloadCsv(`Inventory_${new Date().toISOString().slice(0, 10)}.csv`, [header.join(','), ...lines].join('\n'))
   }
@@ -244,8 +242,7 @@ export const InventoryTable: React.FC = () => {
           </label>
           <button type="button" onClick={exportInventoryCsv} className={toolBtn}><Download size={18} strokeWidth={1.75} /> Inventory CSV</button>
           <button type="button" onClick={() => setActiveTab(activeTab === 'categories' ? 'stock' : 'categories')} className={toolBtn}><Tag size={18} strokeWidth={1.75} /> Manage Categories</button>
-          <button type="button" onClick={() => setAddItemType('service')} className={darkBtn}><Scissors size={18} strokeWidth={1.75} /> Add Service</button>
-          <button type="button" onClick={() => setAddItemType('product')} className={darkBtn}><Plus size={18} strokeWidth={2} /> Add Product</button>
+          <button type="button" onClick={() => setAddOpen(true)} className={darkBtn}><Plus size={18} strokeWidth={2} /> Add Product</button>
         </div>
       </div>
 
@@ -297,7 +294,6 @@ export const InventoryTable: React.FC = () => {
                   <tr>
                     <th className="px-4 py-5 text-[10px] font-bold uppercase tracking-wider text-[#111111]">Product</th>
                     <th className="px-4 py-5 text-[10px] font-bold uppercase tracking-wider text-[#111111]">Barcode</th>
-                    <th className="px-4 py-5 text-center text-[10px] font-bold uppercase tracking-wider text-[#111111]">Type</th>
                     <th className="px-4 py-5 text-center text-[10px] font-bold uppercase tracking-wider text-[#111111]">Stock</th>
                     <th className="px-4 py-5 text-[10px] font-bold uppercase tracking-wider text-[#111111]">Price</th>
                     <th className="px-4 py-5 text-right text-[10px] font-bold uppercase tracking-wider text-[#111111]">Actions</th>
@@ -305,10 +301,9 @@ export const InventoryTable: React.FC = () => {
                 </thead>
                 <tbody>
                   {filtered.map((item) => {
-                    const isService = item.item_type === 'service'
                     const open = expandedId === item.id
                     const threshold = item.low_stock_threshold || 5
-                    const stockTone = isService ? 'text-gray-400' : item.stock <= 0 ? 'text-[#DC2626]' : item.stock <= threshold ? 'text-amber-600' : 'text-[#111111]'
+                    const stockTone = item.stock <= 0 ? 'text-[#DC2626]' : item.stock <= threshold ? 'text-amber-600' : 'text-[#111111]'
                     return (
                       <React.Fragment key={item.id}>
                         <tr className="border-b border-gray-100">
@@ -335,12 +330,7 @@ export const InventoryTable: React.FC = () => {
                               <span className="text-[11px] italic text-gray-400">No Barcode</span>
                             )}
                           </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className={`inline-block rounded-md px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${isService ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-[#374151]'}`}>
-                              {isService ? 'Service' : 'Product'}
-                            </span>
-                          </td>
-                          <td className={`px-4 py-4 text-center text-sm font-black tabular-nums ${stockTone}`}>{isService ? '—' : item.stock}</td>
+                          <td className={`px-4 py-4 text-center text-sm font-black tabular-nums ${stockTone}`}>{item.stock}</td>
                           <td className="px-4 py-4">
                             <button type="button" onClick={() => setPriceModalItem(item)} title="Quick edit price" className="text-sm font-black tabular-nums text-[#111111] hover:underline cursor-pointer">
                               {formatCurrency(item.price)}
@@ -351,7 +341,6 @@ export const InventoryTable: React.FC = () => {
                               <button type="button" onClick={() => setExpandedId(open ? null : item.id)} className={rowBtn}>
                                 <ChevronDown size={15} className={`transition-transform ${open ? 'rotate-180' : ''}`} /> Details
                               </button>
-                              {!isService && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -367,11 +356,10 @@ export const InventoryTable: React.FC = () => {
                                 >
                                   <ScanBarcode size={14} /> Barcode
                                 </button>
-                              )}
                               <button type="button" onClick={() => { setEditProductId(item.product_id); setActiveTab('products') }} className={rowBtn} title={`Edit "${item.name}"`}>
                                 <Edit2 size={14} /> Edit
                               </button>
-                              <button type="button" onClick={() => setAdjustModalItem(item)} disabled={isService} className={rowBtn} title={isService ? 'Services have no stock' : 'Adjust stock'}>
+                              <button type="button" onClick={() => setAdjustModalItem(item)} className={rowBtn} title="Adjust stock">
                                 <SlidersHorizontal size={14} /> Stock
                               </button>
                               {role === 'admin' && (
@@ -384,14 +372,14 @@ export const InventoryTable: React.FC = () => {
                         </tr>
                         {open && (
                           <tr className="border-b border-gray-100 bg-gray-50/70">
-                            <td colSpan={6} className="px-4 py-3.5">
+                            <td colSpan={5} className="px-4 py-3.5">
                               <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-[13px] sm:grid-cols-3 lg:grid-cols-6">
                                 {[
                                   ['Category', item.category || 'General'],
                                   ['SKU', item.sku || '—'],
                                   ['Offer Price', item.offer_price ? formatCurrency(item.offer_price) : '—'],
                                   ['Cost Price', item.purchase_price ? formatCurrency(item.purchase_price) : '—'],
-                                  ['Low Stock Alert', isService ? '—' : String(threshold)],
+                                  ['Low Stock Alert', String(threshold)],
                                 ].map(([k, v]) => (
                                   <div key={k}>
                                     <p className="text-[10.5px] font-black uppercase tracking-widest text-gray-500">{k}</p>
@@ -400,9 +388,7 @@ export const InventoryTable: React.FC = () => {
                                 ))}
                               </div>
                               <div className="mt-4 flex flex-wrap gap-2">
-                                {!isService && (
                                   <button type="button" onClick={() => setHistoryDrawerItem(item)} className={rowBtn}><History size={14} /> Stock History</button>
-                                )}
                                 <button type="button" onClick={() => setPriceModalItem(item)} className={rowBtn}><Edit2 size={14} /> Quick Price</button>
                               </div>
                             </td>
@@ -444,10 +430,9 @@ export const InventoryTable: React.FC = () => {
       )}
 
       <AddProductModal
-        isOpen={addItemType !== null}
-        initialType={addItemType || 'product'}
-        onClose={() => setAddItemType(null)}
-        onSuccess={() => { setAddItemType(null); void loadData() }}
+        isOpen={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSuccess={() => { setAddOpen(false); void loadData() }}
       />
 
       {/* Modal: Vyapar Barcode Generator Workspace */}

@@ -20,6 +20,8 @@ export interface InvoiceItem {
   lineTotal?: number
   /** HSN / SAC code shown on GST invoices */
   hsn?: string
+  /** Actual rate before the product offer */
+  mrp?: number | null
 }
 
 export interface InvoicePaymentRow { label: string; value: number; sub?: boolean; accent?: boolean }
@@ -234,7 +236,6 @@ export const Invoice: React.FC<InvoiceProps> = ({
             <tr>
               <th style={{ ...th, width: 28, textAlign: 'center' }}>#</th>
               <th style={th}>Item Description</th>
-              {isGst && <th style={{ ...th, textAlign: 'center', width: 70 }}>HSN</th>}
               <th style={{ ...th, textAlign: 'center', width: 60 }}>Qty</th>
               <th style={{ ...th, textAlign: 'right', width: 100 }}>
                 Rate (₹){isGst && <div style={{ fontSize: 8.5, textTransform: 'none', letterSpacing: 0, marginTop: 2 }}>excl. GST</div>}
@@ -254,11 +255,20 @@ export const Invoice: React.FC<InvoiceProps> = ({
                   <td style={td}>
                     <div style={{ fontWeight: 700 }}>{n.name}</div>
                     {tamil && tamil !== n.name && <div style={{ fontSize: 11, color: SOFT, marginTop: 2 }}>{tamil}</div>}
-                    {item.offerPrice && item.price !== item.offerPrice && (
-                      <div style={{ fontSize: 10.5, color: MUTED, textDecoration: 'line-through', marginTop: 2 }}>MRP {formatCurrency(item.price)}</div>
-                    )}
+                    {(() => {
+                      const mrp = Number(n.mrp ?? item.mrp ?? (item.offerPrice && item.price > item.offerPrice ? item.price : 0)) || 0
+                      if (!(mrp > n.base_price)) return null
+                      const off = Math.round((mrp - n.base_price) * 100) / 100
+                      const pct = Math.round((off / mrp) * 1000) / 10
+                      return (
+                        <div style={{ fontSize: 11, color: SOFT, marginTop: 3 }}>
+                          MRP <span style={{ textDecoration: 'line-through' }}>{formatCurrency(mrp)}</span>
+                          {' · '}<span style={{ color: '#B45309', fontWeight: 700 }}>{pct}% off (−{formatCurrency(off)})</span>
+                          {' · '}Pay {formatCurrency(n.base_price)}
+                        </div>
+                      )
+                    })()}
                   </td>
-                  {isGst && <td style={{ ...td, textAlign: 'center', fontFamily: MONO, fontSize: 12, color: '#374151' }}>{item.hsn || '–'}</td>}
                   <td style={{ ...td, textAlign: 'center', fontWeight: 700, whiteSpace: 'nowrap' }}>{n.unit_type === 'unit' ? n.quantity : formatQuantityDisplay(n.quantity, n.unit, n.unit_type)}</td>
                   <td style={{ ...td, textAlign: 'right', fontFamily: MONO, fontSize: 12.5, color: '#374151' }}>{money(n.base_price)}</td>
                   <td style={{ ...td, textAlign: 'right', fontFamily: MONO, fontSize: 12.5, fontWeight: 700 }}>{money(n.line_total)}</td>

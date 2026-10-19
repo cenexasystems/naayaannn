@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { alarmSound } from '../lib/alarmAudio'
+import { useStockAlertPrefs } from './stockAlertPrefs'
 
 export interface LowStockItem {
   id: string | number
@@ -36,12 +37,19 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       (item) => !silencedItemIds.has(String(item.id)) && !silencedItemIds.has(item.id)
     )
 
-    if (items.length > 0 && hasUnsilencedLowStock) {
+    const { notify, sound } = useStockAlertPrefs.getState()
+
+    if (!notify) {
+      // Stock notifications switched off in Settings: keep the list (badges, inventory) but never alarm
+      alarmSound.stopAlert()
+      set({ lowStockItems: items, isAlarmActive: false })
+    } else if (items.length > 0 && hasUnsilencedLowStock) {
       // Check if alarm was already active - if not, make sure to start it
       const wasAlarmActive = get().isAlarmActive
       
-      // Always start/restart the alert to ensure sound plays
-      alarmSound.startAlert()
+      // Always start/restart the alert to ensure sound plays (unless the sound is switched off)
+      if (sound) alarmSound.startAlert()
+      else alarmSound.stopAlert()
       set({ lowStockItems: items, isAlarmActive: true })
       
       // If alarm wasn't active before, this is a new alert - log it for debugging
@@ -71,3 +79,17 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
     set({ silencedItemIds: new Set() })
   },
 }))
+
+// Apply Settings changes straight away: turning notifications or sound off stops a ringing alarm
+useStockAlertPrefs.subscribe((prefs, prev) => {
+  if (prefs.notify === prev.notify && prefs.sound === prev.sound) return
+  const state = useAlarmStore.getState()
+  if (!prefs.notify) {
+    alarmSound.stopAlert()
+    useAlarmStore.setState({ isAlarmActive: false })
+  } else if (!prefs.sound) {
+    alarmSound.stopAlert()
+  } else {
+    state.setLowStockItems(state.lowStockItems)
+  }
+})

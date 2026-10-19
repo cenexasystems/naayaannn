@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Download, Eye, FileText, MessageCircle, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Check } from 'lucide-react'
-import { formatCurrency } from '../lib/retail'
+import { Download, Eye, Plus, FileText, MessageCircle, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Check } from 'lucide-react'
+import { formatCurrency, formatInvoiceNo } from '../lib/retail'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
 import PrintSettingsModal from '../components/print/PrintSettingsModal'
@@ -69,6 +69,8 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   const [paymentOrder, setPaymentOrder] = useState<AdvanceOrder | null>(null)
   const [printProps, setPrintProps] = useState<InvoiceProps | null>(null)
   const [preview, setPreview] = useState<{ order: AdvanceOrder; props: InvoiceProps } | null>(null)
+  // Shown after the final payment instead of jumping straight to WhatsApp
+  const [finalBill, setFinalBill] = useState<{ order: AdvanceOrder; props: InvoiceProps; received: number; method: string } | null>(null)
   const [paymentForm, setPaymentForm] = useState({ method: 'cash' as AdvancePaymentMethod, remarks: '' })
   const [depositSplit, setDepositSplit] = useState<SplitInputValue>(emptySplitInput())
   const [finalSplit, setFinalSplit] = useState<SplitInputValue>(emptySplitInput())
@@ -233,8 +235,14 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
       const completed: AdvanceOrder = { ...paymentOrder, status: 'completed', remaining_balance: finalAmount, completed_at: result.completed_at, completed_order_id: result.order_id, invoice_number: result.invoice_no, final_payment_method: paymentForm.method, split_details: result.split_details }
       setOrders(rows => rows.map(row => row.id === completed.id ? completed : row)); onOrderCompleted?.(completed); setPaymentOrder(null); setPaymentForm({ method: 'cash', remarks: '' }); setFinalSplit(emptySplitInput()); setNotice(`${result.invoice_no} generated once. The full ${formatCurrency(completed.total_amount)} is now recognized as revenue.`)
 
-      // Redirect to WhatsApp with final invoice URL + Instagram + Feedback form
-      whatsappInvoice(completed)
+      // Show the bill; WhatsApp / print / view are buttons on it
+      const payments = await paymentsFor(completed).catch(() => [])
+      setFinalBill({
+        order: completed,
+        props: advanceDocumentProps(completed, payments),
+        received: finalAmount,
+        method: paymentForm.method === 'split' ? formatPaymentLabel('split', result.split_details) : paymentForm.method,
+      })
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to complete payment') } finally { setSaving(false) }
   }
 
@@ -296,6 +304,75 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   const iconBtn = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors cursor-pointer'
 
   return <div className="space-y-6">
+    {finalBill && !preview && createPortal((() => {
+      const { order, props, received, method } = finalBill
+      const isGst = (props.cgstAmount || 0) + (props.sgstAmount || 0) > 0
+      const chip = /^split/i.test(method) ? 'Split' : method === 'upi' || method === 'qr' ? 'QR / GPay' : method
+      const btn = 'inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-[11px] font-black uppercase tracking-wider text-[#111111] hover:bg-gray-50'
+      return (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Bill generated">
+          <div className="max-h-full w-full max-w-[680px] overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-8">
+            <div className="flex items-start justify-between gap-4 border-b border-gray-200 pb-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-[26px] font-black tracking-tight text-[#111111] sm:text-[28px]">Bill Generated</h2>
+                  <span className="rounded-md bg-gray-100 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-[#111111]">{isGst ? 'GST' : 'Non-GST'}</span>
+                </div>
+                <p className="mt-1 font-mono text-xs font-bold text-primary">#{formatInvoiceNo(props.invoiceNo)}</p>
+                <p className="mt-0.5 text-[11px] font-semibold text-gray-500">Advance order {order.deposit_id}</p>
+              </div>
+              <button type="button" onClick={() => setFinalBill(null)} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-[#111111] px-4 text-[11px] font-black uppercase tracking-wider text-white hover:bg-black">
+                <Plus size={16} /> New Sale
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-gray-200 p-5">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">Payment Receipt</p>
+                <span className="rounded-md bg-gray-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-primary">{chip}</span>
+              </div>
+              <div className="flex items-center justify-between pt-4">
+                <span className="text-sm font-semibold text-gray-600">Grand Total</span>
+                <span className="text-2xl font-black tabular-nums text-[#111111]">{formatCurrency(order.total_amount)}</span>
+              </div>
+              <div className="flex items-center justify-between pt-3">
+                <span className="text-sm font-semibold text-gray-600">Advance Paid Earlier</span>
+                <span className="text-base font-black tabular-nums text-[#111111]">{formatCurrency(order.deposit_amount)}</span>
+              </div>
+              <div className="flex items-center justify-between pt-3">
+                <span className="text-sm font-semibold text-gray-600">Amount Received</span>
+                <span className="text-lg font-black tabular-nums text-[#111111]">{formatCurrency(received)}</span>
+              </div>
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100 px-4 py-4">
+                <span className="text-sm font-black text-primary">Balance Due</span>
+                <span className="text-2xl font-black tabular-nums text-primary">{formatCurrency(0)}</span>
+              </div>
+              {/^split/i.test(method) && <p className="mt-3 text-xs font-semibold text-gray-500">{method}</p>}
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <button type="button" onClick={() => setPrintProps(props)} className={btn}><Printer size={16} /> Print Receipt</button>
+              <button type="button" onClick={() => setPreview({ order, props })} className={btn}><Eye size={16} /> View</button>
+              <button type="button" onClick={() => whatsappInvoice(order)} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-3 text-[11px] font-black uppercase tracking-wider text-white hover:bg-emerald-600">
+                <MessageCircle size={16} /> WhatsApp Invoice
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-gray-200 p-5">
+              <p className="border-b border-gray-100 pb-3 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">Items Sold</p>
+              <div className="space-y-2.5 pt-3">
+                {props.items.map((item, i) => (
+                  <div key={i} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="min-w-0 font-semibold text-[#111111]">{item.name} <span className="text-[11px] font-semibold text-gray-400">× {Number(item.quantity ?? item.qty ?? 1)}</span></span>
+                    <span className="shrink-0 font-bold tabular-nums">{formatCurrency(Number(item.line_total ?? item.lineTotal ?? 0))}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    })(), document.body)}
     {preview && (() => {
       const headerBtn = 'inline-flex h-9 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-xs font-bold text-white hover:bg-white/20'
       const { order, props } = preview

@@ -7,7 +7,7 @@ import {
   RefreshCw, ShoppingBag, MessageCircle, Eye,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Wifi, WifiOff, Layers, X, ChevronDown, Power,
-  Edit2, AlertCircle, Check, User, CalendarDays, Scissors, PackagePlus, List, Clock
+  Edit2, AlertCircle, Check, User, CalendarDays, PackagePlus, List, Clock
 } from 'lucide-react'
 import { useProductStore, useVariantStore, useAdminAuthStore, type Product } from '../store/store'
 import { useNavigationStore } from '../store/navigationStore'
@@ -34,7 +34,7 @@ import {
   formatInvoiceNo,
 } from '../lib/retail'
 import { buildProfessionalWhatsAppMessage, buildAdvanceDepositWhatsAppMessage, publicInvoiceUrl } from '../lib/whatsappMessage'
-import { formatPhoneDisplay, normalizePhone, toWhatsAppUrl } from '../lib/phone'
+import { normalizePhone, toWhatsAppUrl } from '../lib/phone'
 import { useLangStore } from '../store/langStore'
 import { fetchVariantsByProduct, type ProductVariant } from '../services/variantService'
 import { BarcodeScannerInput, type ScannedItemPayload } from '../components/pos/BarcodeScannerInput'
@@ -79,6 +79,28 @@ type InvoiceSnap = {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+/** Actual rate (MRP) when a catalogue product is being billed at its offer price. */
+const offerMrp = (item: PosItem): number | null => {
+  const mrp = Number(item.price) || 0
+  const pay = Number(item.basePrice) || 0
+  return item.source !== 'manual' && item.offerPrice && pay > 0 && pay < mrp ? mrp : null
+}
+
+/** "MRP ₹1,000 · 10% off (−₹100)" under an item that has a product offer. */
+function OfferLine({ item }: { item: PosItem }) {
+  const mrp = offerMrp(item)
+  if (!mrp) return null
+  const pay = Number(item.basePrice) || 0
+  const off = Math.round((mrp - pay) * 100) / 100
+  const pct = Math.round((off / mrp) * 1000) / 10
+  return (
+    <span className="ml-2 inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] font-semibold text-gray-500">
+      <span className="line-through">{formatCurrency(mrp)}</span>
+      <span className="rounded bg-amber-50 px-1.5 py-0.5 font-bold text-amber-700">{pct}% off · −{formatCurrency(off)}</span>
+    </span>
+  )
+}
+
 // Returns the product ID if it looks like a real DB identifier (UUID or numeric),
 // or null for synthetic/manual IDs like "manual-<timestamp>".
 const toProductId = (v: string | number): string | null => {
@@ -192,7 +214,6 @@ export default function Pos(props: PosProps = {}) {
   const [gstInput, setGstInput] = useState('')
   const [gstType, setGstType] = useState<'percent' | 'flat'>('percent')
   const [catalogOpen, setCatalogOpen] = useState(false)
-  const [catalogServiceOnly, setCatalogServiceOnly] = useState(false)
   const [addToCatalogOpen, setAddToCatalogOpen] = useState(false)
   const [depositOpen, setDepositOpen] = useState(false)
   const [depositCreated, setDepositCreated] = useState<AdvanceOrder | null>(null)
@@ -817,9 +838,10 @@ export default function Pos(props: PosProps = {}) {
           unitType: item.unitType,
           baseQuantity: item.baseQuantity,
           basePrice: Number(item.basePrice) || 0,
+          mrp: offerMrp(item),
           imageUrl: item.imageUrl || item.image || null,
           source: item.source || 'catalogue',
-          isManual: item.source === 'manual' || item.category === 'Unregistered' || item.itemType === 'service',
+          isManual: item.source === 'manual' || item.category === 'Unregistered',
           category: item.category || null,
           note: item.note || null,
         })),
@@ -1290,9 +1312,6 @@ export default function Pos(props: PosProps = {}) {
                 <button type="button" onClick={clearAll} disabled={items.length === 0} className={posToolBtn}>
                   <Trash2 size={16} strokeWidth={1.75} /> Clear Order
                 </button>
-                <button type="button" onClick={() => { setCatalogServiceOnly(true); setCatalogOpen(true) }} className={`${posToolBtn} !bg-primary-50`}>
-                  <Scissors size={16} strokeWidth={1.75} /> Add Service
-                </button>
                 <button type="button" onClick={() => setAddToCatalogOpen(true)} className={posToolBtn}>
                   <PackagePlus size={16} strokeWidth={1.75} /> Add to Catalog
                 </button>
@@ -1324,7 +1343,7 @@ export default function Pos(props: PosProps = {}) {
                       <button type="button" onClick={addCustomItem} className="h-9 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500 hover:border-gray-300">
                         Type custom item name...
                       </button>
-                      <button type="button" onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }} className="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase tracking-wider text-[#111111] hover:bg-gray-100">
+                      <button type="button" onClick={() => setCatalogOpen(true)} className="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase tracking-wider text-[#111111] hover:bg-gray-100">
                         <List size={16} strokeWidth={1.75} /> Catalog
                       </button>
                     </div>
@@ -1334,7 +1353,7 @@ export default function Pos(props: PosProps = {}) {
                   </div>
                   <div className="md:hidden flex gap-2">
                     <button type="button" onClick={addCustomItem} className="h-9 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500">Type custom item name...</button>
-                    <button type="button" onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }} className="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase text-[#111111]"><List size={16} /> Catalog</button>
+                    <button type="button" onClick={() => setCatalogOpen(true)} className="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase text-[#111111]"><List size={16} /> Catalog</button>
                   </div>
                 </div>
               )}
@@ -1354,7 +1373,7 @@ export default function Pos(props: PosProps = {}) {
                             className={posInput}
                           />
                         ) : (
-                          <p className="text-sm font-black text-[#111111] break-words">{itemDisplayName(item)}</p>
+                          <p className="text-sm font-black text-[#111111] break-words">{itemDisplayName(item)}<OfferLine item={item} /></p>
                         )}
                       </div>
                       <button type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="flex h-9 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-[#111111] hover:bg-red-50 hover:text-red-600">
@@ -1393,15 +1412,16 @@ export default function Pos(props: PosProps = {}) {
                       ) : (
                         <div className="flex h-9 min-w-0 flex-1 items-center rounded-xl border border-gray-200 px-4">
                           <span className="truncate text-[14px] font-bold text-[#111111]">{itemDisplayName(item)}</span>
+                          <OfferLine item={item} />
                         </div>
                       )}
                       <button
                         type="button"
-                        onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }}
+                        onClick={() => setCatalogOpen(true)}
                         className="inline-flex h-9 shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase tracking-wider text-[#111111] hover:bg-gray-100"
                         title="Pick from catalog"
                       >
-                        <List size={16} strokeWidth={1.75} /> {item.itemType === 'service' ? 'Service' : 'Catalog'}
+                        <List size={16} strokeWidth={1.75} /> Catalog
                       </button>
                     </div>
                     {item.source === 'manual' ? (
@@ -1742,12 +1762,10 @@ export default function Pos(props: PosProps = {}) {
       {catalogOpen && (
         <CatalogModal
           isOpen={catalogOpen}
-          serviceOnly={catalogServiceOnly}
-          onClose={() => { setCatalogOpen(false); setCatalogServiceOnly(false) }}
+          onClose={() => setCatalogOpen(false)}
           onAdd={(p) => {
             void addItem(p)
             setCatalogOpen(false)
-            setCatalogServiceOnly(false)
           }}
         />
       )}

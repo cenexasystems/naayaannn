@@ -1,18 +1,14 @@
 import React, { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   Save, Store, User, Phone, Mail, MapPin, AtSign, Upload, Trash2, CheckCircle2, AlertCircle,
-  Settings2, Palette, Image as ImageIcon, Package, Plus, Languages, Sparkles, MessageCircle, Clock, Scissors, Hash, Check, Pencil,
+  Settings2, Palette, Image as ImageIcon, Languages, BellRing, Volume2, VolumeX, Sparkles, MessageCircle, Clock, Hash,
 } from 'lucide-react'
 import {
   BRAND_SETTINGS, DEFAULT_ACCENT, DEFAULT_LOGO, applyAccentColor, isValidAccent, toE164, type BrandSettings,
 } from '../../lib/brand'
 import { saveBrandSettings } from '../../services/brandSettingsService'
-import { inventoryService, type CategoryRecord } from '../../services/inventoryService'
-import { useProductStore } from '../../store/store'
-import { formatCurrency } from '../../lib/retail'
-import AddProductModal from '../AddProductModal'
-import { db } from '../../lib/db'
-import { confirmDelete } from '../../lib/confirmDelete'
+import { useStockAlertPrefs } from '../../store/stockAlertPrefs'
+import { alarmSound } from '../../lib/alarmAudio'
 
 const card = 'bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6'
 const label = 'block text-[11px] font-black uppercase tracking-[0.12em] text-[#4B5563] mb-2'
@@ -91,7 +87,7 @@ const IconInput: React.FC<{
 
 const isPhoneOk = (v: string) => !v.trim() || toE164(v).length >= 10
 
-export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ onOpenInventory }) => {
+export const ShopSettingsView: React.FC = () => {
   const [form, setForm] = useState<BrandSettings>({ ...BRAND_SETTINGS })
   const [hexDraft, setHexDraft] = useState(BRAND_SETTINGS.accentColor)
   const [saving, setSaving] = useState(false)
@@ -99,95 +95,13 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
   const fileRef = useRef<HTMLInputElement>(null)
   const saved = useRef(false)
 
-  const { products, fetchProducts } = useProductStore()
-  const [categories, setCategories] = useState<CategoryRecord[]>([])
-  const [newCategory, setNewCategory] = useState('')
-  const [catalogError, setCatalogError] = useState('')
-  const [addOpen, setAddOpen] = useState(false)
-  const [quick, setQuick] = useState({ type: 'product' as 'product' | 'service', name: '', category: '', price: '', cost: '', stock: '', alert: '', offer: '' })
-  const [quickSaving, setQuickSaving] = useState(false)
-  const [quickError, setQuickError] = useState('')
-
-  const quickAdd = async () => {
-    const price = Number(quick.price)
-    if (!quick.name.trim()) { setQuickError('Enter an item name.'); return }
-    if (!price || price <= 0) { setQuickError('Enter a price greater than 0.'); return }
-    const offerPct = Number(quick.offer)
-    setQuickSaving(true)
-    setQuickError('')
-    try {
-      const categoryName = quick.category.trim() || (quick.type === 'service' ? 'Services' : 'General')
-      let categoryId: number | null = categories.find((c) => c.name_en.toLowerCase() === categoryName.toLowerCase())?.id ?? null
-      if (categoryId === null) categoryId = (await inventoryService.createCategory({ name_en: categoryName, is_active: true })).id
-      const stock = quick.type === 'service' ? 0 : Math.max(0, parseInt(quick.stock) || 0)
-      const { error: err } = await db.from('products').insert({
-        name: quick.name.trim(),
-        category: categoryName,
-        category_id: categoryId,
-        item_type: quick.type,
-        price,
-        offer_price: offerPct > 0 && offerPct < 100 ? Math.round(price * (1 - offerPct / 100) * 100) / 100 : null,
-        purchase_price: Number(quick.cost) || 0,
-        stock,
-        stock_quantity: stock,
-        low_stock_alert: quick.type === 'service' ? 0 : Math.max(0, parseInt(quick.alert) || 5),
-        is_active: true,
-        unit: quick.type === 'service' ? 'service' : '1pc',
-        base_quantity: 1,
-        unit_type: 'unit',
-        unit_label: quick.type === 'service' ? 'service' : 'pc',
-      })
-      if (err) throw new Error(err.message)
-      setQuick((q) => ({ ...q, name: '', price: '', cost: '', stock: '', alert: '', offer: '' }))
-      await Promise.all([fetchProducts(true), loadCategories()])
-    } catch (e) {
-      setQuickError(e instanceof Error ? e.message : 'Could not add the item.')
-    } finally {
-      setQuickSaving(false)
-    }
-  }
-
-  const toggleActive = async (id: string | number, active: boolean) => {
-    const { error: err } = await db.from('products').update({ is_active: active }).eq('id', id)
-    if (err) setCatalogError(err.message)
-    else void fetchProducts(true)
-  }
-
-  const removeItem = async (id: string | number, name: string) => {
-    const ok = await confirmDelete({
-      title: `Permanently Delete “${name}”`,
-      warning: 'This catalogue item will be deleted from the catalogue and inventory in the Neon database.',
-      impact: [
-        { label: 'Item', value: name },
-        { label: 'Billing Panel', value: 'Removed immediately', tone: 'danger' },
-        { label: 'Past Bills', value: 'Kept unchanged', tone: 'success' },
-      ],
-    })
-    if (!ok) return
-    try {
-      await inventoryService.deleteInventoryItem(Number(id), null)
-      void fetchProducts(true)
-    } catch (e) {
-      setCatalogError(e instanceof Error ? e.message : 'Could not delete the item.')
-    }
-  }
+  const { notify: stockNotify, sound: stockSound, setNotify: setStockNotify, setSound: setStockSound } = useStockAlertPrefs()
 
   const set = (key: keyof BrandSettings) => (v: string) => setForm((f) => ({ ...f, [key]: v }))
 
   // Live preview of the accent colour; undo it if the page is left without saving
   useEffect(() => { applyAccentColor(form.accentColor) }, [form.accentColor])
   useEffect(() => () => { if (!saved.current) applyAccentColor(BRAND_SETTINGS.accentColor) }, [])
-
-  const loadCategories = () =>
-    inventoryService.fetchCategories().then(setCategories).catch((err) => {
-      setCatalogError(err instanceof Error ? err.message : 'Could not load categories.')
-    })
-
-  useEffect(() => {
-    void loadCategories()
-    if (products.length === 0) void fetchProducts()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const pickAccent = (hex: string) => {
     setHexDraft(hex)
@@ -210,19 +124,6 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
       setMessage(null)
     } catch (err) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Could not use this image.' })
-    }
-  }
-
-  const handleAddCategory = async () => {
-    const name = newCategory.trim()
-    if (!name) return
-    setCatalogError('')
-    try {
-      await inventoryService.createCategory({ name_en: name, is_active: true })
-      setNewCategory('')
-      await loadCategories()
-    } catch (err) {
-      setCatalogError(err instanceof Error ? err.message : 'Could not add the category.')
     }
   }
 
@@ -254,8 +155,6 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
     setTimeout(() => window.location.reload(), 900)
   }
 
-  const sortedProducts = [...products].sort((a, b) => a.name.localeCompare(b.name))
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -266,7 +165,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
         <div className="min-w-0">
           <h2 className="text-sm font-black uppercase tracking-tight text-[#111111]">Shop Settings</h2>
           <p className="text-[13px] font-medium text-[#4B5563]">
-            Update the shop profile, logo and product catalogue used across the POS, invoices and the public store page.
+            Update the shop profile, logo, colours and stock alerts used across the POS and invoices.
           </p>
         </div>
       </div>
@@ -338,108 +237,34 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
           </section>
 
           <section className={card}>
-            <SectionTitle
-              icon={<Package size={18} />}
-              title="Product Catalogue"
-              action={onOpenInventory && (
-                <button type="button" onClick={onOpenInventory} className="text-[11px] font-black uppercase tracking-[0.14em] text-[#111111] hover:text-primary">
-                  Full inventory view
-                </button>
-              )}
-            />
-            <p className={`${label} mt-5`}>Categories</p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {categories.length === 0 && <span className="text-[13px] font-medium text-gray-400">No categories yet.</span>}
-              {categories.map((c) => (
-                <span key={c.id} className="rounded-full border border-primary-200 bg-primary-50 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-primary">
-                  {c.name_en}
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-3 mb-2">
-              <input
-                className={`${inputBase} px-4`}
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleAddCategory() } }}
-                placeholder="e.g. Shirts"
+            <SectionTitle icon={<BellRing size={18} />} title="Stock Alerts" />
+            <p className="text-[13px] font-medium text-[#4B5563] mb-5">
+              Choose how this device warns you when products run low or go out of stock.
+            </p>
+            <div className="space-y-3">
+              <ToggleRow
+                icon={<BellRing size={18} />}
+                title="Low-stock notification"
+                text="Show a popup when items reach their low-stock alert level."
+                checked={stockNotify}
+                onChange={setStockNotify}
               />
-              <button type="button" onClick={() => void handleAddCategory()} className="inline-flex shrink-0 items-center gap-1.5 h-10 px-5 rounded-xl bg-[#111111] text-white text-[10px] font-bold uppercase hover:bg-black">
-                <Plus size={16} /> Add
-              </button>
+              <ToggleRow
+                icon={stockSound ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                title="Alert sound"
+                text="Play the alarm sound with the popup."
+                checked={stockSound}
+                disabled={!stockNotify}
+                onChange={setStockSound}
+              />
             </div>
-            {catalogError && <p className="text-[12px] font-bold text-[#B91C1C] mb-2">{catalogError}</p>}
-
-            <div className="border-t border-gray-200 my-6" />
-            <p className={label}>Add catalogue item</p>
-            <form onSubmit={(e) => { e.preventDefault(); void quickAdd() }} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                {(['product', 'service'] as const).map((t) => (
-                  <button key={t} type="button" onClick={() => setQuick((q) => ({ ...q, type: t }))}
-                    className={`inline-flex h-9 items-center justify-center gap-2 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-colors ${quick.type === t ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#374151] hover:bg-gray-50'}`}>
-                    {t === 'product' ? <Package size={16} /> : <Scissors size={16} />} {t}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-[1.4fr_1.4fr_1fr_1fr] gap-3">
-                <input className={`${inputBase} px-4`} value={quick.name} onChange={(e) => setQuick((q) => ({ ...q, name: e.target.value }))} placeholder="Item name" aria-label="Item name" />
-                <input className={`${inputBase} px-4`} value={quick.category} onChange={(e) => setQuick((q) => ({ ...q, category: e.target.value }))} placeholder="Category" aria-label="Category" list="settings-categories" />
-                <input className={`${inputBase} px-4`} value={quick.price} onChange={(e) => setQuick((q) => ({ ...q, price: e.target.value }))} placeholder="Price" aria-label="Price" inputMode="decimal" />
-                <input className={`${inputBase} px-4`} value={quick.cost} onChange={(e) => setQuick((q) => ({ ...q, cost: e.target.value }))} placeholder="Cost" aria-label="Cost price" inputMode="decimal" />
-              </div>
-              <datalist id="settings-categories">{categories.map((c) => <option key={c.id} value={c.name_en} />)}</datalist>
-              <div className="grid grid-cols-3 gap-3 sm:w-2/3">
-                {quick.type === 'product' && (
-                  <>
-                    <label className="block"><span className="sr-only">Stock</span>
-                      <input className={`${inputBase} px-4`} value={quick.stock} onChange={(e) => setQuick((q) => ({ ...q, stock: e.target.value }))} placeholder="Stock" title="Opening stock" inputMode="numeric" /></label>
-                    <label className="block"><span className="sr-only">Low stock alert</span>
-                      <input className={`${inputBase} px-4`} value={quick.alert} onChange={(e) => setQuick((q) => ({ ...q, alert: e.target.value }))} placeholder="Alert at" title="Low stock alert" inputMode="numeric" /></label>
-                  </>
-                )}
-                <label className="block"><span className="sr-only">Offer %</span>
-                  <input className={`${inputBase} px-4`} value={quick.offer} onChange={(e) => setQuick((q) => ({ ...q, offer: e.target.value }))} placeholder="Offer %" inputMode="decimal" /></label>
-              </div>
-              {quickError && <p className="text-[12px] font-bold text-[#B91C1C]">{quickError}</p>}
-              <button type="submit" disabled={quickSaving} className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-xl bg-primary text-primary-ink text-[10px] font-bold uppercase tracking-wider shadow-md hover:bg-primary-hover disabled:opacity-60">
-                <Plus size={17} /> {quickSaving ? 'Adding…' : 'Add to catalogue'}
-              </button>
-              <button type="button" onClick={() => setAddOpen(true)} className="w-full text-center text-[10px] font-bold uppercase tracking-wide text-gray-500 hover:text-[#111111]">
-                More fields (GST, HSN, description) →
-              </button>
-            </form>
-
-            <div className="border-t border-gray-200 my-6" />
-            <div className="max-h-[460px] overflow-y-auto pr-1 space-y-2.5">
-              {sortedProducts.length === 0 && (
-                <p className="text-center text-[13px] font-medium text-gray-400 py-6">No products yet.</p>
-              )}
-              {sortedProducts.map((p) => (
-                <div key={String(p.id)} className={`flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 ${p.isActive ? '' : 'opacity-60'}`}>
-                  <div className="min-w-0">
-                    <p className="truncate text-[14px] font-black text-[#111111]">{p.name}</p>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                      {p.category || 'Uncategorised'} • {p.itemType === 'service' ? 'Service' : `Stock ${p.stockQuantity ?? p.stock ?? 0} (alert < ${p.lowStockAlert ?? 5})`}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <span className="mr-1 font-mono text-[13px] font-black text-[#111111]">{formatCurrency(p.offerPrice || p.price)}</span>
-                    <button type="button" onClick={() => void toggleActive(p.id, !p.isActive)} title={p.isActive ? 'Active — click to hide from billing' : 'Hidden — click to activate'} aria-label={p.isActive ? 'Deactivate' : 'Activate'}
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100 ${p.isActive ? 'text-[#10B981]' : 'text-gray-300'}`}>
-                      <Check size={17} strokeWidth={2.5} />
-                    </button>
-                    {onOpenInventory && (
-                      <button type="button" onClick={onOpenInventory} title="Edit in inventory" aria-label="Edit in inventory" className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#111111]">
-                        <Pencil size={15} />
-                      </button>
-                    )}
-                    <button type="button" onClick={() => void removeItem(p.id, p.name)} title="Delete" aria-label={`Delete ${p.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-[#DC2626]">
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => { alarmSound.startAlert(); setTimeout(() => alarmSound.stopAlert(), 1600) }}
+              className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 px-4 text-[10px] font-bold uppercase tracking-wider text-[#374151] hover:bg-gray-50"
+            >
+              <Volume2 size={15} /> Test sound
+            </button>
           </section>
         </div>
 
@@ -505,9 +330,9 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
               <IconInput icon={<AtSign size={17} />} value={form.instagram} onChange={set('instagram')} placeholder="naayan.official" />
             </div>
             <div className="sm:col-span-2">
-              <span className={label}>Catalogue headline / services</span>
+              <span className={label}>Catalogue headline</span>
               <div className="relative">
-                <Scissors size={17} className="pointer-events-none absolute left-4 top-4 text-gray-400" />
+                <Sparkles size={17} className="pointer-events-none absolute left-4 top-4 text-gray-400" />
                 <textarea
                   className={`${inputBase} h-auto min-h-[76px] pl-11 pr-4 py-3 resize-y`}
                   value={form.catalogueHeadline}
@@ -581,11 +406,38 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
         </form>
       </div>
 
-      <AddProductModal
-        isOpen={addOpen}
-        onClose={() => setAddOpen(false)}
-        onSuccess={() => { setAddOpen(false); void fetchProducts(); void loadCategories() }}
-      />
+    </div>
+  )
+}
+
+function ToggleRow({ icon, title, text, checked, disabled = false, onChange }: {
+  icon: React.ReactNode
+  title: string
+  text: string
+  checked: boolean
+  disabled?: boolean
+  onChange: (on: boolean) => void
+}) {
+  return (
+    <div className={`flex items-center justify-between gap-4 rounded-xl border border-gray-200 px-4 py-3.5 ${disabled ? 'opacity-50' : ''}`}>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-[#111111]">{icon}</span>
+        <div className="min-w-0">
+          <p className="text-[14px] font-black text-[#111111]">{title}</p>
+          <p className="text-[12px] font-medium text-gray-500">{text}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={title}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed ${checked ? 'bg-primary' : 'bg-gray-300'}`}
+      >
+        <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? 'left-6' : 'left-1'}`} />
+      </button>
     </div>
   )
 }

@@ -66,8 +66,6 @@ export interface Product {
   supplier?: string
   size?: string
   color?: string
-  /** 'service' items (alterations, delivery…) are billed without stock tracking */
-  itemType?: 'product' | 'service'
   hsnCode?: string
 }
 
@@ -262,7 +260,6 @@ const mapDbProduct = (input: unknown, categoriesById: Record<string, string> = {
     purchasePrice: toNumber(p.purchase_price, 0),
     mrp: toNumber(p.mrp, 0),
     gstPercent: toNumber(p.gst_percent, 0),
-    itemType: p.item_type === 'service' ? 'service' : 'product',
     hsnCode: readString(p.hsn_code),
     openingStock: toNumber(p.opening_stock, 0),
     lowStockAlert: toNumber(p.low_stock_alert, 5),
