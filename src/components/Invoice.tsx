@@ -81,6 +81,9 @@ export const Invoice: React.FC<InvoiceProps> = ({
         <div style={{ width: 64, height: 64, margin: '0 auto 10px auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <img src={BRAND_ICON} alt={BRAND_EN} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: '#111111', letterSpacing: 3, textTransform: 'uppercase' }}>
+          {BRAND_EN}
+        </div>
         <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4, fontWeight: 500, paddingLeft: 8, paddingRight: 8 }}>
           {BRAND_ADDRESS}
         </div>
@@ -245,6 +248,9 @@ export const Invoice: React.FC<InvoiceProps> = ({
             Follow us on Instagram: @{BRAND_INSTAGRAM}
           </div>
         )}
+        <div style={{ fontSize: 14, fontWeight: 900, color: '#111111', letterSpacing: 4, textTransform: 'uppercase', marginTop: 10 }}>
+          — {BRAND_EN} —
+        </div>
       </div>
     </div>
   )

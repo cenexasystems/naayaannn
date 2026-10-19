@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf'
-import { BRAND_ADDRESS, BRAND_PHONE_DISPLAY, BRAND_PRIMARY_PHONE_DISPLAY } from './brand'
+import { BRAND_ADDRESS, BRAND_EN, BRAND_PHONE_DISPLAY, BRAND_PRIMARY_PHONE_DISPLAY } from './brand'
 import { BRAND_PRINT_LOGO } from './brand'
 import { formatCurrency } from './retail'
 import { formatPaymentLabel } from './payments'
@@ -44,7 +44,8 @@ export function advanceReceiptPdf(order: AdvanceOrder, payments: AdvancePayment[
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   doc.setFillColor('#111111'); doc.rect(0, 0, 210, 5, 'F')
   try { doc.addImage(BRAND_PRINT_LOGO, 'PNG', 16, 9, 16, 16) } catch (_err) { /* ignore missing logo */ }
-  doc.setTextColor('#6B7280'); doc.setFontSize(8); doc.text('ADVANCE RECEIPT - NOT A TAX INVOICE', 38, 26)
+  doc.setTextColor('#111111'); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text(BRAND_EN.toUpperCase(), 38, 19)
+  doc.setFont('helvetica', 'normal'); doc.setTextColor('#6B7280'); doc.setFontSize(8); doc.text('ADVANCE RECEIPT - NOT A TAX INVOICE', 38, 26)
 
   doc.setFont('helvetica', 'normal'); doc.text(BRAND_ADDRESS, 194, 20, { align: 'right', maxWidth: 76 }); doc.text(BRAND_PRIMARY_PHONE_DISPLAY, 194, 30, { align: 'right' })
   doc.setDrawColor('#A1A1AA'); doc.line(16, 38, 194, 38)
@@ -81,6 +82,9 @@ export function advanceReceiptPdf(order: AdvanceOrder, payments: AdvancePayment[
   })
   y += boxHeight
   doc.setFont('helvetica', 'bold'); doc.setTextColor('#b45309'); doc.setFontSize(9); doc.text('This receipt records an advance payment only. It is not a final invoice.', 105, y + 13, { align: 'center' })
+  doc.setDrawColor('#F3F4F6'); doc.line(16, 275, 194, 275)
+  doc.setTextColor('#6B7280'); doc.setFontSize(8); doc.text('THANK YOU FOR CHOOSING US', 105, 283, { align: 'center' })
+  doc.setTextColor('#111111'); doc.setFontSize(11); doc.text(BRAND_EN.toUpperCase(), 105, 290, { align: 'center', charSpace: 1.2 })
   return new File([doc.output('blob')], `Advance-Receipt-${order.deposit_id}.pdf`, { type: 'application/pdf' })
 }
 
@@ -125,6 +129,7 @@ export function printAdvanceReceipt(order: AdvanceOrder, payments: AdvancePaymen
 <div class="c" style="margin-bottom: 6px;">
   <img src="${BRAND_PRINT_LOGO}" style="width: 50px; height: 50px; object-fit: contain; margin: 0 auto; display: block;" alt="Logo" />
 </div>
+<div class="c" style="font-size:16px;font-weight:900;letter-spacing:2px;">${esc(BRAND_EN.toUpperCase())}</div>
 <div class="c" style="font-size:10px;color:#555;">${esc(BRAND_ADDRESS)}</div>
 <div class="c" style="font-size:10px;color:#555;">${esc(BRAND_PHONE_DISPLAY)}</div>
 <div class="line"></div>
@@ -147,6 +152,8 @@ ${advanceBreakdownRows(order).map(row => `<div class="r${row.kind === 'total' ? 
 ${paymentLines(order, payments).map(line => `<div class="r${line.accent ? ' balance-row' : ''}"${line.sub ? ' style="font-size:10px;color:#555;padding-left:8px;"' : ''}><span>${esc(line.label)}</span><span class="${line.sub || line.accent ? '' : 'bold'}">${esc(formatCurrency(line.value))}</span></div>`).join('')}
 <div class="line"></div>
 <div class="warn">ADVANCE PAYMENT ONLY &mdash; NOT A FINAL INVOICE</div>
+<div class="c" style="margin-top:10px;font-size:11px;font-weight:bold;">Thank you for choosing ${esc(BRAND_EN.toUpperCase())}!</div>
+<div class="c" style="margin-top:4px;font-size:14px;font-weight:900;letter-spacing:3px;">&mdash; ${esc(BRAND_EN.toUpperCase())} &mdash;</div>
 </body></html>`
 
     printHtmlDocument(html)

@@ -92,6 +92,7 @@ export function printThermalReceipt(data: ThermalReceiptData) {
       <body>
         <div class="text-center mb-2">
           <img src="${BRAND_PRINT_LOGO}" style="width: 48px; height: 48px; object-fit: contain; margin: 0 auto 6px auto; display: block;" alt="Logo" />
+          <div style="font-size: 16px; font-weight: 900; letter-spacing: 2px;">${(data.storeName || BRAND_EN).toUpperCase()}</div>
           <div style="font-size: 9.5px; margin-top: 2px; line-height: 1.3;">${data.storeAddress || BRAND_ADDRESS}</div>
           ${BRAND_PRIMARY_PHONE_DISPLAY ? `<div class="mt-1" style="font-size: 10px; font-weight: bold;">Ph: ${BRAND_PRIMARY_PHONE_DISPLAY}</div>` : ''}
           <div style="font-size: 9px; color: #333;">${[data.storeEmail || BRAND_EMAIL, BRAND_INSTAGRAM ? `Insta: @${BRAND_INSTAGRAM}` : ''].filter(Boolean).join(' | ')}</div>
@@ -192,6 +193,7 @@ export function printThermalReceipt(data: ThermalReceiptData) {
         <div class="text-center mt-2" style="font-size: 11px;">
           <div class="font-bold">Thank you for shopping at ${BRAND_EN.toUpperCase()}!</div>
           ${BRAND_INSTAGRAM ? `<div>Follow us on Instagram: @${BRAND_INSTAGRAM}</div>` : ''}
+          <div style="margin-top: 6px; font-size: 14px; font-weight: 900; letter-spacing: 3px;">— ${(data.storeName || BRAND_EN).toUpperCase()} —</div>
         </div>
       </body>
     </html>

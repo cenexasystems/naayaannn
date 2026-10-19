@@ -183,6 +183,9 @@ export function createInvoicePdf(data: InvoicePdfData): Blob {
   doc.setFontSize(8)
   doc.setTextColor(primaryColor)
   doc.text('THANK YOU FOR SHOPPING WITH US', pageWidth / 2, y + 8, { align: 'center' })
+  doc.setFontSize(11)
+  doc.setTextColor('#111111')
+  doc.text(BRAND_EN.toUpperCase(), pageWidth / 2, y + 15, { align: 'center', charSpace: 1.2 })
   return doc.output('blob')
 }
 
