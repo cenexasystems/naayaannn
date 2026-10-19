@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob: data:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; font-src 'self' https: data:; connect-src 'self' https: wss: blob: data:; media-src 'self' data: blob: https:; object-src 'none'; base-uri 'self';" />
+
+    <!-- Early Exception & Extension Channel Error Guard -->
+    <script>
+      (function() {
+        var isBenign = function(msg, source) {
+          if (!msg && !source) return false;
+          var s = String(msg || '') + ' ' + String(source || '');
+          return (
+            s.indexOf('disconnected port object') !== -1 ||
+            s.indexOf('Attempting to use a disconnected port object') !== -1 ||
+            s.indexOf('proxy.js') !== -1 ||
+            s.indexOf('handleMessageFromPage') !== -1 ||
+            s.indexOf('message channel closed before a response was received') !== -1 ||
+            s.indexOf('The message port closed before a response was received') !== -1 ||
+            s.indexOf('A listener indicated an asynchronous response') !== -1 ||
+            s.indexOf('Extension context invalidated') !== -1 ||
+            s.indexOf('Could not establish connection. Receiving end does not exist') !== -1 ||
+            s.indexOf('ResizeObserver loop completed with undelivered notifications') !== -1 ||
+            s.indexOf('ResizeObserver loop limit exceeded') !== -1 ||
+            s.indexOf('Non-Error promise rejection captured') !== -1 ||
+            s.indexOf('Permissions policy violation: unload') !== -1 ||
+            s.indexOf('unload is not allowed in this document') !== -1 ||
+            s.indexOf('Using DEFAULT root logger') !== -1 ||
+            s.indexOf('non-precached-url') !== -1
+          );
+        };
+
+        // Proactively unregister any crashed or stale Service Worker registrations and purge workbox caches
+        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+          try {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) {
+                regs[i].unregister();
+              }
+            }).catch(function() {});
+            if ('caches' in window) {
+              caches.keys().then(function(names) {
+                for (var j = 0; j < names.length; j++) {
+                  caches.delete(names[j]);
+                }
+              }).catch(function() {});
+            }
+          } catch(e) {}
+        }
+
+
+        window.onerror = function(message, source, lineno, colno, error) {
+          var errStr = (error && (error.message || error.stack)) || '';
+          if (isBenign(message, source) || isBenign(errStr, source)) {
+            return true; // Suppresses uncaught error display in browser console
+          }
+        };
+
+        window.onunhandledrejection = function(event) {
+          var reason = event.reason;
+          var msg = (reason && (reason.message || reason.stack || reason)) || '';
+          if (isBenign(msg, '')) {
+            event.preventDefault();
+            return true;
+          }
+        };
+
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event.reason;
+          var msg = (reason && (reason.message || reason.stack || reason)) || '';
+          if (isBenign(msg, '')) {
+            event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            return false;
+          }
+        }, true);
+
+        window.addEventListener('error', function(event) {
+          var target = event.target;
+          // Self-healing recovery if a stale hashed stylesheet fails to load after a new deployment
+          if (target && target.tagName === 'LINK' && target.rel === 'stylesheet') {
+            var key = 'ul_css_recover_ts';
+            var last = sessionStorage.getItem(key);
+            var now = Date.now();
+            if (!last || now - Number(last) > 8000) {
+              sessionStorage.setItem(key, String(now));
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                  for (var i = 0; i < regs.length; i++) regs[i].unregister();
+                  if ('caches' in window) {
+                    caches.keys().then(function(names) {
+                      for (var j = 0; j < names.length; j++) caches.delete(names[j]);
+                      window.location.reload();
+                    });
+                  } else {
+                    window.location.reload();
+                  }
+                });
+              } else {
+                window.location.reload();
+              }
+            }
+            return;
+          }
+
+          var msg = event.message || (event.error && (event.error.message || event.error.stack)) || '';
+          var src = event.filename || '';
+          if (isBenign(msg, src)) {
+            event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            return false;
+          }
+        }, true);
+
+        // Filter benign extension warnings from console
+        var origWarn = console.warn;
+        console.warn = function() {
+          for (var i = 0; i < arguments.length; i++) {
+            if (arguments[i] && isBenign(arguments[i], '')) return;
+          }
+          return origWarn.apply(console, arguments);
+        };
+        var origError = console.error;
+        console.error = function() {
+          for (var i = 0; i < arguments.length; i++) {
+            if (arguments[i] && isBenign(arguments[i], '')) return;
+          }
+          return origError.apply(console, arguments);
+        };
+      })();
+    </script>
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/naayan-favicon.png?v=5" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/naayan-icon-192.png?v=5" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/naayan-icon-512.png?v=5" />
+    <link rel="shortcut icon" href="/naayan-favicon.png?v=5" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=5" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=5" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/naayan-icon-maskable-192.png?v=5" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/naayan-icon-maskable-512.png?v=5" />
+    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=5" />
+
+    <meta name="color-scheme" content="light" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#3F3F46" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NAAYAN" />
+    <title>NAAYAN - Wholesale & POS Billing</title>
+    <meta name="description" content="NAAYAN - Wholesale & retail billing, barcode inventory, catalog, order, receipt, and invoice administration." />
+
+    <!-- Google Fonts: DM Sans (Variable 100-1000), Outfit (Variable 100-900), Cinzel (Luxury Brand), Noto Sans Tamil -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+
+    <!-- Open Graph / social sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="NAAYAN - Wholesale & POS Billing" />
+    <meta property="og:description" content="NAAYAN - Wholesale & retail billing, barcode inventory, catalog, order, receipt, and invoice administration." />
+    <meta property="og:url" content="https://naayan.vercel.app/" />
+    <meta property="og:image" content="/naayan-logo.png?v=5" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="NAAYAN" />
+    <meta name="twitter:description" content="NAAYAN - Wholesale & retail billing, barcode inventory, catalog, order, receipt, and invoice administration." />
+    <meta name="twitter:image" content="/naayan-logo.png?v=5" />
+
+    <!-- Structured data: lets Google show your logo next to search results -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "NAAYAN",
+      "url": "https://naayan.vercel.app/",
+      "logo": "https://naayan.vercel.app/naayan-icon.png",
+      "description": "NAAYAN - Wholesale & retail billing, barcode inventory, catalog, order, receipt, and invoice administration."
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

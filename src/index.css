@@ -1,0 +1,456 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Accent colour (RGB channels). Overridden at runtime from Dashboard → Settings → Appearance. */
+    --primary: 63 63 70;
+    --primary-hover: 87 87 89;
+    --primary-muted: 121 121 126;
+    --primary-soft: 159 159 162;
+    --primary-200: 207 207 209;
+    --primary-100: 226 226 227;
+    --primary-50: 243 243 244;
+    --primary-ink: 255 255 255;
+
+    --brand-blue: rgb(var(--primary));
+    --brand-blue-hover: rgb(var(--primary-hover));
+    --brand-blue-light: #F9FAFB;
+    --brand-blue-surface: #F3F4F6;
+    --brand-gold: rgb(var(--primary-soft));
+    --brand-gold-rich: rgb(var(--primary-soft));
+    --brand-gold-deep: rgb(var(--primary-hover));
+    --brand-gold-hover: rgb(var(--primary-muted));
+    --brand-gold-glow: rgb(var(--primary-50));
+    --brand-gold-border: rgb(var(--primary-soft));
+    --brand-surface: #F9FAFB;
+    --brand-text-dark: #1F1F1F;
+    --brand-text-muted: #6B7280;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    font-family: 'DM Sans', 'Outfit', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+  }
+
+  html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: #F9FAFB;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    font-family: 'DM Sans', 'Outfit', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+  }
+
+  /* Fluid Typography for Desktops/Laptops (>= 1024px) */
+  @media (min-width: 1024px) {
+    html {
+      font-size: clamp(13px, 0.35vw + 10.5px, 16px);
+    }
+  }
+
+  /* Tablet & Standard Mobile Baseline (361px - 1023px) */
+  @media (min-width: 361px) and (max-width: 1023px) {
+    html {
+      font-size: 13.5px;
+    }
+  }
+
+  /* Ultra-compact Mobile Screen Optimization (<= 360px down to 320px) */
+  @media (max-width: 360px) {
+    html {
+      font-size: 12px;
+    }
+    .admin-shell {
+      font-size: 12px;
+    }
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: #F9FAFB;
+    background-image:
+      radial-gradient(circle at top left, rgba(17,17,17, 0.04), transparent 34%),
+      radial-gradient(circle at top right, rgba(161, 161, 170, 0.05), transparent 28%);
+    color: #1F1F1F;
+    font-family: 'DM Sans', 'Outfit', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+    text-rendering: optimizeLegibility;
+  }
+
+  button, a, input, textarea, select, option, optgroup, label {
+    font-family: 'DM Sans', 'Outfit', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent native date/time inputs from overflowing containers on iOS/WebKit */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"] {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+  }
+
+  input[type="datetime-local"]::-webkit-date-and-time-value,
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
+
+  table, thead, tbody, tr, th, td {
+    font-family: 'DM Sans', 'Outfit', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif !important;
+    font-optical-sizing: auto;
+    font-style: normal;
+  }
+
+  img {
+    max-width: 100%;
+    display: block;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'DM Sans', 'Outfit', 'Noto Sans Tamil', system-ui, sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-font, .font-brand {
+    font-family: 'Cinzel', 'DM Sans', 'Outfit', 'Noto Sans Tamil', serif;
+  }
+
+  .font-headline {
+    font-family: 'DM Sans', 'Outfit', 'Noto Sans Tamil', system-ui, sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+  }
+
+  .font-sans {
+    font-family: 'DM Sans', 'Outfit', 'Noto Sans Tamil', system-ui, -apple-system, sans-serif !important;
+    font-optical-sizing: auto;
+    font-style: normal;
+  }
+
+  .dm-sans, .dmsans, .font-dm-sans, .font-dmsans {
+    font-family: 'DM Sans', sans-serif !important;
+    font-optical-sizing: auto;
+    font-style: normal;
+  }
+
+  .outfit, .font-outfit {
+    font-family: 'Outfit', sans-serif !important;
+    font-optical-sizing: auto;
+    font-style: normal;
+  }
+
+  .font-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+  }
+
+  .ta-text {
+    font-family: 'Noto Sans Tamil', system-ui, sans-serif;
+    line-height: 1.75;
+    letter-spacing: 0;
+  }
+  [lang="ta"], :lang(ta) {
+    font-family: 'Noto Sans Tamil', system-ui, sans-serif;
+    line-height: 1.75;
+    letter-spacing: 0;
+  }
+
+  /* Modal & Popup Anti-Overflow Shield */
+  .modal-overlay {
+    padding: 0.75rem;
+  }
+  .modal-container {
+    width: 100%;
+    max-width: min(95vw, var(--modal-max-w, 56rem));
+    max-height: min(92vh, 880px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    flex: 1 1 auto;
+  }
+}
+
+@layer components {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .shadow-soft {
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+  }
+
+  .surface-panel {
+    @apply rounded-2xl border border-[#F3F4F6] bg-white shadow-soft hover:border-primary-soft/30 transition-all;
+  }
+
+  .surface-panel-compact {
+    @apply rounded-xl border border-[#F3F4F6] bg-white shadow-soft hover:border-primary-soft/30 transition-all;
+  }
+
+  .mobile-chip {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-full px-3.5 py-2 text-[12px] font-black;
+  }
+
+  .mobile-cta-bar {
+    @apply border-t border-[#F3F4F6] bg-white/95 backdrop-blur pb-[calc(env(safe-area-inset-bottom)+0.75rem)];
+  }
+
+  .mobile-section-title {
+    @apply text-[11px] font-black uppercase tracking-[0.24em] text-primary-hover;
+  }
+
+  .mobile-page-shell {
+    @apply bg-[#F9FAFB] min-h-screen;
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 rounded-xl bg-primary text-primary-soft border border-primary-soft font-bold hover:bg-primary-hover hover:border-primary-muted shadow-sm hover:shadow-md transition-all;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 rounded-xl border border-[#F3F4F6] bg-white text-[#1F1F1F] font-bold hover:bg-[#F9FAFB] hover:border-[#111111]/30 transition-all;
+  }
+
+  .btn-small {
+    @apply px-3 py-2 rounded-xl font-bold text-sm transition-colors;
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.94) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .bg-bgMain { background-color: #F9FAFB !important; }
+  .bg-cardBg  { background-color: #FFFFFF !important; }
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(17,17,17, 0.03), transparent 30%),
+    #F9FAFB;
+}
+
+/* ── PRINT STYLES — Single-page A4 / Letter invoice ─────────────────────────── */
+@media print {
+  @page {
+    size: auto;
+    margin: 8mm 10mm;
+  }
+
+  html, body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    color: #000 !important;
+  }
+
+  #root,
+  #root > div,
+  main,
+  .mobile-page-shell {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .print\:hidden,
+  .print-hidden,
+  nav,
+  footer,
+  aside,
+  header {
+    display: none !important;
+  }
+
+  .digital-invoice-page,
+  .ios-app-shell,
+  .ios-app-shell > main {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  #invoice-print-root {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    /* One printable page (works for A4 and Letter): footer stays pinned to the bottom */
+    min-height: calc(100vh - 6mm) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+  }
+
+  #invoice-print-root * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Compact spacing during print to guarantee fit on 1 page (A4 and Letter) */
+  #invoice-print-root .invoice-header {
+    padding-bottom: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  #invoice-print-root .invoice-meta {
+    margin-bottom: 12px !important;
+    gap: 10px !important;
+  }
+
+  #invoice-print-root .invoice-totals {
+    margin-top: 14px !important;
+    padding-top: 10px !important;
+  }
+
+  #invoice-print-root .invoice-footer {
+    margin-top: auto !important;
+    padding-top: 10px !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .bg-bgMain {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+}
+
+/* ─── iOS Safari / WebKit Compatibility Fixes ─── */
+
+/* Root app shell: use dynamic viewport height so iOS toolbar doesn't clip content */
+.ios-app-shell {
+  /* Fallback for browsers that don't support dvh */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  /* iOS Safari: allow touch scroll to propagate to children */
+  position: relative;
+}
+
+.ios-app-shell > main {
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Scrollable panels: enable momentum scrolling on iOS */
+.overflow-y-auto,
+.overflow-y-scroll,
+[data-scroll="ios"] {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modals, dialogs, drawers, and overlay sheets: contain scroll to lock background page */
+.fixed .overflow-y-auto,
+.fixed .overflow-y-scroll,
+.modal-body {
+  overscroll-behavior: contain;
+}
+
+/* Table horizontal scroll on iOS touch devices */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix sticky positioning in iOS Safari inside overflow:scroll containers */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* iOS Safari: prevent buttons from being invisible/unclickable inside overflow containers */
+button, a[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Fix min-h for iOS — use dvh units where available */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Fix DigitalInvoice page: stop it being clipped to viewport on iOS */
+.digital-invoice-page {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+
+/* The app scrolls inside its own panels (.ios-app-shell is exactly one visible screen tall).
+   Stop the document itself from scrolling, otherwise phones with collapsing browser bars show
+   a gap under the footer and a second, competing scrollbar. */
+@media screen {
+  html,
+  body,
+  #root {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+}

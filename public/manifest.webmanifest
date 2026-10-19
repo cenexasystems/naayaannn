@@ -1,0 +1,37 @@
+{
+  "name": "NAAYAN - Wholesale & POS Billing",
+  "short_name": "NAAYAN",
+  "description": "NAAYAN - Wholesale and retail billing, barcode inventory, catalog, order, receipt, and invoice administration.",
+  "theme_color": "#3F3F46",
+  "background_color": "#F9FAFB",
+  "display": "standalone",
+  "orientation": "any",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/naayan-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/naayan-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/naayan-icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/naayan-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
