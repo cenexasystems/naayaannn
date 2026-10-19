@@ -530,8 +530,8 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
             <ImageIcon size={16} /> Shop logo
           </p>
           <div className="flex flex-wrap items-center gap-5">
-            <div className="h-24 w-24 shrink-0 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm">
-              <img src={form.logo || DEFAULT_LOGO} alt="Shop logo" className="h-full w-full object-contain rounded-xl" />
+            <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
+              <img src={form.logo || DEFAULT_LOGO} alt="Shop logo" className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap gap-2.5 mb-2">

@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { X, Package, Scissors, PackagePlus, Tag } from 'lucide-react'
+import { X, Package, Scissors, PackagePlus, Tag, Plus, Trash2 } from 'lucide-react'
 import { useProductStore } from '../store/store'
 import { db } from '../lib/db'
+import { normalizeBarcode } from '../lib/barcode'
 
 type ItemType = 'product' | 'service'
+
+interface VariantRow { id: string; name: string; price: string; cost: string; stock: string; barcode: string }
+const newVariant = (): VariantRow => ({ id: `v_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', price: '', cost: '', stock: '0', barcode: '' })
 
 interface AddProductModalProps {
   isOpen: boolean
@@ -15,6 +19,8 @@ interface AddProductModalProps {
 
 const emptyForm = {
   name: '',
+  nameTa: '',
+  barcode: '',
   description: '',
   category: '',
   lowStockAlert: '0',
@@ -42,6 +48,8 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [categoryOptions, setCategoryOptions] = useState<string[]>([])
+  const [hasVariants, setHasVariants] = useState(false)
+  const [variants, setVariants] = useState<VariantRow[]>([])
   const isService = itemType === 'service'
 
   const existingCategories = categoryOptions.length > 0
@@ -52,6 +60,8 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
     if (!isOpen) return
     setItemType(initialType)
     setForm(emptyForm)
+    setHasVariants(false)
+    setVariants([])
     setError('')
     let cancelled = false
     void db.from('categories').select('name_en').eq('is_active', true).order('sort_order').then(({ data }) => {
@@ -91,7 +101,10 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const price = Number(form.price)
+    const useVariants = !isService && hasVariants
+    const validVariants = useVariants ? variants.filter(v => v.name.trim()) : []
+    if (useVariants && validVariants.length === 0) return setError('Add at least one variant (e.g. Size S, 32, Red)')
+    const price = Number(form.price) || (useVariants ? Number(validVariants[0].price) || 0 : 0)
     if (!form.name.trim()) return setError(`${isService ? 'Service' : 'Product'} name is required`)
     if (!price || price <= 0) return setError('Price must be greater than 0')
     const offerPrice = Number(form.offerPrice)
@@ -117,11 +130,16 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
         }
       }
 
-      const stockNum = isService ? 0 : Math.max(0, parseInt(form.stock) || 0)
+      const variantStock = validVariants.reduce((sum, v) => sum + Math.max(0, parseInt(v.stock) || 0), 0)
+      const stockNum = isService ? 0 : useVariants ? variantStock : Math.max(0, parseInt(form.stock) || 0)
+      const productBarcode = useVariants ? '' : form.barcode.trim()
       const { data: newProd, error: dbErr } = await db
         .from('products')
         .insert({
           name: form.name.trim(),
+          name_ta: form.nameTa.trim(),
+          barcode: productBarcode || null,
+          has_variants: useVariants,
           description: form.description.trim(),
           category: categoryName || (isService ? 'Services' : 'General'),
           category_id: categoryId,
@@ -144,7 +162,69 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
         .single()
       if (dbErr) throw dbErr
 
-      if (newProd && stockNum > 0) {
+      if (newProd && normalizeBarcode(productBarcode)) {
+        await db.from('barcode_registry').upsert(
+          {
+            barcode_value: normalizeBarcode(productBarcode),
+            product_id: newProd.id,
+            variant_id: null,
+            is_active: true,
+          },
+          { onConflict: 'barcode_value' }
+        )
+      }
+
+      if (newProd && useVariants) {
+        const baseCost = Number(form.cost) || 0
+        for (const v of validVariants) {
+          const vPrice = Number(v.price) > 0 ? Number(v.price) : price
+          const vCost = Number(v.cost) > 0 ? Number(v.cost) : baseCost
+          const vStock = Math.max(0, parseInt(v.stock) || 0)
+          const { data: createdVar } = await db
+            .from('product_variants')
+            .insert({
+              product_id: newProd.id,
+              variant_name: v.name.trim(),
+              size_label: v.name.trim(),
+              price: vPrice,
+              purchase_price: vCost,
+              stock: vStock,
+              barcode: v.barcode.trim() || null,
+              is_active: true,
+            })
+            .select('id')
+            .single()
+
+          if (createdVar && normalizeBarcode(v.barcode)) {
+            await db.from('barcode_registry').upsert(
+              {
+                barcode_value: normalizeBarcode(v.barcode),
+                product_id: newProd.id,
+                variant_id: createdVar.id,
+                is_active: true,
+              },
+              { onConflict: 'barcode_value' }
+            )
+          }
+
+          if (createdVar && vStock > 0) {
+            await db.from('inventory_movements').insert({
+              product_id: newProd.id,
+              variant_id: createdVar.id,
+              movement_type: 'RESTOCK',
+              quantity_delta: vStock,
+              quantity_before: 0,
+              quantity_after: vStock,
+              unit_cost: vCost || null,
+              reference_type: 'PRODUCT_CREATION',
+              note: `Initial stock for variant ${v.name.trim()}`,
+              created_by_name: 'Admin',
+            })
+          }
+        }
+      }
+
+      if (newProd && stockNum > 0 && !useVariants) {
         await db.from('inventory_movements').insert({
           product_id: newProd.id,
           variant_id: null,
@@ -219,6 +299,18 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
               placeholder={isService ? 'e.g., Alteration Charges / Delivery' : 'e.g., Cotton Shirt / Silk Saree'} />
           </label>
 
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block">
+              <span className={label}>Tamil name (optional)</span>
+              <input className={input} value={form.nameTa} onChange={set('nameTa')} maxLength={120} placeholder="e.g., காட்டன் சட்டை" />
+            </label>
+            <label className="block">
+              <span className={label}>Barcode (optional)</span>
+              <input className={`${input} disabled:bg-gray-100 disabled:text-gray-400`} value={form.barcode} onChange={set('barcode')} maxLength={64}
+                disabled={!isService && hasVariants} placeholder={!isService && hasVariants ? 'Defined at variant level' : 'e.g., 8901234567'} />
+            </label>
+          </div>
+
           <label className="block">
             <span className={label}>Description / notes (optional)</span>
             <input className={input} value={form.description} onChange={set('description')} maxLength={300}
@@ -252,8 +344,8 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
             </label>
             {!isService && (
               <label className="block">
-                <span className={label}>Current stock</span>
-                <input className={input} value={form.stock} onChange={set('stock')} inputMode="numeric" />
+                <span className={label}>Current stock{hasVariants ? ' (from variants)' : ''}</span>
+                <input className={`${input} disabled:bg-gray-100 disabled:text-gray-400`} value={hasVariants ? String(variants.reduce((n, v) => n + Math.max(0, parseInt(v.stock) || 0), 0)) : form.stock} onChange={set('stock')} disabled={hasVariants} inputMode="numeric" />
               </label>
             )}
           </div>
@@ -289,6 +381,50 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
               Whenever this {isService ? 'service' : 'product'} is added to a bill, the offer price is applied automatically and shown on the invoice.
             </p>
           </div>
+
+          {!isService && (
+            <div className="rounded-2xl border border-gray-200 p-5">
+              <label className="flex items-center justify-between gap-4 cursor-pointer">
+                <span>
+                  <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#374151]"><Tag size={16} strokeWidth={1.75} /> Multi-variant product (sizes, colours, SKUs)</span>
+                  <span className={`${help} block`}>Enable if this product comes in multiple sizes (e.g. S, M, L, XL) or colours</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={hasVariants}
+                  onChange={(e) => {
+                    setHasVariants(e.target.checked)
+                    if (e.target.checked && variants.length === 0) setVariants([newVariant()])
+                  }}
+                  className="h-5 w-5 shrink-0 rounded accent-[rgb(var(--primary))]"
+                />
+              </label>
+              {hasVariants && (
+                <div className="mt-4 space-y-3">
+                  {variants.map((v, i) => {
+                    const upd = (key: keyof VariantRow) => (e: React.ChangeEvent<HTMLInputElement>) =>
+                      setVariants(rows => rows.map(r => (r.id === v.id ? { ...r, [key]: e.target.value } : r)))
+                    return (
+                      <div key={v.id} className="grid grid-cols-2 sm:grid-cols-[1.4fr_1fr_1fr_0.8fr_1.4fr_auto] items-end gap-2 rounded-xl bg-gray-50 p-3">
+                        <label className="block"><span className={label}>Variant {i + 1}</span><input className={input} value={v.name} onChange={upd('name')} placeholder="e.g., M / 32 / Red" /></label>
+                        <label className="block"><span className={label}>Price (₹)</span><input className={input} value={v.price} onChange={upd('price')} inputMode="decimal" placeholder={form.price || '0.00'} /></label>
+                        <label className="block"><span className={label}>Cost (₹)</span><input className={input} value={v.cost} onChange={upd('cost')} inputMode="decimal" placeholder={form.cost || '0.00'} /></label>
+                        <label className="block"><span className={label}>Stock</span><input className={input} value={v.stock} onChange={upd('stock')} inputMode="numeric" /></label>
+                        <label className="block"><span className={label}>Barcode</span><input className={input} value={v.barcode} onChange={upd('barcode')} placeholder="Optional" /></label>
+                        <button type="button" onClick={() => setVariants(rows => rows.filter(r => r.id !== v.id))} aria-label="Remove variant"
+                          className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-[#DC2626]"><Trash2 size={17} /></button>
+                      </div>
+                    )
+                  })}
+                  <button type="button" onClick={() => setVariants(rows => [...rows, newVariant()])}
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-dashed border-gray-300 px-4 text-[11px] font-black uppercase tracking-[0.1em] text-[#374151] hover:bg-gray-50">
+                    <Plus size={15} /> Add variant
+                  </button>
+                  <p className={help}>Blank variant price or cost uses the product's original / cost price. Product stock is the total of all variants.</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <label className="flex items-center gap-3 rounded-2xl border border-gray-200 px-5 py-4 text-sm font-bold text-[#374151]">
             <input type="checkbox" checked={form.active} onChange={(e) => setForm(f => ({ ...f, active: e.target.checked }))} className="h-5 w-5 rounded accent-[rgb(var(--primary))]" />

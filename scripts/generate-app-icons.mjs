@@ -21,7 +21,7 @@ const ROOT_DIR = process.cwd();
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 const CANDIDATES = ['png', 'svg', 'jpg', 'jpeg', 'webp'].map((ext) => path.join(PUBLIC_DIR, `naayan-logo.${ext}`));
 const SRC_ICON = CANDIDATES.find((p) => fs.existsSync(p));
-const BG = { r: 39, g: 39, b: 42, alpha: 1 };
+const BG = { r: 184, g: 179, b: 172, alpha: 1 }; // matches the logo's own stone-grey background
 
 async function main() {
   if (!SRC_ICON) {
@@ -54,7 +54,7 @@ async function main() {
   await generateSquareIcon(512, 512, path.join(PUBLIC_DIR, 'naayan-icon.png'));
 
   // 3. Apple Touch Icon for iOS (opaque)
-  await generateSquareIcon(180, 150, path.join(PUBLIC_DIR, 'apple-touch-icon.png'), BG);
+  await generateSquareIcon(180, 180, path.join(PUBLIC_DIR, 'apple-touch-icon.png'), BG);
 
   // 4. Favicons
   await generateSquareIcon(64, 64, path.join(PUBLIC_DIR, 'naayan-favicon.png'));

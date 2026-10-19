@@ -1914,8 +1914,8 @@ export default function Dashboard() {
         {/* Desktop brand header */}
         <div className={`hidden lg:flex items-center relative transition-all duration-300 shrink-0 ${sidebarCollapsed ? 'flex-col items-center pt-5 pb-4 px-2 gap-2 border-b border-white/20' : 'p-6 justify-between gap-3 border-b border-white/20'}`}>
           <Link to="/pos" title="Go to Billing Panel" className={`flex items-center gap-2.5 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : 'flex-1'}`}>
-            <div className="flex items-center justify-center shrink-0 w-12 h-12 rounded-xl border border-white/25 shadow-md overflow-hidden">
-              <img src={BRAND_ICON} alt={BRAND_EN} className="w-full h-full object-contain" />
+            <div className="shrink-0 w-12 h-12 rounded-xl shadow-md overflow-hidden">
+              <img src={BRAND_ICON} alt={BRAND_EN} className="w-full h-full object-cover" />
             </div>
             {!sidebarCollapsed && (
               <div className="flex flex-col min-w-0">
@@ -1937,8 +1937,8 @@ export default function Dashboard() {
         {/* Mobile mini-header */}
         <div className="flex lg:hidden items-center justify-between px-3 py-2 border-b border-white/10 bg-primary shrink-0 gap-2">
           <Link to="/pos" title="Go to Billing Panel" className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/20 ring-1 ring-white/20 shrink-0 shadow-sm hover:scale-105 transition-transform p-0.5 overflow-hidden">
-              <img src={BRAND_ICON} alt={BRAND_EN} className="w-full h-full object-contain" />
+            <div className="h-9 w-9 rounded-xl shrink-0 shadow-sm hover:scale-105 transition-transform overflow-hidden">
+              <img src={BRAND_ICON} alt={BRAND_EN} className="w-full h-full object-cover" />
             </div>
             <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
               <span className="text-[13px] sm:text-[14px] font-black text-white tracking-wide truncate min-w-0">
