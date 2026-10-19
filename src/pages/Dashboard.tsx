@@ -41,9 +41,11 @@ import { useAuthStore, useProductStore, useAdminAuthStore, type Product } from '
 import { uploadProductImage } from '../lib/storage'
 import { formatCurrency, normalizeOrderMode, normalizeUnitType, toNumber, type UnitType } from '../lib/retail'
 import { normalizeStructuredOrderItem, formatInvoiceNo } from '../lib/retail'
-import { Invoice } from '../components/Invoice'
-import { printThermalReceipt } from '../lib/thermalPrint'
-import { buildProfessionalWhatsAppMessage } from '../lib/whatsappMessage'
+import { type InvoiceProps } from '../components/Invoice'
+import InvoicePreviewModal from '../components/print/InvoicePreviewModal'
+import PrintSettingsModal from '../components/print/PrintSettingsModal'
+import { printBill } from '../lib/billPrint'
+import { buildProfessionalWhatsAppMessage, publicInvoiceUrl } from '../lib/whatsappMessage'
 import { invoicePdfFile } from '../lib/invoicePdf'
 import { formatPhoneDisplay, formatPhoneForCSV } from '../lib/phone'
 import { downloadCsv } from '../lib/exportCsv'
@@ -276,6 +278,7 @@ export default function Dashboard() {
   const [analyticsTab, setAnalyticsTab] = useState('revenue')
 
   const [invoicePreviewOrder, setInvoicePreviewOrder] = useState<DashboardOrder | null>(null)
+  const [printOrder, setPrintOrder] = useState<DashboardOrder | null>(null)
 
   // WA detail expansion
   const [waExpandedId, setWaExpandedId] = useState<string | null>(null)
@@ -1134,39 +1137,33 @@ export default function Dashboard() {
   }
 
 
-  const handlePrintReceipt = (order: DashboardOrder) => {
+  /** One bill, same data for the A4 / A5 invoice, the thermal receipt and the preview. */
+  const orderInvoiceProps = (order: DashboardOrder): InvoiceProps | null => {
     const preview = getOrderWhatsAppPreview(order)
-    if (!preview) { alert('This order has no invoice details available.'); return }
-    const subtotal = preview.subtotal
-
-    printThermalReceipt({
-      invoiceNo: order.invoice_no || order.id,
+    if (!preview) return null
+    return {
+      invoiceNo: formatInvoiceNo(order.invoice_no || order.id),
       date: order.created_at,
       customerName: order.customer_name,
       phone: order.phone,
-      items: (preview.items as Array<{
-        name?: string
-        product_name?: string
-        qty?: number
-        quantity?: number
-        unit?: string
-        price?: number
-        base_price?: number
-        line_total?: number
-      }>).map((item) => ({
-        name: item.name || item.product_name || '',
-        qty: item.qty || item.quantity || 0,
-        unit: item.unit || '',
-        price: item.price || item.base_price || 0,
-        line_total: item.line_total || 0
-      })),
-      subtotal,
-      shipping: order.delivery_charge || 0,
-      couponDiscount: order.discount_amount || 0,
-      manualDiscount: order.manual_discount_amount || 0,
-      totalGst: order.total_gst || 0,
-      total: order.total
-    })
+      address: order.address,
+      items: preview.items as unknown as InvoiceProps['items'],
+      subtotal: preview.subtotal,
+      shipping: order.delivery_charge,
+      deliveryCharge: order.delivery_charge,
+      discountAmount: order.discount_amount,
+      manualDiscountAmount: order.manual_discount_amount,
+      gstAmount: order.total_gst,
+      paymentMode: formatPaymentLabel(order.payment_mode, order.split_details) || order.payment_mode,
+      total: order.total,
+      status: order.status,
+      channel: normalizeOrderMode(order.order_mode),
+    }
+  }
+
+  const handlePrintReceipt = (order: DashboardOrder) => {
+    if (!orderInvoiceProps(order)) { alert('This order has no invoice details available.'); return }
+    setPrintOrder(order)
   }
 
   const openOrderInvoice = async (order: DashboardOrder, mode: 'view' | 'download' | 'print') => {
@@ -4743,75 +4740,36 @@ export default function Dashboard() {
 
 
       {invoicePreviewOrder && (() => {
-        const preview = getOrderWhatsAppPreview(invoicePreviewOrder)
-        if (!preview) return null
-
+        const props = orderInvoiceProps(invoicePreviewOrder)
+        if (!props) return null
+        const headerBtn = 'inline-flex h-9 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-xs font-bold text-white hover:bg-white/20'
         return (
-          <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-3 sm:p-6"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Invoice ${invoicePreviewOrder.invoice_no || invoicePreviewOrder.id}`}
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setInvoicePreviewOrder(null)
-            }}
-          >
-            <div className="flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#F9FAFB] shadow-2xl">
-              <div className="flex shrink-0 items-center justify-between border-b border-[#F3F4F6]/60 bg-white px-4 py-3 sm:px-6">
-                <div>
-                  <h2 className="text-base font-black text-[#111111]">Invoice Preview</h2>
-                  <p className="text-xs font-semibold text-[#6B7280]">{formatInvoiceNo(invoicePreviewOrder.invoice_no || invoicePreviewOrder.id)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handlePrintReceipt(invoicePreviewOrder)}
-                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#F3F4F6]/70 px-3 text-xs font-black text-[#111111] hover:bg-[#F9FAFB]"
-                  >
-                    <Printer size={15} /> Print
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void openOrderInvoice(invoicePreviewOrder, 'download')}
-                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-black text-white hover:bg-primary-soft"
-                  >
-                    <Download size={15} /> Download
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setInvoicePreviewOrder(null)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#111111]"
-                    aria-label="Close invoice preview"
-                  >
-                    <X size={19} />
-                  </button>
-                </div>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 sm:p-5">
-                <div className="mx-auto max-w-3xl overflow-hidden rounded-xl bg-white shadow-sm">
-                  <Invoice
-                    invoiceNo={formatInvoiceNo(invoicePreviewOrder.invoice_no || invoicePreviewOrder.id)}
-                    date={invoicePreviewOrder.created_at}
-                    customerName={invoicePreviewOrder.customer_name}
-                    phone={invoicePreviewOrder.phone}
-                    address={invoicePreviewOrder.address}
-                    items={preview.items as unknown as import('../components/Invoice').InvoiceItem[]}
-                    subtotal={preview.subtotal}
-                    shipping={invoicePreviewOrder.delivery_charge}
-                    deliveryCharge={invoicePreviewOrder.delivery_charge}
-                    discountAmount={invoicePreviewOrder.discount_amount}
-                    manualDiscountAmount={invoicePreviewOrder.manual_discount_amount}
-                    gstAmount={invoicePreviewOrder.total_gst}
-                    paymentMode={formatPaymentLabel(invoicePreviewOrder.payment_mode, invoicePreviewOrder.split_details) || invoicePreviewOrder.payment_mode}
-                    total={invoicePreviewOrder.total}
-                    status={invoicePreviewOrder.status}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <InvoicePreviewModal
+            invoice={props}
+            fullPageUrl={publicInvoiceUrl(invoicePreviewOrder.invoice_no || invoicePreviewOrder.id)}
+            onClose={() => setInvoicePreviewOrder(null)}
+            actions={
+              <>
+                <button type="button" onClick={() => handlePrintReceipt(invoicePreviewOrder)} className={headerBtn}>
+                  <Printer size={14} /> <span className="hidden sm:inline">Print</span>
+                </button>
+                <button type="button" onClick={() => void openOrderInvoice(invoicePreviewOrder, 'download')} className={headerBtn}>
+                  <Download size={14} /> <span className="hidden sm:inline">Download</span>
+                </button>
+              </>
+            }
+          />
         )
       })()}
+
+      <PrintSettingsModal
+        open={printOrder !== null}
+        onClose={() => setPrintOrder(null)}
+        onPrint={(settings) => {
+          const props = printOrder ? orderInvoiceProps(printOrder) : null
+          if (props) printBill(props, settings)
+        }}
+      />
 
       {/* Edit Order Details Modal */}
       {editingOrder && (

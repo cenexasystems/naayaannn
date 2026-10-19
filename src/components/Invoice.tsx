@@ -1,7 +1,8 @@
 import React from 'react'
-import { BRAND_ADDRESS, BRAND_EMAIL, BRAND_EN, BRAND_INSTAGRAM, BRAND_PRIMARY_PHONE_DISPLAY, BRAND_ICON } from '../lib/brand'
+import { BRAND_ADDRESS, BRAND_EMAIL, BRAND_EN, BRAND_GSTIN, BRAND_PRIMARY_PHONE_DISPLAY, BRAND_PRINT_LOGO } from '../lib/brand'
 import { formatCurrency, formatQuantityDisplay, normalizeStructuredOrderItem, formatInvoiceNo } from '../lib/retail'
 import { formatPhoneDisplay } from '../lib/phone'
+import { amountInWords } from '../lib/amountInWords'
 
 export interface InvoiceItem {
   id: string | number
@@ -17,7 +18,11 @@ export interface InvoiceItem {
   offerPrice?: number | null
   line_total?: number
   lineTotal?: number
+  /** HSN / SAC code shown on GST invoices */
+  hsn?: string
 }
+
+export interface InvoicePaymentRow { label: string; value: number; sub?: boolean; accent?: boolean }
 
 export interface InvoiceProps {
   invoiceNo: string
@@ -32,13 +37,63 @@ export interface InvoiceProps {
   discountAmount?: number
   manualDiscountAmount?: number
   gstAmount?: number
+  /** Explicit CGST / SGST split; when omitted the GST amount is halved. */
+  cgstAmount?: number
+  sgstAmount?: number
   couponCode?: string
   total: number
   status?: string
   userId?: string
   paymentMode?: string
+  /** 'offline' (counter) or 'online' */
+  channel?: string
+  /** Cash handed over by the customer (defaults to the total) */
+  amountReceived?: number
+  /** Extra rows under the total, e.g. advance deposit / balance paid */
+  paymentRows?: InvoicePaymentRow[]
+  notes?: string
   onPrintReceipt?: () => void
 }
+
+/** GST state codes → state names for "Place of Supply". */
+const STATE_NAMES: Record<string, string> = {
+  '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh', '05': 'Uttarakhand',
+  '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan', '09': 'Uttar Pradesh', '10': 'Bihar', '18': 'Assam',
+  '19': 'West Bengal', '20': 'Jharkhand', '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh',
+  '24': 'Gujarat', '27': 'Maharashtra', '29': 'Karnataka', '30': 'Goa', '32': 'Kerala', '33': 'Tamil Nadu',
+  '34': 'Puducherry', '36': 'Telangana', '37': 'Andhra Pradesh',
+}
+
+/** The shop's state code comes from its GSTIN; the shop is in Tamil Nadu (33) by default. */
+function shopStateCode(): string {
+  const code = (BRAND_GSTIN || '').slice(0, 2)
+  return STATE_NAMES[code] ? code : '33'
+}
+
+/** Current theme accent as an rgb() colour (inline styles survive printing / PDF capture). */
+function invoiceAccent(): string {
+  try {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()
+    const parts = raw.split(/[\s,]+/).map(Number).filter(n => Number.isFinite(n))
+    if (parts.length >= 3) return `rgb(${parts[0]}, ${parts[1]}, ${parts[2]})`
+  } catch { /* not in a browser */ }
+  return '#3F3F46'
+}
+
+/** "Split (Cash ₹100.00 + QR ₹50.00)" → "SPLIT" for the compact header line. */
+const shortMode = (mode?: string) => {
+  const m = (mode || '').trim()
+  if (!m) return 'CASH'
+  if (/^split/i.test(m)) return 'SPLIT'
+  if (/^(qr|upi)$/i.test(m)) return 'GPAY'
+  return m.toUpperCase()
+}
+
+const MONO = "'Consolas', 'SFMono-Regular', 'Menlo', 'Courier New', monospace"
+const MUTED = '#9CA3AF'
+const SOFT = '#6B7280'
+const LINE = '#E5E7EB'
+const money = (n: number) => formatCurrency(n).replace(/^₹\s*/, '')
 
 export const Invoice: React.FC<InvoiceProps> = ({
   invoiceNo,
@@ -53,125 +108,147 @@ export const Invoice: React.FC<InvoiceProps> = ({
   discountAmount = 0,
   manualDiscountAmount = 0,
   gstAmount = 0,
+  cgstAmount,
+  sgstAmount,
   couponCode,
   total,
   status = 'completed',
   userId: _userId,
   paymentMode,
+  channel = 'offline',
+  amountReceived,
+  paymentRows = [],
+  notes,
 }) => {
+  const accent = invoiceAccent()
   const formattedInvoiceNo = formatInvoiceNo(invoiceNo)
-  const dateStr = (() => {
-    try { return new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
-    catch { return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
-  })()
+  const when = (() => { const d = new Date(date); return Number.isNaN(d.getTime()) ? new Date() : d })()
+  const dateStr = when.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  const timeStr = when.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
 
-  const statusColor = status === 'completed' ? '#A1A1AA' : status === 'cancelled' ? '#dc2626' : '#d97706'
   const effectiveDelivery = deliveryCharge || shipping
+  const cgst = cgstAmount ?? (gstAmount > 0 ? Math.round((gstAmount / 2) * 100) / 100 : 0)
+  const sgst = sgstAmount ?? (gstAmount > 0 ? Math.round((gstAmount - cgst) * 100) / 100 : 0)
+  const isGst = cgst + sgst > 0
+  const taxable = Math.max(0, subtotal - discountAmount - manualDiscountAmount)
+  const halfRate = (part: number) => {
+    if (taxable <= 0) return ''
+    const pct = Math.round((part / taxable) * 10000) / 100
+    return `${pct}%`
+  }
+  const stateCode = shopStateCode()
+  const mode = shortMode(paymentMode)
+  const received = amountReceived && amountReceived > 0 ? amountReceived : total
+
+  const label: React.CSSProperties = { fontSize: 10.5, fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6 }
+  const th: React.CSSProperties = { ...label, padding: '14px 8px', borderBottom: `1px solid ${LINE}`, textAlign: 'left', whiteSpace: 'nowrap' }
+  const td: React.CSSProperties = { padding: '14px 8px', fontSize: 13, verticalAlign: 'top', borderBottom: '1px solid #F3F4F6' }
+  const metaRow = (name: string, value: React.ReactNode) => (
+    <div style={{ fontSize: 12.5, lineHeight: 1.75, color: MUTED }}>
+      {name}: <span style={{ color: '#111111', fontWeight: 600 }}>{value}</span>
+    </div>
+  )
+  const sumRow = (name: React.ReactNode, value: string, opts: { small?: boolean; muted?: boolean } = {}) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: opts.small ? '5px 0' : '7px 0' }}>
+      <span style={{ fontSize: opts.small ? 10.5 : 13, color: opts.small ? MUTED : '#374151', textTransform: opts.small ? 'uppercase' : undefined, letterSpacing: opts.small ? 0.6 : undefined }}>{name}</span>
+      <span style={{ fontFamily: MONO, fontSize: opts.small ? 11 : 13, fontWeight: 600, color: opts.muted ? SOFT : '#111111', whiteSpace: 'nowrap' }}>{value}</span>
+    </div>
+  )
 
   return (
     <div
       id="invoice-print-root"
-      className="w-full max-w-[680px] mx-auto bg-white text-[#1F1F1F] box-border flex flex-col p-4 sm:p-8 print:p-0 print:max-w-full overflow-hidden border border-[#F3F4F6] shadow-xl rounded-3xl"
       style={{
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
+        width: '100%',
+        maxWidth: 760,
+        margin: '0 auto',
+        boxSizing: 'border-box',
+        background: '#FFFFFF',
+        color: '#111111',
+        padding: 'clamp(20px, 5vw, 44px)',
+        fontFamily: "'Segoe UI', 'Noto Sans', 'Noto Sans Tamil', Arial, sans-serif",
+        display: 'flex',
+        flexDirection: 'column',
+        overflowWrap: 'anywhere',
       }}
     >
-      {/* ── HEADER ────────────────────────────────────────────────── */}
-      <div className="invoice-header" style={{ textAlign: 'center', borderBottom: '1px solid #F3F4F6', paddingBottom: 20, marginBottom: 20 }}>
-        <div style={{ width: 64, height: 64, margin: '0 auto 10px auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={BRAND_ICON} alt={BRAND_EN} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-        </div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: '#111111', letterSpacing: 3, textTransform: 'uppercase' }}>
-          {BRAND_EN}
-        </div>
-        <div style={{ fontSize: 11, color: '#6B7280', marginTop: 4, fontWeight: 500, paddingLeft: 8, paddingRight: 8 }}>
-          {BRAND_ADDRESS}
-        </div>
-        <div style={{ fontSize: 11, color: '#6B7280', marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-          {BRAND_PRIMARY_PHONE_DISPLAY && <span>📞 {BRAND_PRIMARY_PHONE_DISPLAY}</span>}
-          {BRAND_EMAIL && <span>✉️ {BRAND_EMAIL}</span>}
-          {BRAND_INSTAGRAM && <span>📷 @{BRAND_INSTAGRAM}</span>}
-        </div>
-      </div>
-
-      {/* ── META ROW (Properly partitioned bill details) ─────────── */}
-      <div className="invoice-meta grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div style={{ minWidth: 0, padding: '12px 14px', borderRadius: 12, background: '#F9FAFB', border: '1px solid #F3F4F6' }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Bill Details</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase' }}>Invoice No</span>
-            <span style={{ fontSize: 13, fontWeight: 900, color: '#111111' }}>#{formattedInvoiceNo}</span>
+      {/* ── HEADER ─────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20 }}>
+        <div style={{ display: 'flex', gap: 16, minWidth: 0, flex: '1 1 300px' }}>
+          <div style={{ width: 64, height: 64, flexShrink: 0, border: `1px solid ${LINE}`, borderRadius: 6, padding: 2, boxSizing: 'border-box', overflow: 'hidden' }}>
+            <img src={BRAND_PRINT_LOGO} alt={BRAND_EN} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase' }}>Date</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{dateStr}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase' }}>Status</span>
-            <span
-              style={{
-                display: 'inline-block', padding: '2px 8px', borderRadius: 99,
-                background: statusColor + '18', color: statusColor,
-                fontSize: 9, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', border: `1px solid ${statusColor}40`
-              }}
-            >
-              {status}
-            </span>
-          </div>
-          {paymentMode && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#666', textTransform: 'uppercase' }}>Payment Mode</span>
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#16a34a', textTransform: 'uppercase' }}>{paymentMode}</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 23, fontWeight: 800, color: accent, lineHeight: 1.15, letterSpacing: 0.3 }}>{BRAND_EN.toUpperCase()}</div>
+            {BRAND_ADDRESS && <div style={{ fontSize: 12.5, color: SOFT, lineHeight: 1.65, marginTop: 6, maxWidth: 320 }}>{BRAND_ADDRESS}</div>}
+            <div style={{ fontSize: 12.5, color: '#374151', lineHeight: 1.65, marginTop: 8 }}>
+              {BRAND_PRIMARY_PHONE_DISPLAY && <div>Phone: {BRAND_PRIMARY_PHONE_DISPLAY}</div>}
+              {BRAND_EMAIL && <div>Email: {BRAND_EMAIL}</div>}
+              {isGst && <div style={{ fontWeight: 700, color: '#111111' }}>GSTIN: {BRAND_GSTIN || '–'} • State Code: {stateCode}</div>}
             </div>
-          )}
+          </div>
         </div>
-
-        <div style={{ minWidth: 0, padding: '12px 14px', borderRadius: 12, background: '#F9FAFB', border: '1px solid #F3F4F6', overflowWrap: 'anywhere' }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Customer Information</div>
-          <div style={{ fontSize: 9, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: 0.7, marginTop: 4 }}>Customer Name</div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#1F1F1F', lineHeight: 1.35, wordBreak: 'break-word' }}>{customerName || 'Walk-in Customer'}</div>
-          <div style={{ fontSize: 9, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: 0.7, marginTop: 6 }}>Mobile Number</div>
-          <div style={{ fontSize: 12, color: '#555', lineHeight: 1.4, wordBreak: 'break-word' }}>{formatPhoneDisplay(phone) || '—'}</div>
-          {address && <div style={{ fontSize: 11, color: '#777', marginTop: 4, lineHeight: 1.4, wordBreak: 'break-word' }}>{address}</div>}
-          {paymentMode && <div style={{ fontSize: 10, color: '#777', marginTop: 4 }}>Payment Mode: {paymentMode}</div>}
+        <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
+          <div style={{ fontSize: 19, fontWeight: 800, color: accent, letterSpacing: 0.4 }}>{isGst ? 'TAX INVOICE' : 'INVOICE'}</div>
+          <div style={{ fontFamily: MONO, fontSize: 12, color: SOFT, marginTop: 2, marginBottom: 8 }}>#{formattedInvoiceNo}</div>
+          {metaRow('Date', dateStr)}
+          {metaRow('Time', timeStr.toLowerCase())}
+          {metaRow('Payment', `${mode} • ${String(status || 'completed').toUpperCase()}`)}
+          {metaRow('Channel', String(channel || 'offline').toUpperCase())}
         </div>
       </div>
 
-      {/* ── DIVIDER ──────────────────────────────────────────────── */}
-      <div style={{ borderTop: '1px dashed #d0d0d0', marginBottom: 20 }} />
+      <div style={{ height: 2, background: accent, margin: '22px 0 20px' }} />
 
-      {/* ── ITEMS TABLE ──────────────────────────────────────────── */}
-      <div className="w-full overflow-x-auto">
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 320 }}>
+      {/* ── BILLED TO / PLACE OF SUPPLY ───────────────────────── */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16, paddingBottom: 18 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={label}>Billed To</div>
+          <div style={{ fontSize: 14.5, fontWeight: 700, marginTop: 6 }}>{customerName || 'Walk-in Customer'}</div>
+          {phone && <div style={{ fontFamily: MONO, fontSize: 12.5, color: '#374151', marginTop: 4 }}>{formatPhoneDisplay(phone)}</div>}
+          {address && address !== 'POS Counter' && <div style={{ fontSize: 12, color: SOFT, marginTop: 4, maxWidth: 360, lineHeight: 1.5 }}>{address}</div>}
+        </div>
+        <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
+          <div style={label}>Place of Supply</div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 6 }}>{STATE_NAMES[stateCode]} ({stateCode})</div>
+        </div>
+      </div>
+
+      {/* ── ITEMS ─────────────────────────────────────────────── */}
+      <div style={{ width: '100%', overflowX: 'auto', borderTop: `1px solid ${LINE}` }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
           <thead>
-            <tr style={{ background: '#111111', borderRadius: 8 }}>
-              <th style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 800, color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 0.8, width: 28 }}>#</th>
-              <th style={{ padding: '8px 10px', textAlign: 'left', fontSize: 10, fontWeight: 800, color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 0.8 }}>Item / SKU</th>
-              <th style={{ padding: '8px 10px', textAlign: 'center', fontSize: 10, fontWeight: 800, color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 0.8, width: 45 }}>Qty</th>
-              <th style={{ padding: '8px 10px', textAlign: 'right', fontSize: 10, fontWeight: 800, color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 0.8, width: 75 }}>Rate</th>
-              <th style={{ padding: '8px 10px', textAlign: 'right', fontSize: 10, fontWeight: 800, color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 0.8, width: 85 }}>Amount</th>
+            <tr>
+              <th style={{ ...th, width: 28, textAlign: 'center' }}>#</th>
+              <th style={th}>Item Description</th>
+              {isGst && <th style={{ ...th, textAlign: 'center', width: 70 }}>HSN</th>}
+              <th style={{ ...th, textAlign: 'center', width: 60 }}>Qty</th>
+              <th style={{ ...th, textAlign: 'right', width: 100 }}>
+                Rate (₹){isGst && <div style={{ fontSize: 8.5, textTransform: 'none', letterSpacing: 0, marginTop: 2 }}>excl. GST</div>}
+              </th>
+              <th style={{ ...th, textAlign: 'right', width: 110 }}>
+                Amount (₹){isGst && <div style={{ fontSize: 8.5, textTransform: 'none', letterSpacing: 0, marginTop: 2 }}>excl. GST</div>}
+              </th>
             </tr>
           </thead>
           <tbody>
             {items.map((item, idx) => {
-              const normalized = normalizeStructuredOrderItem(item as unknown as Record<string, unknown>)
-              const displayName = normalized.tamil_name || item.nameTa || normalized.name
+              const n = normalizeStructuredOrderItem(item as unknown as Record<string, unknown>)
+              const tamil = n.tamil_name || item.nameTa
               return (
-                <tr key={idx} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '10px 8px', fontSize: 11, color: '#999', verticalAlign: 'top' }}>{idx + 1}</td>
-                  <td style={{ padding: '10px 8px', verticalAlign: 'top' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#111111' }}>{normalized.name}</div>
-                    {displayName && displayName !== normalized.name && <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{displayName}</div>}
+                <tr key={idx}>
+                  <td style={{ ...td, textAlign: 'center', color: MUTED }}>{idx + 1}</td>
+                  <td style={td}>
+                    <div style={{ fontWeight: 700 }}>{n.name}</div>
+                    {tamil && tamil !== n.name && <div style={{ fontSize: 11, color: SOFT, marginTop: 2 }}>{tamil}</div>}
                     {item.offerPrice && item.price !== item.offerPrice && (
-                      <div style={{ fontSize: 10, color: '#aaa', textDecoration: 'line-through', marginTop: 2 }}>MRP ₹{item.price}</div>
+                      <div style={{ fontSize: 10.5, color: MUTED, textDecoration: 'line-through', marginTop: 2 }}>MRP {formatCurrency(item.price)}</div>
                     )}
-                    <div style={{ fontSize: 10, color: '#6B7280', marginTop: 2 }}>
-                      {normalized.unit} · {formatCurrency(normalized.base_price)}
-                    </div>
                   </td>
-                  <td style={{ padding: '10px 8px', fontSize: 12, fontWeight: 600, textAlign: 'center', verticalAlign: 'top' }}>{formatQuantityDisplay(normalized.quantity, normalized.unit, normalized.unit_type)}</td>
-                  <td style={{ padding: '10px 8px', fontSize: 12, fontWeight: 600, textAlign: 'right', verticalAlign: 'top', color: '#555', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(normalized.base_price)}</td>
-                  <td style={{ padding: '10px 8px', fontSize: 13, fontWeight: 800, textAlign: 'right', verticalAlign: 'top', color: '#111111', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(normalized.line_total)}</td>
+                  {isGst && <td style={{ ...td, textAlign: 'center', fontFamily: MONO, fontSize: 12, color: '#374151' }}>{item.hsn || '–'}</td>}
+                  <td style={{ ...td, textAlign: 'center', fontWeight: 700, whiteSpace: 'nowrap' }}>{n.unit_type === 'unit' ? n.quantity : formatQuantityDisplay(n.quantity, n.unit, n.unit_type)}</td>
+                  <td style={{ ...td, textAlign: 'right', fontFamily: MONO, fontSize: 12.5, color: '#374151' }}>{money(n.base_price)}</td>
+                  <td style={{ ...td, textAlign: 'right', fontFamily: MONO, fontSize: 12.5, fontWeight: 700 }}>{money(n.line_total)}</td>
                 </tr>
               )
             })}
@@ -179,77 +256,64 @@ export const Invoice: React.FC<InvoiceProps> = ({
         </table>
       </div>
 
-      {/* ── TOTALS ───────────────────────────────────────────────── */}
-      <div className="invoice-totals" style={{ marginTop: 24, borderTop: '2px solid #A1A1AA', paddingTop: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ minWidth: 240, width: '100%', maxWidth: 300 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, color: '#666' }}>Subtotal</span>
-              <span style={{ fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(subtotal)}</span>
-            </div>
-            {discountAmount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 12, color: '#52525B' }}>
-                  Coupon{couponCode ? ` (${couponCode})` : ''}
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#52525B', fontVariantNumeric: 'tabular-nums' }}>−{formatCurrency(discountAmount)}</span>
-              </div>
-            )}
-            {manualDiscountAmount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 12, color: '#52525B' }}>Manual Discount</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#52525B', fontVariantNumeric: 'tabular-nums' }}>−{formatCurrency(manualDiscountAmount)}</span>
-              </div>
-            )}
-            {gstAmount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 12, color: '#666' }}>GST</span>
-                <span style={{ fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>+{formatCurrency(gstAmount)}</span>
-              </div>
-            )}
-            {effectiveDelivery > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 12, color: '#666' }}>Delivery</span>
-                <span style={{ fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(effectiveDelivery)}</span>
-              </div>
-            )}
-            <div
-              style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                borderTop: '2px solid #A1A1AA', paddingTop: 10, marginTop: 4,
-              }}
-            >
-              <span style={{ fontSize: 15, fontWeight: 900, color: '#111111', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total</span>
-              <span style={{ fontSize: 20, fontWeight: 900, color: '#111111', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(total)}</span>
-            </div>
+      {/* ── WORDS / TOTALS ────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 28, borderTop: `1px solid ${LINE}`, marginTop: 14, paddingTop: 16 }}>
+        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+          <div style={label}>Amount in Words</div>
+          <div style={{ fontSize: 13, fontWeight: 700, fontStyle: 'italic', marginTop: 5 }}>{amountInWords(total)}</div>
+          <div style={{ fontSize: 12.5, color: MUTED, marginTop: 22 }}>
+            {mode === 'SPLIT' ? 'Paid' : `${({ CASH: 'Cash', GPAY: 'GPay', CARD: 'Card', ONLINE: 'Online' } as Record<string, string>)[mode] || mode} Received`}:{' '}
+            <span style={{ fontFamily: MONO, color: '#111111', fontWeight: 600 }}>{formatCurrency(received)}</span>
           </div>
+          {mode === 'SPLIT' && paymentMode && <div style={{ fontSize: 11.5, color: SOFT, marginTop: 4 }}>{paymentMode}</div>}
+          {notes && notes.trim() && (
+            <div style={{ marginTop: 22 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Terms &amp; Notes:</div>
+              <div style={{ fontSize: 11.5, color: SOFT, marginTop: 5, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{notes.trim()}</div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ flex: '0 1 300px', minWidth: 240, marginLeft: 'auto' }}>
+          {sumRow(<>Subtotal{isGst && <span style={{ fontSize: 9, color: MUTED, marginLeft: 5, letterSpacing: 0.5 }}>EXCL. GST</span>}</>, formatCurrency(subtotal))}
+          {discountAmount > 0 && sumRow(`Coupon${couponCode ? ` (${couponCode})` : ''}`, `−${formatCurrency(discountAmount)}`)}
+          {manualDiscountAmount > 0 && sumRow('Discount', `−${formatCurrency(manualDiscountAmount)}`)}
+          {isGst && (
+            <>
+              <div style={{ borderTop: `1px dashed ${LINE}`, marginTop: 4 }} />
+              {sumRow('Taxable Value', formatCurrency(taxable), { small: true, muted: true })}
+              {sumRow(`CGST${halfRate(cgst) ? ` (${halfRate(cgst)})` : ''}`, formatCurrency(cgst))}
+              {sumRow(`SGST${halfRate(sgst) ? ` (${halfRate(sgst)})` : ''}`, formatCurrency(sgst))}
+            </>
+          )}
+          {effectiveDelivery > 0 && sumRow('Delivery', formatCurrency(effectiveDelivery))}
+          <div style={{ height: 2, background: accent, margin: '8px 0 10px' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ fontSize: 14.5, fontWeight: 800, color: accent }}>TOTAL</span>
+            <span style={{ fontFamily: MONO, fontSize: 18, fontWeight: 800, color: accent, whiteSpace: 'nowrap' }}>{formatCurrency(total)}</span>
+          </div>
+          {paymentRows.length > 0 && (
+            <div style={{ marginTop: 10, borderTop: `1px solid ${LINE}`, paddingTop: 4 }}>
+              {paymentRows.map((row, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: row.sub ? '3px 0 3px 10px' : '6px 0' }}>
+                  <span style={{ fontSize: row.sub ? 11 : 12.5, color: row.sub ? SOFT : '#374151', fontWeight: row.accent ? 700 : 400 }}>{row.label}</span>
+                  <span style={{ fontFamily: MONO, fontSize: row.sub ? 11 : 12.5, fontWeight: row.accent ? 800 : 600 }}>{formatCurrency(row.value)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── FOOTER ───────────────────────────────────────────────── */}
+      {/* ── FOOTER ─────────────────────────────────────────────── */}
       <div
-        className="invoice-footer mt-auto"
-        style={{
-          marginTop: 'auto',
-          paddingTop: 16,
-          paddingBottom: 4,
-          borderTop: '1px dashed #d0d0d0',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-        }}
+        className="invoice-footer"
+        style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, borderTop: `1px solid ${LINE}`, marginTop: 36, paddingTop: 22 }}
       >
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#111111', letterSpacing: 0.5 }}>
-          Thank you for shopping at {BRAND_EN.toUpperCase()}!
-        </div>
-        {BRAND_INSTAGRAM && (
-          <div style={{ fontSize: 10, color: '#6B7280', marginTop: 3, fontWeight: 500 }}>
-            Follow us on Instagram: @{BRAND_INSTAGRAM}
-          </div>
-        )}
-        <div style={{ fontSize: 14, fontWeight: 900, color: '#111111', letterSpacing: 4, textTransform: 'uppercase', marginTop: 10 }}>
-          — {BRAND_EN} —
+        <div style={{ fontSize: 12, color: MUTED }}>Thank you for your visit! • {BRAND_EN.toUpperCase()}</div>
+        <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
+          <div style={{ borderTop: '1px solid #9CA3AF', width: 160, marginLeft: 'auto', paddingTop: 6, fontSize: 12.5, fontWeight: 700, color: '#111111' }}>Authorised Signatory</div>
+          <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>For {BRAND_EN.toUpperCase()}</div>
         </div>
       </div>
     </div>

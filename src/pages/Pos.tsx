@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback, type FormEvent } fro
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Search, Trash2, Plus, Receipt, Printer,
-  RefreshCw, ShoppingBag, MessageCircle,
+  RefreshCw, ShoppingBag, MessageCircle, Eye,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Wifi, WifiOff, Layers, X, ChevronDown, Power,
   Edit2, AlertCircle, Check, User, CalendarDays, Scissors, PackagePlus, List, Clock
@@ -13,17 +13,19 @@ import { useProductStore, useVariantStore, useAdminAuthStore, type Product } fro
 import { useNavigationStore } from '../store/navigationStore'
 import { barcodeService } from '../services/barcodeService'
 import { normalizeBarcode } from '../lib/barcode'
-import { Invoice } from '../components/Invoice'
+import { Invoice, type InvoiceProps } from '../components/Invoice'
+import InvoicePreviewModal from '../components/print/InvoicePreviewModal'
+import PrintSettingsModal from '../components/print/PrintSettingsModal'
+import { printBill } from '../lib/billPrint'
 import CatalogModal from '../components/CatalogModal'
 import AddProductModal from '../components/AddProductModal'
-import { invoicePdfFile } from '../lib/invoicePdf'
+import { invoicePdfFile, invoicePdfFileFromElement } from '../lib/invoicePdf'
 import { uploadInvoicePdf } from '../lib/storage'
 import { createOrderWithStock } from '../services/orderService'
 import { createAdvanceOrder, type AdvanceOrder, type AdvancePaymentMethod } from '../services/advanceOrderService'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
 import { printAdvanceReceipt } from '../lib/advanceReceipt'
-import { printThermalReceipt } from '../lib/thermalPrint'
 import {
   buildStructuredOrderItem,
   calculateLineTotal,
@@ -174,6 +176,10 @@ export default function Pos(props: PosProps = {}) {
   const [manualDiscountValue, setManualDiscountValue] = useState('')
   const [error, setError] = useState('')
   const [invoice, setInvoice] = useState<InvoiceSnap | null>(null)
+  const [billPrintOpen, setBillPrintOpen] = useState(false)
+  const [billPreviewOpen, setBillPreviewOpen] = useState(false)
+  const invoicePdfRef = useRef<HTMLDivElement>(null)
+  const pdfSavedFor = useRef<string | null>(null)
   const [cashReceived, setCashReceived] = useState<string>('')
   const [mobilePanelView, setMobilePanelView] = useState<'catalogue' | 'bill'>('catalogue')
   const [ordermode, setOrdermode] = useState<'online' | 'offline'>('offline')
@@ -621,6 +627,8 @@ export default function Pos(props: PosProps = {}) {
     setItems([])
     setCustomer({ name: '', phone: '', address: '' })
     setInvoice(null)
+    setBillPrintOpen(false)
+    setBillPreviewOpen(false)
     setCashReceived('')
     setCouponInput('')
     setAppliedCoupon(null)
@@ -774,14 +782,20 @@ export default function Pos(props: PosProps = {}) {
     if (ordermode !== 'online' && paymentType === 'cash' && cashReceivedNum < total) { setError(`Insufficient payment. Customer still owes ${formatCurrency(total - cashReceivedNum)}`); return }
     if (ordermode !== 'online' && paymentType === 'split') {
       const enteredSplit = splitTotal(splitInputToDetails(splitForm))
-      if (Math.abs(enteredSplit - total) >= 0.01) { setError(`Split amounts must add up to ${formatCurrency(total)}. Entered ${formatCurrency(enteredSplit)}.`); return }
+      if (enteredSplit < total - 0.009) { setError(`Split amounts must cover ${formatCurrency(total)}. Customer still owes ${formatCurrency(total - enteredSplit)}.`); return }
+      if (enteredSplit - total > splitInputToDetails(splitForm).cash + 0.009) { setError('Change can only be returned from cash. Lower the QR / GPay or card amount.'); return }
     }
     // Validate online mode availability
     if (ordermode === 'online' && !isDatabaseConfigured) { setError('Cannot place online orders while offline'); return }
     setSaving(true); setError('')
     try {
       const paymentMode = ordermode === 'online' ? 'online' : paymentType
-      const splitDetailsForBill = ordermode !== 'online' && paymentType === 'split' ? splitInputToDetails(splitForm) : {}
+      // Split bills keep only what was actually collected: any change goes back out of the cash part
+      const splitEntered = splitInputToDetails(splitForm)
+      const splitChange = Math.max(0, Math.round((splitTotal(splitEntered) - total) * 100) / 100)
+      const splitDetailsForBill = ordermode !== 'online' && paymentType === 'split'
+        ? { ...splitEntered, cash: Math.round((splitEntered.cash - splitChange) * 100) / 100 }
+        : {}
       // Determine the effective billing date/time
       const effectiveBillingDate = billingDate.trim()
         ? new Date(billingDate).toISOString()
@@ -883,13 +897,12 @@ export default function Pos(props: PosProps = {}) {
         customerName: customer.name.trim() || 'Walk-in Customer',
         phone: normalizedPhone,
         address: customer.address.trim() || 'POS Counter',
-        amountReceived: paymentType === 'split' ? total : cashReceivedNum,
-        balanceReturned: paymentType === 'split' ? 0 : balanceToReturn,
+        amountReceived: paymentType === 'split' ? splitTotal(splitEntered) : cashReceivedNum,
+        balanceReturned: paymentType === 'split' ? splitChange : balanceToReturn,
         paymentMode: ordermode === 'online' ? 'Online' : paymentType === 'split' ? formatPaymentLabel('split', splitDetailsForBill) : paymentType === 'qr' ? 'QR' : paymentType === 'card' ? 'Card' : 'Cash',
         paymentMethod: paymentMode,
       }
       setInvoice(createdInvoice)
-      void persistInvoicePdf(createdInvoice)
       setItems([])
       setCustomer({ name: '', phone: '', address: '' })
       void fetchProducts()
@@ -936,7 +949,9 @@ export default function Pos(props: PosProps = {}) {
 
   const persistInvoicePdf = async (inv: InvoiceSnap) => {
     try {
-      const file = invoicePdfFile({
+      const file = invoicePdfRef.current
+        ? await invoicePdfFileFromElement(invoicePdfRef.current, inv.invoiceNo)
+        : invoicePdfFile({
         invoiceNo: inv.invoiceNo,
         date: inv.date,
         customerName: inv.customerName,
@@ -961,26 +976,14 @@ export default function Pos(props: PosProps = {}) {
     }
   }
 
-  const printReceipt = (inv: InvoiceSnap) => {
-    // Print a Bluetooth/thermal receipt directly
-    printThermalReceipt({
-      invoiceNo: inv.invoiceNo,
-      date: inv.date,
-      customerName: inv.customerName,
-      phone: inv.phone,
-      items: inv.items.map(item => ({ name: item.name, qty: item.qty, unit: item.selectedUnit, price: Number(item.basePrice) || 0, line_total: item.lineTotal })),
-      subtotal: inv.subtotal,
-      shipping: inv.shipping,
-      couponDiscount: inv.couponDiscount,
-      manualDiscount: inv.manualDiscountAmount,
-      totalGst: inv.gstAmount,
-      total: inv.total,
-    })
-  }
-
-  // ══ INVOICE SCREEN ════════════════════════════════════════════════════
-  if (invoice) {
-    const invoiceItems = invoice.items.map(item => ({
+  /** Same bill data for the A4 / A5 invoice, the thermal receipt and the preview. */
+  const invoicePropsFor = (inv: InvoiceSnap): InvoiceProps => ({
+    invoiceNo: inv.invoiceNo,
+    date: inv.date,
+    customerName: inv.customerName,
+    phone: inv.phone,
+    address: inv.address,
+    items: inv.items.map(item => ({
       id: String(item.id),
       name: item.name,
       nameTa: item.nameTa,
@@ -993,128 +996,126 @@ export default function Pos(props: PosProps = {}) {
       line_total: item.lineTotal,
       price: item.price,
       offerPrice: item.offerPrice ?? undefined,
-    }))
+      hsn: item.hsnCode || products.find(pr => String(pr.id) === String(item.parentProductId || item.id))?.hsnCode || undefined,
+    })),
+    subtotal: inv.subtotal,
+    shipping: inv.shipping,
+    total: inv.total,
+    status: 'completed',
+    discountAmount: inv.couponDiscount || 0,
+    manualDiscountAmount: inv.manualDiscountAmount || 0,
+    gstAmount: inv.gstAmount || 0,
+    couponCode: inv.couponCode,
+    paymentMode: inv.paymentMode,
+    channel: inv.orderType === 'online_request' ? 'online' : 'offline',
+    amountReceived: inv.amountReceived,
+  })
+
+  // Save the PDF copy of each new bill once its invoice has rendered
+  useEffect(() => {
+    if (!invoice || invoice.invoicePdfUrl || pdfSavedFor.current === invoice.id) return
+    pdfSavedFor.current = invoice.id
+    const inv = invoice
+    setTimeout(() => { void persistInvoicePdf(inv) }, 400)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoice])
+
+  // ══ INVOICE SCREEN ════════════════════════════════════════════════════
+  if (invoice) {
+    const billProps = invoicePropsFor(invoice)
+    const isGstBill = (invoice.gstAmount || 0) > 0
+    const modeChip = /^split/i.test(invoice.paymentMode || '') ? 'Split' : invoice.paymentMode === 'QR' ? 'QR / GPay' : (invoice.paymentMode || 'Cash')
+    const actionBtn = 'inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-3 text-[11px] font-black uppercase tracking-wider text-[#111111] transition-colors hover:bg-gray-50'
 
     return (
-      <div className="mobile-page-shell print:bg-white print:min-h-0">
-        {/* Screen UI */}
-        <div className="max-w-2xl mx-auto px-4 py-6 print:hidden space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-[#1F1F1F]">{l('Bill Generated Successfully', 'பில் உருவாக்கப்பட்டது')}</h1>
-              <p className="text-xs text-[#6B7280] mt-0.5">Transaction recorded and inventory updated</p>
-            </div>
-            <button onClick={clearAll}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-100 border border-primary-soft/40 font-bold text-sm shadow-sm cursor-pointer">
-              <Plus size={15} /> New Sale
-            </button>
-          </div>
-
-          {/* Bill Details Section */}
-          <div className="rounded-2xl border border-[#F3F4F6] bg-white p-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Bill Number:</span>
-                <span className="px-2.5 py-0.5 rounded-lg bg-primary text-primary-100 font-black text-xs font-mono border border-primary-soft/30">
-                  #{formatInvoiceNo(invoice.invoiceNo)}
-                </span>
-              </div>
-              <div className="text-xs font-semibold text-gray-600">
-                {new Date(invoice.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2.5 text-xs">
-              <div>
-                <span className="text-[10px] text-gray-400 font-bold uppercase block">Customer</span>
-                <span className="font-bold text-gray-900 truncate block">{invoice.customerName || 'Walk-in Customer'}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-gray-400 font-bold uppercase block">Payment Mode</span>
-                <span className="font-bold text-gray-900 uppercase block">{invoice.paymentMode || 'POS'}</span>
-              </div>
-              {invoice.phone && (
-                <div>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase block">Phone</span>
-                  <span className="font-semibold text-gray-700 block">{formatPhoneDisplay(invoice.phone)}</span>
+      <div className="mobile-page-shell print:hidden">
+        <div className="mx-auto w-full max-w-[680px] px-0 py-4 sm:py-6">
+          <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-gray-200 pb-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-[26px] font-black tracking-tight text-[#111111] sm:text-[28px]">{l('Bill Generated', 'பில் உருவாக்கப்பட்டது')}</h1>
+                  <span className="rounded-md bg-gray-100 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-[#111111]">{isGstBill ? 'GST' : 'Non-GST'}</span>
                 </div>
+                <p className="mt-1 font-mono text-xs font-bold text-primary">#{formatInvoiceNo(invoice.invoiceNo)}</p>
+              </div>
+              <button onClick={clearAll} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-[#111111] px-4 text-[11px] font-black uppercase tracking-wider text-white hover:bg-black">
+                <Plus size={16} /> New Sale
+              </button>
+            </div>
+
+            {/* Payment receipt */}
+            <div className="mt-4 rounded-2xl border border-gray-200 p-5">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">{l('Payment Receipt', 'கட்டண ரசீது')}</p>
+                <span className="rounded-md bg-gray-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-primary">{modeChip}</span>
+              </div>
+              <div className="flex items-center justify-between pt-4">
+                <span className="text-sm font-semibold text-gray-600">{l('Grand Total', 'மொத்த தொகை')}</span>
+                <span className="text-2xl font-black tabular-nums text-[#111111]">{formatCurrency(invoice.total)}</span>
+              </div>
+              <div className="flex items-center justify-between pt-3">
+                <span className="text-sm font-semibold text-gray-600">{l('Amount Received', 'பெற்ற தொகை')}</span>
+                <span className="text-lg font-black tabular-nums text-[#111111]">{formatCurrency(invoice.amountReceived || invoice.total)}</span>
+              </div>
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100 px-4 py-4">
+                <span className="text-sm font-black text-primary">{l('Balance Returned', 'திரும்பிய பணம்')}</span>
+                <span className="text-2xl font-black tabular-nums text-primary">{formatCurrency(invoice.balanceReturned || 0)}</span>
+              </div>
+              {/^split/i.test(invoice.paymentMode || '') && (
+                <p className="mt-3 text-xs font-semibold text-gray-500">{invoice.paymentMode}</p>
               )}
             </div>
-          </div>
 
-          {/* Payment receipt */}
-          <div className="surface-panel p-5 rounded-xl border border-gray-100 bg-white shadow-sm mb-4">
-            <p className="text-xs font-black uppercase tracking-widest text-textMuted mb-3">{l('Financial Summary', 'நிதி சுருக்கம்')}</p>
-            <div className="space-y-2.5">
-              <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
-                <p className="text-sm font-bold text-textMuted">{l('Grand Total', 'மொத்த தொகை')}</p>
-                <p className="text-2xl font-black text-textMain tabular-nums">{formatCurrency(invoice.total)}</p>
-              </div>
-              <div className="flex justify-between items-center">
-                <p className="text-sm font-bold text-textMuted">{l('Amount Received', 'பெற்ற தொகை')}</p>
-                <p className="text-xl font-black text-textMain tabular-nums">{formatCurrency(invoice.amountReceived)}</p>
-              </div>
-              {invoice.balanceReturned > 0 ? (
-                <div className="flex justify-between items-center rounded-xl bg-gray-50 border border-gray-200 px-4 py-3">
-                  <p className="text-sm font-black text-gray-700">{l('Balance Returned', 'திரும்பிய பணம்')}</p>
-                  <p className="text-2xl font-black text-gray-700 tabular-nums">{formatCurrency(invoice.balanceReturned)}</p>
-                </div>
-              ) : (
-                <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-center">
-                  <p className="text-sm font-black text-green-700">✅ {l('Exact Amount Received', 'சரியான தொகை')}</p>
-                </div>
-              )}
+            {/* Actions */}
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <button type="button" onClick={() => setBillPrintOpen(true)} className={actionBtn}>
+                <Printer size={16} /> {l('Print Receipt', 'ரசீது அச்சிடு')}
+              </button>
+              <button type="button" onClick={() => setBillPreviewOpen(true)} className={actionBtn}>
+                <Eye size={16} /> {l('View', 'பார்')}
+              </button>
+              <button type="button" onClick={() => sendPosWhatsApp(invoice)} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-3 text-[11px] font-black uppercase tracking-wider text-white hover:bg-emerald-600">
+                <MessageCircle size={16} /> WhatsApp Invoice
+              </button>
+              <button type="button" onClick={clearAll} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#111111] px-3 text-[11px] font-black uppercase tracking-wider text-white hover:bg-black">
+                <Plus size={16} /> New Sale
+              </button>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="grid grid-cols-3 gap-3">
-            <button onClick={() => printReceipt(invoice)}
-              className="flex flex-col md:flex-row items-center justify-center gap-2 py-3 px-2 rounded-xl border-2 border-gray-200 hover:border-[#111111] text-textMain font-bold text-[12px] md:text-sm transition-colors text-center leading-tight">
-              <Printer size={16} className="shrink-0" /> {l('Print Receipt', 'ரசீது அச்சிடு')}
-            </button>
-            <button onClick={() => sendPosWhatsApp(invoice)}
-              className="flex flex-col md:flex-row items-center justify-center gap-2 py-3 px-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold text-[12px] md:text-sm transition-colors text-center leading-tight">
-              <MessageCircle size={16} className="shrink-0" /> WhatsApp Invoice
-            </button>
-            <button onClick={clearAll}
-              className="flex flex-col md:flex-row items-center justify-center gap-2 py-3 px-2 rounded-xl bg-primary hover:bg-[#374151] text-white font-bold text-[12px] md:text-sm transition-colors text-center leading-tight">
-              <RefreshCw size={16} className="shrink-0" /> New Sale
-            </button>
-          </div>
-
-          {/* Items summary */}
-          <div className="surface-panel p-4 rounded-xl border border-gray-100 bg-white shadow-sm mt-4">
-            <p className="text-xs font-bold text-textMuted uppercase tracking-wide mb-3">{l('Items Sold', 'விற்ற பொருட்கள்')}</p>
-            <div className="space-y-1.5">
-              {invoice.items.map(item => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span className="text-textMain">{item.name} × {formatQuantityDisplay(item.qty, item.selectedUnit, item.unitType)}</span>
-                  <span className="font-bold">{formatCurrency(item.lineTotal)}</span>
-                </div>
-              ))}
+            {/* Items sold */}
+            <div className="mt-4 rounded-2xl border border-gray-200 p-5">
+              <p className="border-b border-gray-100 pb-3 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">{l('Items Sold', 'விற்ற பொருட்கள்')}</p>
+              <div className="space-y-2.5 pt-3">
+                {invoice.items.map(item => (
+                  <div key={item.id} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="min-w-0 font-semibold text-[#111111]">
+                      {item.name}{' '}
+                      <span className="text-[11px] font-semibold text-gray-400">× {formatQuantityDisplay(item.qty, item.selectedUnit, item.unitType)}</span>
+                    </span>
+                    <span className="shrink-0 font-bold tabular-nums">{formatCurrency(item.lineTotal)}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Print view — full A4 invoice */}
-        <div className="hidden print:block">
-          <Invoice
-            invoiceNo={invoice.invoiceNo}
-            date={invoice.date}
-            customerName={invoice.customerName}
-            phone={invoice.phone}
-            address={invoice.address}
-            items={invoiceItems}
-            subtotal={invoice.subtotal}
-            shipping={invoice.shipping}
-            total={invoice.total}
-            status="Completed"
-            discountAmount={invoice.couponDiscount || 0}
-            manualDiscountAmount={invoice.manualDiscountAmount || 0}
-            gstAmount={invoice.gstAmount || 0}
-            couponCode={invoice.couponCode}
+        <PrintSettingsModal open={billPrintOpen} onClose={() => setBillPrintOpen(false)} onPrint={(settings) => printBill(billProps, settings)} />
+        {billPreviewOpen && (
+          <InvoicePreviewModal
+            invoice={billProps}
+            fullPageUrl={publicInvoiceUrl(invoice.invoiceNo)}
+            onClose={() => setBillPreviewOpen(false)}
           />
+        )}
+
+        {/* Off-screen copy of the invoice used to save the PDF that WhatsApp links to */}
+        <div aria-hidden="true" style={{ position: 'fixed', left: -10000, top: 0, width: 760, pointerEvents: 'none' }}>
+          <div ref={invoicePdfRef}>
+            <Invoice {...billProps} />
+          </div>
         </div>
       </div>
     )
@@ -1623,7 +1624,7 @@ export default function Pos(props: PosProps = {}) {
                       paymentType === mode ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#111111] hover:bg-gray-50'
                     }`}
                   >
-                    {mode === 'qr' ? 'GPay' : mode === 'card' ? 'Card' : mode === 'split' ? 'Split' : 'Cash'}
+                    {mode === 'qr' ? 'QR / GPay' : mode === 'card' ? 'Card' : mode === 'split' ? 'Split' : 'Cash'}
                   </button>
                 ))}
               </div>
@@ -1636,16 +1637,13 @@ export default function Pos(props: PosProps = {}) {
             </div>
 
             {ordermode !== 'online' && paymentType === 'split' && (
-              <div className="rounded-xl border border-gray-200 p-5">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]">Split Payment — Cash / GPay / Card</p>
-                <SplitPaymentInputs idPrefix="pos-split" total={total} value={splitForm} onChange={setSplitForm} />
-              </div>
+              <SplitPaymentInputs idPrefix="pos-split" total={total} value={splitForm} onChange={setSplitForm} allowChange />
             )}
 
             {ordermode !== 'online' && paymentType !== 'split' && (
               <div className="rounded-xl border border-gray-200 p-5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]">
-                  {paymentType === 'qr' ? 'GPay' : paymentType === 'card' ? 'Card' : 'Cash'} Payment
+                  {paymentType === 'qr' ? 'QR / GPay' : paymentType === 'card' ? 'Card' : 'Cash'} Payment
                 </p>
                 <label htmlFor="pos-cash-received" className="mb-3 block text-[13px] font-black text-[#111111]">Amount Received (₹)</label>
                 <input

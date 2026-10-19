@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Invoice } from '../components/Invoice'
-import { Printer, ArrowLeft, MessageCircle } from 'lucide-react'
-import { printThermalReceipt } from '../lib/thermalPrint'
-import { invoicePdfFile, invoicePdfFileFromElement } from '../lib/invoicePdf'
+import { Invoice, type InvoiceProps } from '../components/Invoice'
+import PrintSettingsModal from '../components/print/PrintSettingsModal'
+import { printBill, thermalPreviewHtml } from '../lib/billPrint'
+import { loadPrintSettings, type PrintSettings } from '../lib/printSettings'
+import { Printer, ArrowLeft, MessageCircle, Copy, Check, FileDown } from 'lucide-react'
+import { invoicePdfFileFromElement } from '../lib/invoicePdf'
 import { uploadInvoicePdf } from '../lib/storage'
 import { isUuid, normalizeStructuredOrderItem, formatInvoiceNo } from '../lib/retail'
 import { buildProfessionalWhatsAppMessage } from '../lib/whatsappMessage'
@@ -49,6 +51,11 @@ export default function DigitalInvoice() {
   const [error, setError] = useState('')
   const [downloadingPdf, setDownloadingPdf] = useState(false)
   const invoiceElementRef = useRef<HTMLDivElement>(null)
+  const [printOpen, setPrintOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [hsnByProduct, setHsnByProduct] = useState<Record<string, string>>({})
+  // After a thermal print the page shows the receipt as it printed
+  const [view, setView] = useState<{ mode: 'sheet' | 'thermal'; settings: PrintSettings }>(() => ({ mode: 'sheet', settings: loadPrintSettings() }))
 
   const handleBack = () => {
     const currentPath = window.location.pathname
@@ -197,6 +204,23 @@ export default function DigitalInvoice() {
     if (id) loadInvoice()
   }, [id])
 
+  useEffect(() => {
+    const ids = Array.from(new Set(
+      (Array.isArray(invoice?.items) ? invoice.items : [])
+        .map((item: Record<string, unknown>) => String(item.product_id ?? item.productId ?? '').trim())
+        .filter((v: string) => /^\d+$|^[0-9a-f-]{36}$/i.test(v)),
+    )) as string[]
+    if (!ids.length || !isDatabaseConfigured) return
+    let cancelled = false
+    void db.from('products').select('id, hsn_code').in('id', ids).then(({ data }) => {
+      if (cancelled || !data) return
+      const map: Record<string, string> = {}
+      ;(data as Array<{ id: unknown; hsn_code?: string | null }>).forEach(row => { if (row.hsn_code) map[String(row.id)] = String(row.hsn_code) })
+      setHsnByProduct(map)
+    })
+    return () => { cancelled = true }
+  }, [invoice])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
@@ -339,76 +363,103 @@ export default function DigitalInvoice() {
     }
   }
 
-  const printReceipt = () => {
-    const subtotal = invoice.total - (invoice.delivery_charge || 0) + (invoice.discount_amount || 0)
-    printThermalReceipt({
-      invoiceNo: invoice.invoice_no,
-      date: invoice.created_at,
-      customerName: invoice.customer_name,
-      phone: invoice.phone,
-      items: (invoice.items || []).map((item: Record<string, unknown>) => ({
-        name: item.name || item.product_name,
-        qty: item.qty || item.quantity,
-        unit: item.unit,
-        price: item.price || item.base_price || 0,
-        line_total: item.line_total
-      })),
-      subtotal,
-      shipping: invoice.delivery_charge || 0,
-      couponDiscount: invoice.discount_amount || 0,
-      totalGst: invoice.total_gst || invoice.gst_amount || 0,
-      total: invoice.total > 0 ? invoice.total : (subtotal + (invoice.delivery_charge || 0) + (invoice.total_gst || invoice.gst_amount || 0) - (invoice.discount_amount || 0) - (invoice.manual_discount_amount || 0))
-    })
+  const gstAmount = invoice.total_gst || invoice.gst_amount || 0
+  const billProps: InvoiceProps = {
+    invoiceNo: invoice.invoice_no,
+    date: invoice.billing_date || invoice.created_at,
+    customerName: invoice.customer_name,
+    phone: invoice.phone,
+    address: invoice.address,
+    items: (invoice.items || []).map((item: Record<string, unknown>) => ({
+      ...item,
+      hsn: hsnByProduct[String(item.product_id ?? item.productId ?? '')] || undefined,
+    })),
+    subtotal,
+    shipping: invoice.delivery_charge || 0,
+    discountAmount: invoice.discount_amount || 0,
+    manualDiscountAmount: invoice.manual_discount_amount || 0,
+    gstAmount,
+    couponCode: invoice.coupon_code,
+    total: invoice.total > 0 ? invoice.total : (subtotal + (invoice.delivery_charge || 0) + gstAmount - (invoice.discount_amount || 0) - (invoice.manual_discount_amount || 0)),
+    status: invoice.status,
+    paymentMode: formatPaymentLabel(invoice.payment_mode || invoice.payment_method, invoice.split_details) || invoice.payment_mode || invoice.payment_method,
+    channel: invoice.order_mode || 'offline',
   }
 
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch { /* clipboard blocked */ }
+  }
+
+  const barBtn = 'inline-flex h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 sm:px-4 text-[13px] font-semibold text-[#111111] shadow-sm transition-colors hover:bg-gray-50 active:scale-95 cursor-pointer disabled:opacity-60'
+
   return (
-    <div className="digital-invoice-page bg-[#F9FAFB] font-sans print:bg-white print:overflow-visible print:m-0 print:p-0">
-      {/* Top action bar — uses position fixed so it always works on iOS regardless of scroll context */}
-      <div className="bg-[#F9FAFB]/95 backdrop-blur-sm p-4 fixed top-0 left-0 right-0 z-50 print:hidden flex items-center justify-between safe-area-inset-top" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}>
-        <button onClick={handleBack} className="flex items-center gap-2 text-[#111111] hover:text-primary-hover font-semibold text-sm transition-colors bg-white border border-[#F3F4F6] px-4 py-2 rounded-full shadow-sm cursor-pointer active:scale-95">
-          <ArrowLeft size={16} /> Back
-        </button>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={downloadPdf}
-            disabled={downloadingPdf}
-            className="flex items-center gap-2 bg-primary text-primary-100 border border-primary-soft px-4 py-2 rounded-full font-bold text-sm shadow-md hover:bg-primary-hover transition-colors cursor-pointer active:scale-95 disabled:opacity-70"
-          >
-            <Printer size={16} /> {downloadingPdf ? 'Generating...' : <><span className="hidden sm:inline">PDF Invoice</span><span className="sm:hidden">PDF</span></>}
+    <div className="digital-invoice-page min-h-[100dvh] bg-[#F7F7F7] font-sans print:bg-white print:overflow-visible print:m-0 print:p-0">
+      <div className="mx-auto w-full max-w-[860px] px-2 pb-12 pt-3 sm:px-4 sm:pt-6 print:p-0 print:max-w-full">
+        {/* Action bar */}
+        <div className="sticky top-2 z-40 mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white/95 p-3 shadow-sm backdrop-blur print:hidden">
+          <button onClick={handleBack} className={barBtn}>
+            <ArrowLeft size={16} /> <span className="hidden sm:inline">Return to POS</span><span className="sm:hidden">Back</span>
           </button>
-          <button
-            onClick={shareViaWhatsApp}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-md hover:bg-emerald-700 transition-colors cursor-pointer active:scale-95"
-          >
-            <MessageCircle size={16} /> WhatsApp
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={shareViaWhatsApp} className={barBtn}>
+              <MessageCircle size={16} /> <span className="hidden sm:inline">Share WhatsApp</span><span className="sm:hidden">WhatsApp</span>
+            </button>
+            <button onClick={() => void copyLink()} className={barBtn}>
+              {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />} <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy Link'}</span>
+            </button>
+            <button onClick={downloadPdf} disabled={downloadingPdf} className={barBtn} title="Download PDF">
+              <FileDown size={16} /> <span className="hidden sm:inline">{downloadingPdf ? 'Generating…' : 'PDF'}</span>
+            </button>
+            <button onClick={() => setPrintOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#111111] px-4 text-[13px] font-bold text-white shadow-sm hover:bg-black active:scale-95 cursor-pointer">
+              <Printer size={16} /> Print
+            </button>
+          </div>
+        </div>
+
+        {view.mode === 'thermal' && (
+          <div className="mb-3 flex justify-center gap-2 print:hidden">
+            <button onClick={() => setView(v => ({ ...v, mode: 'sheet' }))} className="rounded-full border border-gray-200 bg-white px-4 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-50">
+              Show full invoice
+            </button>
+          </div>
+        )}
+
+        {view.mode === 'thermal' ? (
+          <div className="flex justify-center print:hidden">
+            <iframe
+              title="Thermal receipt preview"
+              srcDoc={thermalPreviewHtml(billProps, view.settings)}
+              className="border-0 bg-white shadow-sm"
+              style={{ width: view.settings.thermalWidth === '58' ? 240 : 320, minHeight: 420 }}
+              onLoad={(e) => {
+                const frame = e.currentTarget
+                const h = frame.contentDocument?.documentElement.scrollHeight
+                if (h) frame.style.height = `${h + 4}px`
+              }}
+            />
+          </div>
+        ) : null}
+
+        {/* The A4 invoice stays mounted (also used for the PDF download) */}
+        <div className={view.mode === 'thermal' ? 'fixed -left-[10000px] top-0 w-[760px]' : ''} aria-hidden={view.mode === 'thermal' || undefined}>
+          <div ref={invoiceElementRef} className="rounded-lg border border-gray-200 bg-white shadow-sm print:rounded-none print:border-none print:shadow-none">
+            <Invoice {...billProps} />
+          </div>
         </div>
       </div>
 
-      {/* Spacer to push content below fixed bar */}
-      <div className="h-16 print:hidden" style={{ height: 'max(64px, calc(64px + env(safe-area-inset-top)))' }} />
-
-      <div className="max-w-3xl mx-auto pb-12 print:mt-0 print:mb-0 print:p-0 print:max-w-full px-2 sm:px-0">
-        <div ref={invoiceElementRef} className="bg-white shadow-xl rounded-2xl print:shadow-none print:rounded-none border border-sand/20 print:border-none print:m-0 print:p-0">
-          <Invoice
-            invoiceNo={invoice.invoice_no}
-            date={invoice.created_at}
-            customerName={invoice.customer_name}
-            phone={invoice.phone}
-            address={invoice.address}
-            items={invoice.items || []}
-            subtotal={subtotal}
-            shipping={invoice.delivery_charge || 0}
-            discountAmount={invoice.discount_amount || 0}
-            manualDiscountAmount={invoice.manual_discount_amount || 0}
-            gstAmount={invoice.total_gst || invoice.gst_amount || 0}
-            couponCode={invoice.coupon_code}
-            total={invoice.total > 0 ? invoice.total : (subtotal + (invoice.delivery_charge || 0) + (invoice.total_gst || invoice.gst_amount || 0) - (invoice.discount_amount || 0) - (invoice.manual_discount_amount || 0))}
-            status={invoice.status}
-            paymentMode={formatPaymentLabel(invoice.payment_mode || invoice.payment_method, invoice.split_details) || invoice.payment_mode || invoice.payment_method}
-          />
-        </div>
-      </div>
+      <PrintSettingsModal
+        open={printOpen}
+        onClose={() => setPrintOpen(false)}
+        onPrint={(settings) => {
+          setView({ mode: settings.printer === 'thermal' ? 'thermal' : 'sheet', settings })
+          printBill(billProps, settings)
+        }}
+      />
     </div>
   )
 }
