@@ -14,6 +14,7 @@ type Props = {
 
 /** Dark-header modal showing the A4 invoice exactly as it prints. */
 export default function InvoicePreviewModal({ invoice, onClose, fullPageUrl, actions }: Props) {
+  const number = /^DEP-/i.test(invoice.invoiceNo) ? invoice.invoiceNo : formatInvoiceNo(invoice.invoiceNo)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -25,11 +26,11 @@ export default function InvoicePreviewModal({ invoice, onClose, fullPageUrl, act
       className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 p-3 sm:p-6 print:hidden"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div role="dialog" aria-modal="true" aria-label={`Invoice ${formatInvoiceNo(invoice.invoiceNo)}`} className="flex max-h-full w-full max-w-[900px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label={`Invoice ${number}`} className="flex max-h-full w-full max-w-[900px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex shrink-0 items-center justify-between gap-3 bg-[#1F1F1F] px-4 py-3.5 text-white sm:px-6">
           <h2 className="flex min-w-0 items-center gap-2.5 text-[12px] font-black uppercase tracking-[0.1em] sm:text-sm">
             <Printer size={17} className="shrink-0" />
-            <span className="truncate">Invoice Preview • #{/^DEP-/i.test(invoice.invoiceNo) ? invoice.invoiceNo : formatInvoiceNo(invoice.invoiceNo)}</span>
+            <span className="truncate">Invoice Preview • #{number}</span>
           </h2>
           <div className="flex shrink-0 items-center gap-2">
             {actions}

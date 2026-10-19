@@ -5,6 +5,7 @@ import { formatCurrency } from '../lib/retail'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
 import PrintSettingsModal from '../components/print/PrintSettingsModal'
+import InvoicePreviewModal from '../components/print/InvoicePreviewModal'
 import { invoicePdfFromProps, printBill } from '../lib/billPrint'
 import { advanceDocumentProps } from '../lib/advanceInvoice'
 import type { InvoiceProps } from '../components/Invoice'
@@ -67,6 +68,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   const [payments, setPayments] = useState<AdvancePayment[]>([])
   const [paymentOrder, setPaymentOrder] = useState<AdvanceOrder | null>(null)
   const [printProps, setPrintProps] = useState<InvoiceProps | null>(null)
+  const [preview, setPreview] = useState<{ order: AdvanceOrder; props: InvoiceProps } | null>(null)
   const [paymentForm, setPaymentForm] = useState({ method: 'cash' as AdvancePaymentMethod, remarks: '' })
   const [depositSplit, setDepositSplit] = useState<SplitInputValue>(emptySplitInput())
   const [finalSplit, setFinalSplit] = useState<SplitInputValue>(emptySplitInput())
@@ -243,6 +245,11 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     try { setPrintProps(advanceDocumentProps(order, await paymentsFor(order))) }
     catch (err) { setError(err instanceof Error ? err.message : 'Unable to prepare the receipt') }
   }
+  /** Receipt / invoice preview (Print, Download, Open Full Page) */
+  const openPreview = async (order: AdvanceOrder) => {
+    try { setPreview({ order, props: advanceDocumentProps(order, await paymentsFor(order)) }) }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to open the receipt') }
+  }
   const downloadReceipt = async (order: AdvanceOrder) => {
     try {
       const props = advanceDocumentProps(order, await paymentsFor(order))
@@ -296,6 +303,27 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   const iconBtn = 'flex h-9 w-11 shrink-0 items-center justify-center rounded-xl transition-colors cursor-pointer'
 
   return <div className="space-y-6">
+    {preview && (() => {
+      const headerBtn = 'inline-flex h-9 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-xs font-bold text-white hover:bg-white/20'
+      const { order, props } = preview
+      return (
+        <InvoicePreviewModal
+          invoice={props}
+          fullPageUrl={order.status === 'completed' && order.invoice_number ? publicInvoiceUrl(order.invoice_number) : undefined}
+          onClose={() => setPreview(null)}
+          actions={
+            <>
+              <button type="button" onClick={() => setPrintProps(props)} className={headerBtn}>
+                <Printer size={14} /> <span className="hidden sm:inline">Print</span>
+              </button>
+              <button type="button" onClick={() => void downloadReceipt(order)} className={headerBtn}>
+                <Download size={14} /> <span className="hidden sm:inline">Download</span>
+              </button>
+            </>
+          }
+        />
+      )
+    })()}
     <PrintSettingsModal open={printProps !== null} onClose={() => setPrintProps(null)} onPrint={(settings) => { if (printProps) printBill(printProps, settings) }} />
     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
       <div className="max-w-xl">
@@ -429,9 +457,9 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
                         title={order.status === 'completed' ? 'Share Final Invoice via WhatsApp' : 'Share Advance Receipt via WhatsApp'} aria-label="Share on WhatsApp">
                         <MessageCircle size={19} strokeWidth={1.75} />
                       </button>
-                      <button type="button" onClick={() => void downloadReceipt(order)}
+                      <button type="button" onClick={() => void openPreview(order)}
                         className={`${iconBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`}
-                        title={order.status === 'completed' ? 'Download PDF Invoice' : 'Download PDF Receipt'} aria-label="Download PDF">
+                        title={order.status === 'completed' ? 'View Invoice' : 'View Advance Receipt'} aria-label={order.status === 'completed' ? 'View invoice' : 'View advance receipt'}>
                         <FileText size={19} strokeWidth={1.75} />
                       </button>
                       <button type="button" onClick={() => void printDocument(order)}
