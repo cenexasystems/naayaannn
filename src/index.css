@@ -454,3 +454,23 @@ button, a[role="button"] {
     overflow: hidden;
   }
 }
+
+/* The layout is designed for 1920px-wide screens. On laptop widths, scale the whole app
+   down so pages fit without horizontal scrolling. Window-sized widths and heights are divided
+   by the same factor so the app still fills the window. */
+@media (min-width: 1024px) and (max-width: 1919.98px) {
+  html { zoom: 0.85; }
+  html, body, #root { width: calc(100vw / 0.85) !important; max-width: calc(100vw / 0.85) !important; }
+  .ios-app-shell, .admin-shell { width: 100% !important; max-width: none !important; }
+  html, body, #root, .ios-app-shell { height: calc(100dvh / 0.85) !important; min-height: calc(100dvh / 0.85) !important; }
+  .admin-shell { height: calc(100dvh / 0.85) !important; max-height: calc(100dvh / 0.85) !important; }
+  .admin-shell > aside { max-height: none !important; }
+}
+@media (min-width: 1024px) and (max-width: 1535.98px) {
+  html { zoom: 0.76; }
+  html, body, #root { width: calc(100vw / 0.76) !important; max-width: calc(100vw / 0.76) !important; }
+  .ios-app-shell, .admin-shell { width: 100% !important; max-width: none !important; }
+  html, body, #root, .ios-app-shell { height: calc(100dvh / 0.76) !important; min-height: calc(100dvh / 0.76) !important; }
+  .admin-shell { height: calc(100dvh / 0.76) !important; max-height: calc(100dvh / 0.76) !important; }
+  .admin-shell > aside { max-height: none !important; }
+}
