@@ -320,6 +320,7 @@ export default function Dashboard() {
   // Analytics global date filter
   const [analyticsDatePreset, setAnalyticsDatePreset] = useState<'all' | 'today' | 'week' | 'month' | 'year' | 'custom'>('all')
   const [gstScope, setGstScope] = useState<'all' | 'gst' | 'non_gst'>('all')
+  const [historyGstScope, setHistoryGstScope] = useState<'all' | 'gst' | 'non_gst'>('all')
   const [analyticsDateFrom, setAnalyticsDateFrom] = useState('')
   const [analyticsDateTo, setAnalyticsDateTo] = useState('')
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([])
@@ -896,6 +897,7 @@ export default function Dashboard() {
   // Bill-type and date-range filtered results for Order Management table (client-side, instant)
   const filteredSearchResults = useMemo(() => {
     return searchResults.filter(o => {
+      if (historyGstScope !== 'all' && (historyGstScope === 'gst') !== isGstBill(o)) return false
       if (billTypeFilter === 'manual' && getBillType(o) !== 'manual') return false
       if (billTypeFilter === 'offline' && getBillType(o) !== 'offline') return false
       if (billTypeFilter === 'online' && getBillType(o) !== 'online') return false
@@ -911,7 +913,7 @@ export default function Dashboard() {
 
       return true
     })
-  }, [searchResults, billTypeFilter, search.dateFrom, search.dateTo])
+  }, [searchResults, billTypeFilter, search.dateFrom, search.dateTo, historyGstScope])
 
   // Load dashboard data
   const loadData = useCallback(async () => {
@@ -2018,7 +2020,7 @@ export default function Dashboard() {
 
       {/* Main */}
       <main className="flex flex-1 min-h-0 flex-col overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6 lg:px-12 lg:pb-8 bg-white">
+        <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-[10px] pb-4 sm:pb-6 lg:pb-8 bg-white">
         <header className="hidden lg:flex items-center justify-between gap-4 py-7 mb-8 border-b border-gray-200 print:hidden">
           <h2 className="text-[22px] font-black text-[#111111] tracking-tight">{BRAND_EN}</h2>
         </header>
@@ -3505,6 +3507,20 @@ export default function Dashboard() {
             </div>
 
             <form onSubmit={runSearch} className="rounded-[20px] border border-gray-200 bg-white px-5 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+              <div className="mb-5 inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-gray-200 bg-white p-1.5 hide-scrollbar" role="tablist" aria-label="Bill type">
+                {([['all', 'All Bills'], ['gst', 'GST Invoices'], ['non_gst', 'Non-GST Bills']] as const).map(([id, text]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={historyGstScope === id}
+                    onClick={() => setHistoryGstScope(id)}
+                    className={`whitespace-nowrap rounded-xl px-5 py-2 text-[13px] font-black uppercase tracking-wide transition-colors cursor-pointer ${historyGstScope === id ? 'bg-primary text-primary-ink shadow-sm' : 'text-[#374151] hover:bg-gray-100'}`}
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto] xl:items-end">
                 <label className="block">
                   <span className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[#111111]">Search Order ID</span>

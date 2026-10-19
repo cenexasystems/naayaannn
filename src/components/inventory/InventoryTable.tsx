@@ -18,6 +18,7 @@ import {
   Scissors,
   Plus,
   ChevronDown,
+  ScanBarcode,
 } from 'lucide-react'
 import { inventoryService, type InventoryStockItem } from '../../services/inventoryService'
 import { CreateBarcodeModal } from '../barcode/CreateBarcodeModal'
@@ -350,16 +351,23 @@ export const InventoryTable: React.FC = () => {
                               <button type="button" onClick={() => setExpandedId(open ? null : item.id)} className={rowBtn}>
                                 <ChevronDown size={15} className={`transition-transform ${open ? 'rotate-180' : ''}`} /> Details
                               </button>
-                              <button
-                                type="button"
-                                disabled={!item.barcode}
-                                onClick={() => item.barcode && setPrintModalItem(item)}
-                                className={`${rowBtn} ${item.barcode ? '' : 'invisible'}`}
-                                title={item.barcode ? 'Print Barcode Labels' : undefined}
-                                aria-hidden={!item.barcode}
-                              >
-                                <Printer size={14} />
-                              </button>
+                              {!isService && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (item.barcode) {
+                                      setPrintModalItem(item)
+                                    } else {
+                                      setSelectedForReceive({ productId: item.product_id, variantId: item.variant_id })
+                                      setShowReceiveModal(true)
+                                    }
+                                  }}
+                                  className={rowBtn}
+                                  title={item.barcode ? 'Print barcode labels' : 'Create a barcode for this item'}
+                                >
+                                  <ScanBarcode size={14} /> Barcode
+                                </button>
+                              )}
                               <button type="button" onClick={() => { setEditProductId(item.product_id); setActiveTab('products') }} className={rowBtn} title={`Edit "${item.name}"`}>
                                 <Edit2 size={14} /> Edit
                               </button>
