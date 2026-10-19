@@ -1881,24 +1881,24 @@ export default function Dashboard() {
 
   const navItems: Array<{ id: TabKey; icon: React.ReactNode; label: string; badge?: number }> = role === 'staff'
     ? [
-        { id: 'billing',        icon: <Receipt size={21} strokeWidth={1.75} />,           label: 'Billing Panel' },
-        { id: 'advance_orders', icon: <Clock size={21} strokeWidth={1.75} />,             label: 'Advance Orders' },
-        { id: 'history',        icon: <History size={21} strokeWidth={1.75} />,           label: 'Order History' },
-        { id: 'inventory',      icon: <Boxes size={21} strokeWidth={1.75} />,             label: 'Inventory', badge: lowStockCount },
-        { id: 'expenses',       icon: <Wallet size={21} strokeWidth={1.75} />,            label: 'Expense Tracker' },
-        { id: 'birthdays',      icon: <Gift size={21} strokeWidth={1.75} />,              label: 'Birthdays' },
+        { id: 'billing',        icon: <Receipt size={20} />,           label: 'Billing Panel' },
+        { id: 'advance_orders', icon: <Clock size={20} />,             label: 'Advance Orders' },
+        { id: 'history',        icon: <History size={20} />,           label: 'Order History' },
+        { id: 'inventory',      icon: <Boxes size={20} />,             label: 'Inventory', badge: lowStockCount },
+        { id: 'expenses',       icon: <Wallet size={20} />,            label: 'Expense Tracker' },
+        { id: 'birthdays',      icon: <Gift size={20} />,              label: 'Birthdays' },
       ]
     : [
-        { id: 'billing',        icon: <Receipt size={21} strokeWidth={1.75} />,           label: 'Billing Panel' },
-        { id: 'advance_orders', icon: <Clock size={21} strokeWidth={1.75} />,             label: 'Advance Orders' },
-        { id: 'history',        icon: <History size={21} strokeWidth={1.75} />,           label: 'Order History' },
-        { id: 'inventory',      icon: <Boxes size={21} strokeWidth={1.75} />,             label: 'Inventory', badge: lowStockCount },
-        { id: 'pos_analytics',  icon: <ChartNoAxesColumn size={21} strokeWidth={1.75} />, label: 'Analytics Dashboard' },
-        { id: 'expenses',       icon: <Wallet size={21} strokeWidth={1.75} />,            label: 'Expense Tracker' },
-        { id: 'attendance',     icon: <UserCheck size={21} strokeWidth={1.75} />,         label: 'Attendance' },
-        { id: 'birthdays',      icon: <Gift size={21} strokeWidth={1.75} />,              label: 'Birthdays' },
-        { id: 'coupons',        icon: <TicketPercent size={21} strokeWidth={1.75} />,     label: 'Coupons' },
-        { id: 'settings',       icon: <Settings2 size={21} strokeWidth={1.75} />,         label: 'Settings' },
+        { id: 'billing',        icon: <Receipt size={20} />,           label: 'Billing Panel' },
+        { id: 'advance_orders', icon: <Clock size={20} />,             label: 'Advance Orders' },
+        { id: 'history',        icon: <History size={20} />,           label: 'Order History' },
+        { id: 'inventory',      icon: <Boxes size={20} />,             label: 'Inventory', badge: lowStockCount },
+        { id: 'pos_analytics',  icon: <ChartNoAxesColumn size={20} />, label: 'Analytics Dashboard' },
+        { id: 'expenses',       icon: <Wallet size={20} />,            label: 'Expense Tracker' },
+        { id: 'attendance',     icon: <UserCheck size={20} />,         label: 'Attendance' },
+        { id: 'birthdays',      icon: <Gift size={20} />,              label: 'Birthdays' },
+        { id: 'coupons',        icon: <TicketPercent size={20} />,     label: 'Coupons' },
+        { id: 'settings',       icon: <Settings2 size={20} />,         label: 'Settings' },
       ]
 
   return (
@@ -1908,19 +1908,19 @@ export default function Dashboard() {
         className={[
           'w-full bg-primary bg-gradient-to-b from-primary to-primary/90 text-white border-b lg:border-b-0 border-white/10 flex flex-col shrink-0 h-auto lg:h-full lg:max-h-screen',
           'transition-[width] duration-300 ease-in-out overflow-hidden',
-          sidebarCollapsed ? 'lg:w-[84px]' : 'lg:w-[264px] xl:w-[280px]',
+          sidebarCollapsed ? 'lg:w-[84px]' : 'lg:w-[272px]',
         ].join(' ')}
       >
         {/* Desktop brand header */}
-        <div className={`hidden lg:flex items-center relative transition-all duration-300 shrink-0 ${sidebarCollapsed ? 'flex-col items-center pt-5 pb-4 px-2 gap-2 border-b border-white/10' : 'px-5 py-6 justify-between gap-2 border-b border-white/10'}`}>
+        <div className={`hidden lg:flex items-center relative transition-all duration-300 shrink-0 ${sidebarCollapsed ? 'flex-col items-center pt-5 pb-4 px-2 gap-2 border-b border-white/20' : 'p-6 justify-between gap-3 border-b border-white/20'}`}>
           <Link to="/pos" title="Go to Billing Panel" className={`flex items-center gap-2.5 min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : 'flex-1'}`}>
-            <div className="flex items-center justify-center shrink-0 w-12 h-12 rounded-2xl bg-black/20 ring-1 ring-white/20 shadow-md hover:scale-105 transition-transform p-1 overflow-hidden">
-              <img src={BRAND_ICON} alt={BRAND_EN} className="w-full h-full object-contain rounded-xl" />
+            <div className="flex items-center justify-center shrink-0 w-12 h-12 rounded-xl border border-white/25 shadow-md overflow-hidden">
+              <img src={BRAND_ICON} alt={BRAND_EN} className="w-full h-full object-contain" />
             </div>
             {!sidebarCollapsed && (
-              <div className="flex flex-col min-w-0 gap-0.5">
-                <h1 className="text-[17px] leading-tight font-black text-white break-words">{BRAND_EN}</h1>
-                {BRAND_TAGLINE && <p className="text-[10.5px] leading-snug font-bold text-white/80 break-words">{BRAND_TAGLINE}</p>}
+              <div className="flex flex-col min-w-0">
+                <h1 className="text-sm leading-tight font-black tracking-tight text-white break-words">{BRAND_EN}</h1>
+                {BRAND_TAGLINE && <p className="mt-0.5 text-[9px] leading-snug font-bold tracking-wider text-white/80 break-words">{BRAND_TAGLINE}</p>}
               </div>
             )}
           </Link>
@@ -1963,7 +1963,7 @@ export default function Dashboard() {
         </div>
         {/* Nav List - Height safe and scrollable */}
         <nav
-          className={`flex overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto lg:flex-col gap-1 lg:gap-2 px-2 py-2 lg:py-6 flex-1 min-h-0 transition-all duration-300 hide-scrollbar ${sidebarCollapsed ? 'lg:px-2' : 'lg:px-5'}`}
+          className={`flex overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto lg:flex-col gap-1 lg:gap-2 px-2 py-2 lg:py-6 flex-1 min-h-0 transition-all duration-300 hide-scrollbar ${sidebarCollapsed ? 'lg:px-2' : 'lg:px-4'}`}
         >
           {navItems.map(item => (
             <button
@@ -1972,12 +1972,12 @@ export default function Dashboard() {
               title={item.label}
               className={[
                 'shrink-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start',
-                'gap-1 lg:gap-3.5',
-                'h-[48px] min-w-[64px] lg:min-w-0 lg:w-full lg:h-[48px] xl:h-[52px]',
+                'gap-1 lg:gap-4',
+                'h-[48px] min-w-[64px] lg:min-w-0 lg:w-full lg:h-auto',
                 sidebarCollapsed ? 'lg:w-[52px] lg:justify-center mx-auto' : 'lg:px-4',
-                'px-1.5 py-1 lg:py-0',
-                'rounded-xl font-black uppercase tracking-wide text-[9.5px] lg:text-[12.5px] xl:text-[13px] transition-all overflow-hidden cursor-pointer',
-                tab === item.id ? 'bg-white text-primary shadow-lg shadow-black/10' : 'text-white/90 hover:bg-white/10 hover:text-white',
+                'px-1.5 py-1 lg:py-3.5',
+                'rounded-xl font-bold uppercase tracking-wider text-[9.5px] lg:text-xs transition-colors overflow-hidden cursor-pointer',
+                tab === item.id ? 'bg-white text-[#27272A] shadow-md' : 'text-white/90 hover:bg-white/20 hover:text-white',
               ].join(' ')}
             >
               <span className="shrink-0 flex items-center">
@@ -1996,8 +1996,8 @@ export default function Dashboard() {
         </nav>
 
         {/* Desktop Logout Button anchored at bottom */}
-        <div className={`hidden lg:block shrink-0 py-5 ${sidebarCollapsed ? 'px-2' : 'px-5'}`}>
-          <div className="border-t border-white/15 mb-5" />
+        <div className={`hidden lg:block shrink-0 pb-6 ${sidebarCollapsed ? 'px-2' : 'px-4'}`}>
+          <div className="border-t border-white/20 mb-4" />
           <button
             onClick={() => {
               useAdminAuthStore.getState().logout()
@@ -2005,13 +2005,13 @@ export default function Dashboard() {
             }}
             className={[
               'shrink-0 flex items-center justify-center lg:justify-start',
-              'gap-2.5',
-              'w-full h-[52px]',
+              'gap-4',
+              'w-full py-3.5',
               sidebarCollapsed ? 'lg:w-[52px] lg:justify-center mx-auto' : 'lg:px-4',
-              'rounded-xl border border-white/20 bg-white/5 font-black uppercase tracking-wide text-[13px] transition-all text-white hover:bg-white/15 overflow-hidden cursor-pointer',
+              'rounded-xl border border-white/20 bg-white/10 font-bold uppercase tracking-wider text-xs transition-all text-white hover:bg-white/25 hover:shadow-md overflow-hidden cursor-pointer',
             ].join(' ')}
           >
-            <span className="shrink-0"><LogOut size={21} strokeWidth={1.75} /></span>
+            <span className="shrink-0"><LogOut size={20} /></span>
             <span className={`truncate text-left transition-all duration-200 ${sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100 flex-1'}`}>Log out</span>
           </button>
         </div>
@@ -2020,9 +2020,9 @@ export default function Dashboard() {
 
       {/* Main */}
       <main className="flex flex-1 min-h-0 flex-col overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-[10px] pb-4 sm:pb-6 lg:pb-8 bg-white">
-        <header className="hidden lg:flex items-center justify-between gap-4 py-7 mb-8 border-b border-gray-200 print:hidden">
-          <h2 className="text-[22px] font-black text-[#111111] tracking-tight">{BRAND_EN}</h2>
+        <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-3 sm:px-8 lg:px-12 pt-3 pb-8 bg-white">
+        <header className="hidden lg:flex items-center justify-between gap-4 py-4 mb-6 border-b border-black/10 print:hidden">
+          <h1 className="text-lg font-black text-[#000000] tracking-tight">{BRAND_EN}</h1>
         </header>
         <div className="lg:hidden h-4" />
 
@@ -2243,11 +2243,11 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     <div className="bg-[#F9FAFB] p-4 rounded-xl flex justify-between items-center">
                       <span className="text-[13px] font-bold text-[#374151]">Total Invoices Generated</span>
-                      <span className="text-[16px] font-black text-[#111111]">{searchResults.length}</span>
+                      <span className="text-sm font-black text-[#111111]">{searchResults.length}</span>
                     </div>
                     <div className="bg-[#F9FAFB] p-4 rounded-xl flex justify-between items-center">
                       <span className="text-[13px] font-bold text-[#374151]">Discounts Applied</span>
-                      <span className="text-[16px] font-black text-[#10B981]">
+                      <span className="text-sm font-black text-[#10B981]">
                         {formatCurrency(searchResults.reduce((acc, o) => acc + (toNumber(o.discount_amount, 0)), 0))}
                       </span>
                     </div>
@@ -2582,7 +2582,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-[30px] sm:text-[34px] font-black text-[#111111] tracking-tight leading-tight">
+                <h2 className="text-[28px] font-black text-[#111111] tracking-tight leading-tight">
                   {gstScope === 'gst' ? 'GST Revenue' : gstScope === 'non_gst' ? 'Non-GST Revenue' : 'Revenue Analytics'}
                 </h2>
                 <p className="mt-1 text-[14px] font-medium text-[#374151]">
@@ -2604,7 +2604,7 @@ export default function Dashboard() {
                       role="tab"
                       aria-selected={gstScope === opt.id}
                       onClick={() => setGstScope(opt.id)}
-                      className={`whitespace-nowrap rounded-xl px-4 sm:px-5 py-2 text-[12px] sm:text-[13px] font-black uppercase tracking-wide transition-colors cursor-pointer ${
+                      className={`whitespace-nowrap rounded-xl px-4 sm:px-5 py-2 text-[12px] sm:text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${
                         gstScope === opt.id ? 'bg-primary text-primary-ink shadow-sm' : 'text-[#111111] hover:bg-gray-100'
                       }`}
                     >
@@ -2683,7 +2683,7 @@ export default function Dashboard() {
                       role="tab"
                       aria-selected={isActive}
                       onClick={() => setPosAnalyticsTab(id as PosAnalyticsTab)}
-                      className={`-mb-px shrink-0 whitespace-nowrap border-b-[3px] pb-3.5 pt-1 text-[15px] font-black uppercase tracking-wide transition-colors cursor-pointer ${
+                      className={`-mb-px shrink-0 whitespace-nowrap border-b-[3px] pb-3.5 pt-1 text-[11px] font-black uppercase tracking-wide transition-colors cursor-pointer ${
                         isActive ? 'border-primary text-[#111111]' : 'border-transparent text-[#111111]/80 hover:text-[#111111]'
                       }`}
                     >
@@ -2697,19 +2697,19 @@ export default function Dashboard() {
               {posAnalyticsTab !== 'today' && (
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
-                    <span className="px-3 text-[11px] font-black uppercase tracking-widest text-[#111111]">Period:</span>
+                    <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#111111]">Period:</span>
                     {(['all', 'today', 'week', 'month', 'year'] as const).map(preset => (
                       <button key={preset} type="button" onClick={() => applyAnalyticsPreset(preset)}
-                        className={`rounded-xl px-4 py-2 text-[13px] font-black uppercase tracking-wide transition-colors cursor-pointer ${analyticsDatePreset === preset ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>
+                        className={`rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${analyticsDatePreset === preset ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>
                         {preset === 'all' ? 'All Time' : preset === 'today' ? 'Today' : preset === 'week' ? 'This Week' : preset === 'month' ? 'This Month' : 'This Year'}
                       </button>
                     ))}
                   </div>
                   <div className="inline-flex flex-wrap items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
-                    <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">From:</span>
-                      <input type="date" value={analyticsDateFrom} onChange={e => { setAnalyticsDateFrom(e.target.value); setAnalyticsDatePreset('custom') }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
-                    <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">To:</span>
-                      <input type="date" value={analyticsDateTo} onChange={e => { setAnalyticsDateTo(e.target.value); setAnalyticsDatePreset('custom') }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
+                    <label className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">From:</span>
+                      <input type="date" value={analyticsDateFrom} onChange={e => { setAnalyticsDateFrom(e.target.value); setAnalyticsDatePreset('custom') }} className="bg-transparent text-sm font-black text-[#111111] outline-none" /></label>
+                    <label className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">To:</span>
+                      <input type="date" value={analyticsDateTo} onChange={e => { setAnalyticsDateTo(e.target.value); setAnalyticsDatePreset('custom') }} className="bg-transparent text-sm font-black text-[#111111] outline-none" /></label>
                   </div>
                 </div>
               )}
@@ -2719,44 +2719,44 @@ export default function Dashboard() {
             {posAnalyticsTab === 'revenue' && gstScope === 'all' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
-                  <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-emerald-600 to-[#0B3B2E] p-6 text-white shadow-md">
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-600 to-[#0B3B2E] p-6 text-white shadow-md">
                     <div className="flex items-start justify-between">
-                      <p className="text-[13px] font-black uppercase tracking-wide text-white/90">{analytics.netEarnings >= 0 ? 'Net Earnings' : 'Net Loss'}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-white/90">{analytics.netEarnings >= 0 ? 'Net Earnings' : 'Net Loss'}</p>
                       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15"><Wallet size={18} /></span>
                     </div>
-                    <p className="mt-6 text-[30px] font-black leading-none">{formatCurrency(Math.abs(analytics.netEarnings))}</p>
+                    <p className="mt-6 text-2xl font-black leading-none">{formatCurrency(Math.abs(analytics.netEarnings))}</p>
                     <p className="mt-3 text-[11px] font-black text-white/85">GST + Non-GST − Expenses</p>
                   </div>
-                  <div className="rounded-[20px] border border-primary-200 bg-white p-6 shadow-sm">
+                  <div className="rounded-xl border border-primary-200 bg-white p-6 shadow-sm">
                     <div className="flex items-start justify-between">
-                      <p className="text-[13px] font-black uppercase tracking-wide text-[#111111]">GST Sales</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">GST Sales</p>
                       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary"><RMIcon size={18} /></span>
                     </div>
-                    <p className="mt-6 text-[30px] font-black leading-none text-primary">{formatCurrency(analytics.gstRevenue)}</p>
+                    <p className="mt-6 text-2xl font-black leading-none text-primary">{formatCurrency(analytics.gstRevenue)}</p>
                     <p className="mt-3 text-[11px] font-semibold text-[#374151]">{analytics.gstBillCount} GST invoice{analytics.gstBillCount === 1 ? '' : 's'}</p>
                   </div>
-                  <div className="rounded-[20px] border border-emerald-200 bg-white p-6 shadow-sm">
+                  <div className="rounded-xl border border-emerald-200 bg-white p-6 shadow-sm">
                     <div className="flex items-start justify-between">
-                      <p className="text-[13px] font-black uppercase tracking-wide text-[#111111]">Non-GST Sales</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">Non-GST Sales</p>
                       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-600"><TrendingUp size={18} /></span>
                     </div>
-                    <p className="mt-6 text-[30px] font-black leading-none text-emerald-600">+ {formatCurrency(analytics.nonGstRevenue)}</p>
+                    <p className="mt-6 text-2xl font-black leading-none text-emerald-600">+ {formatCurrency(analytics.nonGstRevenue)}</p>
                     <p className="mt-3 text-[11px] font-semibold text-[#374151]">{analytics.nonGstBillCount} retail bill{analytics.nonGstBillCount === 1 ? '' : 's'}</p>
                   </div>
-                  <div className="rounded-[20px] border border-rose-200 bg-white p-6 shadow-sm">
+                  <div className="rounded-xl border border-rose-200 bg-white p-6 shadow-sm">
                     <div className="flex items-start justify-between">
-                      <p className="text-[13px] font-black uppercase tracking-wide text-[#111111]">Total Expenses</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">Total Expenses</p>
                       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-50 text-rose-600"><TrendingDown size={18} /></span>
                     </div>
-                    <p className="mt-6 text-[30px] font-black leading-none text-[#DC2626]">− {formatCurrency(analytics.totalExpenses)}</p>
+                    <p className="mt-6 text-2xl font-black leading-none text-[#DC2626]">− {formatCurrency(analytics.totalExpenses)}</p>
                     <button type="button" onClick={() => handleTabClick('expenses')} className="mt-3 text-[11px] font-black text-[#DC2626] underline underline-offset-2 cursor-pointer">
                       Money out — Expense Tracker
                     </button>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13.5px] font-medium text-[#4B5563]">
-                    <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11.5px] font-black uppercase tracking-wide text-indigo-700">Calculation Formula</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] font-semibold text-[#4B5563]">
+                    <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700">Calculation Formula</span>
                     <span>GST ({formatCurrency(analytics.gstRevenue)}) + Non-GST ({formatCurrency(analytics.nonGstRevenue)}) − Expenses ({formatCurrency(analytics.totalExpenses)})</span>
                   </div>
                   <p className="whitespace-nowrap text-[14px] font-bold text-[#374151]">
@@ -2887,14 +2887,14 @@ export default function Dashboard() {
                       bg: 'bg-gray-50',
                     },
                   ].filter(card => !['Net Profit', 'Net Loss', 'Total Expenses'].includes(card.label)).map((card, index) => (
-                    <div key={index} className="bg-white rounded-[20px] border border-gray-200 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div key={index} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                       <div>
                         <div className="flex items-start justify-between gap-2 mb-5">
-                          <p className="text-[13.5px] font-black uppercase tracking-wide text-[#111111]">{card.label}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">{card.label}</p>
                           <div className={`w-10 h-10 rounded-full ${card.bg} flex items-center justify-center ${card.color} shrink-0`}>{card.icon}</div>
                         </div>
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <p className={`text-[26px] font-black leading-tight ${card.valueColor || 'text-[#111111]'}`}>
+                          <p className={`text-xl font-black leading-tight ${card.valueColor || 'text-[#111111]'}`}>
                             {card.value}
                           </p>
                           {card.arrow && (
@@ -3046,9 +3046,9 @@ export default function Dashboard() {
                     <div key={i} className="bg-white rounded-2xl border border-gray-200/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-500 mb-1">{card.label}</p>
-                        <p className="text-[22px] sm:text-[24px] font-black text-[#111111] leading-tight truncate">{card.value}</p>
+                        <p className="text-xl font-black text-[#111111] leading-tight truncate">{card.value}</p>
                       </div>
-                      <div className={`w-11 h-11 rounded-2xl ${card.bg} border ${card.border} flex items-center justify-center shrink-0 shadow-xs`}>
+                      <div className={`w-11 h-9 rounded-2xl ${card.bg} border ${card.border} flex items-center justify-center shrink-0 shadow-xs`}>
                         {card.icon}
                       </div>
                     </div>
@@ -3057,7 +3057,7 @@ export default function Dashboard() {
 
                 {/* Top products today */}
                 <div className="bg-white rounded-2xl border border-[#F3F4F6]/30 p-5 shadow-sm">
-                  <h3 className="text-[15px] font-bold text-[#111111] mb-4">Top Products Today</h3>
+                  <h3 className="text-sm font-bold text-[#111111] mb-4">Top Products Today</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {analytics.todayTopProducts.map((p, i) => (
                       <div key={i} className="flex items-center justify-between bg-[#F9FAFB] p-3 rounded-xl border border-gray-100">
@@ -3077,7 +3077,7 @@ export default function Dashboard() {
                 {/* Today's latest bills */}
                 <div className="bg-white rounded-2xl border border-[#F3F4F6]/30 p-5 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[15px] font-bold text-[#111111]">Today's Bills</h3>
+                    <h3 className="text-sm font-bold text-[#111111]">Today's Bills</h3>
                     <span className="text-[11px] font-bold text-[#10B981]">{analytics.todayCompletedOrdersCount} orders</span>
                   </div>
                   <div className="mb-3">
@@ -3163,7 +3163,7 @@ export default function Dashboard() {
                 <div className="bg-white rounded-2xl border border-[#F3F4F6]/30 p-5 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                     <div>
-                      <h3 className="text-[15px] font-bold text-[#111111]">All Products Analytics</h3>
+                      <h3 className="text-sm font-bold text-[#111111]">All Products Analytics</h3>
                       <p className="text-[12px] text-[#6B7280]">Search by Product Name, SKU, or Category for instant statistics</p>
                     </div>
                     <span className="text-[11px] font-bold text-[#10B981] bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 self-start sm:self-auto">{analytics.topProducts.length} products</span>
@@ -3289,7 +3289,7 @@ export default function Dashboard() {
                 {/* Coupon daily trend + Top coupons */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   <div className="xl:col-span-2 bg-white rounded-2xl border border-[#F3F4F6]/30 p-5 shadow-sm">
-                    <h3 className="text-[15px] font-bold text-[#111111] mb-4">Coupon Usage (Last 7 Days)</h3>
+                    <h3 className="text-sm font-bold text-[#111111] mb-4">Coupon Usage (Last 7 Days)</h3>
                     {analytics.couponDailyTrend.some(d => d.orders > 0) ? (
                       <div className="h-[256px] w-full min-w-0 relative">
                         <ResponsiveContainer width="100%" height={256} minWidth={0} minHeight={0}>
@@ -3314,7 +3314,7 @@ export default function Dashboard() {
                   </div>
 
                   <div className="bg-white rounded-2xl border border-[#F3F4F6]/30 p-5 shadow-sm">
-                    <h3 className="text-[15px] font-bold text-[#111111] mb-4">Top Coupons</h3>
+                    <h3 className="text-sm font-bold text-[#111111] mb-4">Top Coupons</h3>
                     <div className="space-y-3">
                       {analytics.topCoupons.slice(0, 8).map((coupon, i) => (
                         <div key={coupon.code} className="flex items-center justify-between gap-2 p-3 bg-[#F9FAFB] rounded-xl">
@@ -3351,7 +3351,7 @@ export default function Dashboard() {
                 {/* Coupon detail table */}
                 <div className="bg-white rounded-2xl border border-[#F3F4F6]/30 p-5 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-[15px] font-bold text-[#111111]">All Coupons Performance</h3>
+                    <h3 className="text-sm font-bold text-[#111111]">All Coupons Performance</h3>
                     <span className="text-[11px] font-bold text-[#10B981]">{analytics.topCoupons.length} coupons</span>
                   </div>
                   {analytics.topCoupons.length > 0 ? (
@@ -3463,15 +3463,15 @@ export default function Dashboard() {
 
         {/* ── ORDER MANAGEMENT ── */}
         {tab === 'history' && (
-          <div className="space-y-7">
+          <div className="space-y-6">
             <div className="flex flex-col gap-5 min-[1750px]:flex-row min-[1750px]:items-center min-[1750px]:justify-between">
               <div className="shrink-0">
-                <h2 className="whitespace-nowrap text-[32px] sm:text-[36px] font-black leading-tight tracking-tight text-[#111111]">{l('Order History', 'ஆர்டர் வரலாறு')}</h2>
-                <p className="mt-1 text-[14.5px] font-medium text-[#111111]">{l('Manage and track past invoices', 'கடந்த பில்களை நிர்வகிக்கவும்')}</p>
+                <h2 className="whitespace-nowrap text-[28px] font-black leading-tight tracking-tight text-[#111111]">{l('Order History', 'ஆர்டர் வரலாறு')}</h2>
+                <p className="mt-1 text-xs font-semibold text-[#111111]">{l('Manage and track past invoices', 'கடந்த பில்களை நிர்வகிக்கவும்')}</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
-                  <span className="px-3 text-[11px] font-black uppercase tracking-widest text-[#111111]">Period:</span>
+                  <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#111111]">Period:</span>
                   {([['', 'All Time'], ['today', 'Today'], ['week', 'This Week'], ['month', 'This Month'], ['year', 'This Year']] as const).map(([value, text]) => (
                     <button
                       key={text}
@@ -3483,30 +3483,30 @@ export default function Dashboard() {
                           void runSearch(undefined, { dateFrom: '', dateTo: '' })
                         } else applyDatePreset(value)
                       }}
-                      className={`rounded-xl px-4 py-2 text-[13px] font-black uppercase tracking-wide transition-colors cursor-pointer ${datePreset === value ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}
+                      className={`rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${datePreset === value ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}
                     >
                       {text}
                     </button>
                   ))}
                 </div>
                 <div className="inline-flex flex-wrap items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
-                  <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">From:</span>
-                    <input type="date" value={search.dateFrom} onChange={e => { const v = e.target.value; setDatePreset('custom'); setSearch(s => ({ ...s, dateFrom: v })); void runSearch(undefined, { dateFrom: v, dateTo: search.dateTo }) }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
-                  <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">To:</span>
-                    <input type="date" value={search.dateTo} onChange={e => { const v = e.target.value; setDatePreset('custom'); setSearch(s => ({ ...s, dateTo: v })); void runSearch(undefined, { dateFrom: search.dateFrom, dateTo: v }) }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
+                  <label className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">From:</span>
+                    <input type="date" value={search.dateFrom} onChange={e => { const v = e.target.value; setDatePreset('custom'); setSearch(s => ({ ...s, dateFrom: v })); void runSearch(undefined, { dateFrom: v, dateTo: search.dateTo }) }} className="bg-transparent text-sm font-black text-[#111111] outline-none" /></label>
+                  <label className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">To:</span>
+                    <input type="date" value={search.dateTo} onChange={e => { const v = e.target.value; setDatePreset('custom'); setSearch(s => ({ ...s, dateTo: v })); void runSearch(undefined, { dateFrom: search.dateFrom, dateTo: v }) }} className="bg-transparent text-sm font-black text-[#111111] outline-none" /></label>
                 </div>
                 <button
                   type="button"
                   onClick={() => exportCSV(filteredSearchResults)}
                   disabled={filteredSearchResults.length === 0}
-                  className="inline-flex h-12 items-center gap-2 rounded-2xl border-2 border-primary bg-white px-5 text-[15px] font-black uppercase tracking-wide text-[#111111] hover:bg-primary-50 disabled:opacity-40 cursor-pointer"
+                  className="inline-flex h-10 items-center gap-2 rounded-2xl border-2 border-primary bg-white px-5 text-[11px] font-black uppercase tracking-wide text-[#111111] hover:bg-primary-50 disabled:opacity-40 cursor-pointer"
                 >
                   <Download size={18} strokeWidth={2} /> Export CSV
                 </button>
               </div>
             </div>
 
-            <form onSubmit={runSearch} className="rounded-[20px] border border-gray-200 bg-white px-5 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+            <form onSubmit={runSearch} className="rounded-xl border border-gray-200 bg-white px-4 py-3.5 shadow-sm">
               <div className="mb-5 inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-gray-200 bg-white p-1.5 hide-scrollbar" role="tablist" aria-label="Bill type">
                 {([['all', 'All Bills'], ['gst', 'GST Invoices'], ['non_gst', 'Non-GST Bills']] as const).map(([id, text]) => (
                   <button
@@ -3515,7 +3515,7 @@ export default function Dashboard() {
                     role="tab"
                     aria-selected={historyGstScope === id}
                     onClick={() => setHistoryGstScope(id)}
-                    className={`whitespace-nowrap rounded-xl px-5 py-2 text-[13px] font-black uppercase tracking-wide transition-colors cursor-pointer ${historyGstScope === id ? 'bg-primary text-primary-ink shadow-sm' : 'text-[#374151] hover:bg-gray-100'}`}
+                    className={`whitespace-nowrap rounded-xl px-5 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${historyGstScope === id ? 'bg-primary text-primary-ink shadow-sm' : 'text-[#374151] hover:bg-gray-100'}`}
                   >
                     {text}
                   </button>
@@ -3523,24 +3523,24 @@ export default function Dashboard() {
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto] xl:items-end">
                 <label className="block">
-                  <span className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[#111111]">Search Order ID</span>
+                  <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[#111111]">Search Order ID</span>
                   <span className="relative block">
                     <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#111111]" />
-                    <input type="text" value={search.invoiceNo} onChange={e => setSearch(s => ({ ...s, invoiceNo: e.target.value }))} placeholder="e.g. INV-..." className="h-11 w-full rounded-xl border border-gray-200 pl-10 pr-3 text-[14px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" />
+                    <input type="text" value={search.invoiceNo} onChange={e => setSearch(s => ({ ...s, invoiceNo: e.target.value }))} placeholder="e.g. INV-..." className="h-9 w-full rounded-xl border border-gray-200 pl-10 pr-3 text-[14px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" />
                   </span>
                 </label>
                 <label className="block">
-                  <span className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[#111111]">Customer Name</span>
-                  <input type="text" value={search.customerName} onChange={e => setSearch(s => ({ ...s, customerName: e.target.value }))} placeholder="Search name..." className="h-11 w-full rounded-xl border border-gray-200 px-4 text-[14px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" />
+                  <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[#111111]">Customer Name</span>
+                  <input type="text" value={search.customerName} onChange={e => setSearch(s => ({ ...s, customerName: e.target.value }))} placeholder="Search name..." className="h-9 w-full rounded-xl border border-gray-200 px-4 text-[14px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" />
                 </label>
                 <label className="block">
-                  <span className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[#111111]">Customer Phone</span>
-                  <input type="text" inputMode="tel" value={search.phone} onChange={e => setSearch(s => ({ ...s, phone: e.target.value }))} placeholder="Search phone..." className="h-11 w-full rounded-xl border border-gray-200 px-4 text-[14px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" />
+                  <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[#111111]">Customer Phone</span>
+                  <input type="text" inputMode="tel" value={search.phone} onChange={e => setSearch(s => ({ ...s, phone: e.target.value }))} placeholder="Search phone..." className="h-9 w-full rounded-xl border border-gray-200 px-4 text-[14px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" />
                 </label>
                 <label className="block">
-                  <span className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[#111111]">Order Source</span>
+                  <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[#111111]">Order Source</span>
                   <span className="relative block">
-                    <select value={billTypeFilter} onChange={e => setBillTypeFilter(e.target.value as typeof billTypeFilter)} className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-9 text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none cursor-pointer">
+                    <select value={billTypeFilter} onChange={e => setBillTypeFilter(e.target.value as typeof billTypeFilter)} className="h-9 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-9 text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none cursor-pointer">
                       <option value="all">All Sources</option>
                       <option value="offline">Offline (POS)</option>
                       <option value="online">Online Order</option>
@@ -3550,12 +3550,12 @@ export default function Dashboard() {
                   </span>
                 </label>
                 <div className="flex gap-2">
-                  <button type="submit" disabled={searchLoading} className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-[13px] font-black uppercase tracking-wide text-primary-ink hover:bg-primary-hover disabled:opacity-50 cursor-pointer">
+                  <button type="submit" disabled={searchLoading} className="inline-flex h-9 items-center gap-2 rounded-xl bg-primary px-5 text-[10px] font-bold uppercase tracking-wider text-primary-ink hover:bg-primary-hover disabled:opacity-50 cursor-pointer">
                     {searchLoading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Search size={15} />}
                     {l('Search', 'தேடு')}
                   </button>
                   {(activeHistoryFiltersCount > 0 || search.invoiceNo || search.customerName || search.phone) && (
-                    <button type="button" onClick={handleClearHistoryFilters} className="h-11 rounded-xl border border-gray-200 px-4 text-[13px] font-black uppercase text-[#111111] hover:bg-gray-50 cursor-pointer">Reset</button>
+                    <button type="button" onClick={handleClearHistoryFilters} className="h-9 rounded-xl border border-gray-200 px-4 text-[10px] font-bold uppercase text-[#111111] hover:bg-gray-50 cursor-pointer">Reset</button>
                   )}
                 </div>
               </div>
@@ -3648,7 +3648,7 @@ export default function Dashboard() {
                             <option value="completed">{l('Completed', 'முடிந்தது')}</option>
                           </select>
                           {role !== 'staff' && (
-                            <button onClick={() => void deleteOrder(o.id, o.invoice_no)} className="h-10 w-10 sm:h-11 sm:w-11 shrink-0 rounded-xl border border-[#F3F4F6]/60 text-primary-hover transition-colors hover:bg-primary-soft/5 cursor-pointer" title="Delete Order">
+                            <button onClick={() => void deleteOrder(o.id, o.invoice_no)} className="h-10 w-10 sm:h-9 sm:w-11 shrink-0 rounded-xl border border-[#F3F4F6]/60 text-primary-hover transition-colors hover:bg-primary-soft/5 cursor-pointer" title="Delete Order">
                             <Trash2 size={14} className="mx-auto" />
                           </button>
                           )}
@@ -3661,14 +3661,14 @@ export default function Dashboard() {
                   <div className="rounded-2xl border border-[#F3F4F6]/60 bg-[#FAFAFA] px-4 py-8 text-center text-[#374151]">{l('No matching bills', 'பில்கள் இல்லை')}</div>
                 )}
               </div>
-              <div className="hidden md:block overflow-x-auto rounded-[20px] border border-gray-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+              <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
                 <table className="w-full min-w-[1100px] text-left">
                   <thead className="border-b border-gray-200">
                     <tr>
                       {['Order ID', 'Date & Time', 'Customer Name', 'Mobile Number', 'Source', 'Total Due'].map(h => (
-                        <th key={h} className="whitespace-nowrap px-5 py-6 text-[13px] font-black uppercase tracking-wide text-[#111111]">{h}</th>
+                        <th key={h} className="whitespace-nowrap px-4 py-4 text-[10px] font-bold uppercase tracking-wider text-[#111111]">{h}</th>
                       ))}
-                      <th className="whitespace-nowrap px-5 py-6 text-right text-[13px] font-black uppercase tracking-wide text-[#111111]">Status</th>
+                      <th className="whitespace-nowrap px-4 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#111111]">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3676,31 +3676,31 @@ export default function Dashboard() {
                       const sourceLabel = normalizeOrderType(o.order_type) === 'manual_sale' ? 'Manual' : normalizeOrderMode(o.order_mode) === 'online' ? 'Online' : 'Offline'
                       const created = new Date(o.created_at)
                       const completedStatus = normalizeStatus(o.status) === 'completed'
-                      const actionBtn = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors cursor-pointer'
+                      const actionBtn = 'flex h-9 w-11 shrink-0 items-center justify-center rounded-xl transition-colors cursor-pointer'
                       return (
                         <React.Fragment key={o.id}>
                         <tr className="border-b border-gray-100">
-                          <td className="whitespace-nowrap px-5 py-6 text-[15px] font-medium text-[#111111]">{formatInvoiceNo(o.invoice_no)}</td>
-                          <td className="whitespace-nowrap px-5 py-6">
-                            <p className="text-[15px] font-black text-[#111111]">{created.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                          <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-[#111111]">{formatInvoiceNo(o.invoice_no)}</td>
+                          <td className="whitespace-nowrap px-4 py-4">
+                            <p className="text-sm font-black text-[#111111]">{created.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                             <p className="text-[12.5px] text-gray-600">{created.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
                           </td>
-                          <td className="max-w-[260px] truncate px-5 py-6 text-[15px] font-black text-[#111111]">{o.customer_name || 'Walk-in'}</td>
-                          <td className="whitespace-nowrap px-5 py-6 font-mono text-[14px] font-bold text-[#111111]">{o.phone ? o.phone.replace(/^91(?=\d{10}$)/, '') : '—'}</td>
-                          <td className="whitespace-nowrap px-5 py-6">
+                          <td className="max-w-[260px] truncate px-4 py-4 text-sm font-black text-[#111111]">{o.customer_name || 'Walk-in'}</td>
+                          <td className="whitespace-nowrap px-4 py-4 font-mono text-[14px] font-bold text-[#111111]">{o.phone ? o.phone.replace(/^91(?=\d{10}$)/, '') : '—'}</td>
+                          <td className="whitespace-nowrap px-4 py-4">
                             <div className="flex flex-col items-start gap-1.5">
                               <span className="rounded-md border border-gray-700 px-2.5 py-0.5 text-[10.5px] font-black uppercase tracking-[0.16em] text-gray-700">{sourceLabel}</span>
                               <span className="rounded-md border border-gray-300 bg-gray-50 px-2.5 py-0.5 text-[10.5px] font-black uppercase tracking-[0.16em] text-gray-700">{isGstBill(o) ? 'GST' : 'Non-GST'}</span>
                             </div>
                           </td>
-                          <td className="whitespace-nowrap px-5 py-6 text-[18px] font-black text-primary">{formatCurrency(getOrderTotal(o))}</td>
-                          <td className="whitespace-nowrap px-5 py-6">
+                          <td className="whitespace-nowrap px-4 py-4 text-base font-black text-primary">{formatCurrency(getOrderTotal(o))}</td>
+                          <td className="whitespace-nowrap px-4 py-4">
                             <div className="flex items-center justify-end gap-2.5">
                               <select
                                 value={normalizeStatus(o.status)}
                                 aria-label={`Status of ${formatInvoiceNo(o.invoice_no)}`}
                                 onChange={e => void updateOrderStatus(o.id, e.target.value)}
-                                className={`h-11 cursor-pointer appearance-none rounded-xl px-4 text-center text-[13px] font-black uppercase tracking-wide outline-none ${completedStatus ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-700'}`}
+                                className={`h-9 cursor-pointer appearance-none rounded-xl px-4 text-center text-[10px] font-bold uppercase tracking-wider outline-none ${completedStatus ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-700'}`}
                               >
                                 <option value="completed">{l('Completed', 'முடிந்தது')}</option>
                                 <option value="pending">{l('Pending', 'நிலுவை')}</option>
@@ -3727,7 +3727,7 @@ export default function Dashboard() {
                         </tr>
                         {historyExpandedId === o.id && (
                           <tr className="bg-[#F9FAFB] border-b border-[#F3F4F6]/40">
-                            <td colSpan={7} className="px-5 py-5">
+                            <td colSpan={7} className="px-4 py-3.5">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-[#F3F4F6]/50 mb-3">
                                 <p className="text-[11px] font-black uppercase text-[#10B981] tracking-wider">
                                   {l('Order Details & Remarks', 'ஆர்டர் விவரங்கள் மற்றும் குறிப்புகள்')}
@@ -3802,7 +3802,7 @@ export default function Dashboard() {
             {/* Product Form */}
             <div className="xl:col-span-2">
               <form onSubmit={handleSaveProd} className="bg-white rounded-2xl border border-borderLight p-6 shadow-sm space-y-5">
-                <h3 className="text-[18px] font-black text-[#111111]">{editingProd ? l('Edit Product', 'திருத்து') : l('Add Product', 'சேர்க்கவும்')}</h3>
+                <h3 className="text-base font-black text-[#111111]">{editingProd ? l('Edit Product', 'திருத்து') : l('Add Product', 'சேர்க்கவும்')}</h3>
 
                 {productNotice && (
                   <div className={`p-3 rounded-xl text-[13px] font-bold text-center ${productNotice.includes('!') && !productNotice.toLowerCase().includes('error') && !productNotice.toLowerCase().includes('fail') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -3888,7 +3888,7 @@ export default function Dashboard() {
                   </div>
                   <div className="col-span-2 sm:col-span-1">
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Category', 'வகை')} *</label>
-                    <select required className="w-full min-w-0 h-11 px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary-soft rounded-xl text-[13px] font-bold outline-none transition-colors touch-manipulation"
+                    <select required className="w-full min-w-0 h-9 px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary-soft rounded-xl text-[13px] font-bold outline-none transition-colors touch-manipulation"
                       value={prodForm.category}
                       onChange={e => {
                         const sel = cats.find(c => c.name_en === e.target.value)
@@ -4012,9 +4012,9 @@ export default function Dashboard() {
             {/* Product List */}
             <div className="xl:col-span-3">
               <div className="bg-white rounded-2xl border border-borderLight shadow-sm overflow-hidden flex flex-col h-full">
-                <div className="px-6 py-5 border-b border-borderLight flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+                <div className="px-4 py-3.5 border-b border-borderLight flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
                   <div>
-                    <h3 className="text-[18px] font-black text-[#111111]">{l('Products', 'பொருட்கள்')} <span className="text-[#6B7280] font-medium text-[16px]">({products.length})</span></h3>
+                    <h3 className="text-base font-black text-[#111111]">{l('Products', 'பொருட்கள்')} <span className="text-[#6B7280] font-medium text-[16px]">({products.length})</span></h3>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="relative">
@@ -4096,7 +4096,7 @@ export default function Dashboard() {
             {editingProd && (
               <div className="xl:col-span-5 bg-white rounded-2xl border border-borderLight p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-[18px] font-black text-[#111111]">
+                  <h3 className="text-base font-black text-[#111111]">
                     {l('Variants', 'வகைகள்')} - <span className="text-[#6B7280]">{editingProd.name}</span>
                     {!editingProd.hasVariants && (
                       <span className="ml-3 text-[12px] font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full">
@@ -4114,7 +4114,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                   {/* Add / Edit variant form */}
                   <form onSubmit={handleSaveVariant} className="space-y-4 bg-[#FAFAFA] rounded-2xl p-5 border border-[#F3F4F6]">
-                    <h4 className="text-[13px] font-black uppercase tracking-wider text-[#111111]">
+                    <h4 className="text-[10px] font-bold uppercase tracking-widerr text-[#111111]">
                       {editingVariantId ? l('Edit Variant', 'வகை திருத்து') : l('Add Variant', 'வகை சேர்')}
                     </h4>
 
@@ -4229,7 +4229,7 @@ export default function Dashboard() {
 
                   {/* Current variants list */}
                   <div className="bg-[#FAFAFA] rounded-2xl p-5 border border-[#F3F4F6]">
-                    <h4 className="text-[13px] font-black uppercase tracking-wider text-[#111111] mb-4">
+                    <h4 className="text-[10px] font-bold uppercase tracking-widerr text-[#111111] mb-4">
                       {l('Current Variants', 'தற்போதைய வகைகள்')} <span className="text-[#6B7280]">({getVariants(String(editingProd.id)).length})</span>
                     </h4>
                     {getVariants(String(editingProd.id)).length === 0 ? (
@@ -4375,7 +4375,7 @@ export default function Dashboard() {
                       <span className="px-2.5 py-0.5 rounded-full bg-primary text-primary-100 border border-primary-soft/30 text-[10px] font-black uppercase tracking-wider">
                         {editingCouponId !== null ? 'EDIT MODE' : 'NEW COUPON'}
                       </span>
-                      <h3 className="mt-1.5 text-[18px] font-black text-[#111111]">
+                      <h3 className="mt-1.5 text-base font-black text-[#111111]">
                         {editingCouponId !== null ? l('Edit Coupon', 'கூப்பனை திருத்து') : l('Create Coupon', 'புதிய கூப்பன்')}
                       </h3>
                     </div>
@@ -4495,7 +4495,7 @@ export default function Dashboard() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="w-full rounded-xl bg-primary border border-primary-soft text-primary-100 py-3 text-[13px] font-black uppercase tracking-wider shadow-md hover:bg-primary-hover hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full rounded-xl bg-primary border border-primary-soft text-primary-100 py-3 text-[10px] font-bold uppercase tracking-widerr shadow-md hover:bg-primary-hover hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <Ticket size={15} className="text-primary-hover" />
                     <span>{editingCouponId !== null ? l('Update Coupon', 'கூப்பனை புதுப்பி') : l('Create Coupon', 'கூப்பனை உருவாக்கு')}</span>
@@ -4507,7 +4507,7 @@ export default function Dashboard() {
               <div className="bg-white rounded-card border border-borderLight p-6 shadow-soft flex flex-col">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100">
                   <div className="flex items-center gap-2.5">
-                    <h3 className="text-[18px] font-black text-[#111111]">
+                    <h3 className="text-base font-black text-[#111111]">
                       {l('All Coupons', 'அனைத்து கூப்பன்கள்')}
                     </h3>
                     <span className="px-2.5 py-0.5 rounded-full bg-primary text-white text-[11px] font-black">
@@ -4612,7 +4612,7 @@ export default function Dashboard() {
         )}        {tab === 'users' && (
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[20px] font-black text-[#111111]">{l('User Management', 'பயனர் மேலாண்மை')}</h2>
+              <h2 className="text-base font-black text-[#111111]">{l('User Management', 'பயனர் மேலாண்மை')}</h2>
               <button onClick={() => void loadUsers()}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-[#F3F4F6] rounded-xl text-[13px] font-bold text-[#111111] hover:bg-[#FAFAFA] transition-colors shadow-sm">
                 <RefreshCw size={14} /> Refresh
@@ -4731,7 +4731,7 @@ export default function Dashboard() {
           <ShopSettingsView onOpenInventory={() => handleTabClick('inventory')} />
         )}
         {/* Footer: sits at the end of the scrolling content, visible only when scrolled to the bottom */}
-        <footer className="mt-12 border-t border-gray-200 pt-8 pb-2 flex flex-col lg:flex-row items-center justify-between gap-3 text-[11.5px] font-semibold uppercase tracking-wide text-[#374151] text-center print:hidden">
+        <footer className="mt-10 border-t border-black/10 pt-10 pb-2 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-semibold uppercase tracking-wider text-[#000000] text-center print:hidden">
           <span>© 2026 All rights reserved. {BRAND_EN}.</span>
           <span>Powered by <span className="font-black text-primary">Cenexa Systems</span> @2026</span>
           {BRAND_TAGLINE

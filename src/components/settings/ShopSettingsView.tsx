@@ -14,10 +14,10 @@ import AddProductModal from '../AddProductModal'
 import { db } from '../../lib/db'
 import { confirmDelete } from '../../lib/confirmDelete'
 
-const card = 'bg-white rounded-[22px] border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 sm:p-7'
+const card = 'bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6'
 const label = 'block text-[11px] font-black uppercase tracking-[0.12em] text-[#4B5563] mb-2'
 const inputBase =
-  'w-full h-12 bg-white border border-gray-200 rounded-xl text-[15px] font-semibold text-[#111111] placeholder:text-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition'
+  'w-full h-10 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-[#111111] placeholder:text-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition'
 const LOGO_MAX_PX = 512
 
 const ACCENT_SWATCHES = [
@@ -50,7 +50,7 @@ const fileToPngDataUrl = (file: File): Promise<string> =>
 
 const SectionTitle: React.FC<{ icon: React.ReactNode; title: string; action?: React.ReactNode }> = ({ icon, title, action }) => (
   <div className="flex items-center justify-between gap-3 mb-1">
-    <h3 className="flex items-center gap-2.5 text-[14px] font-black uppercase tracking-[0.16em] text-[#111111]">
+    <h3 className="flex items-center gap-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#111111]">
       <span className="text-primary">{icon}</span>
       {title}
     </h3>
@@ -251,23 +251,23 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
   const sortedProducts = [...products].sort((a, b) => a.name.localeCompare(b.name))
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-6">
       {/* Header */}
       <div className={`${card} !py-5 flex items-center gap-4`}>
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-ink">
+        <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-ink">
           <Settings2 size={22} />
         </div>
         <div className="min-w-0">
-          <h2 className="text-[18px] font-black uppercase tracking-tight text-[#111111]">Shop Settings</h2>
+          <h2 className="text-sm font-black uppercase tracking-tight text-[#111111]">Shop Settings</h2>
           <p className="text-[13px] font-medium text-[#4B5563]">
             Update the shop profile, logo and product catalogue used across the POS, invoices and the public store page.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-7 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
         {/* Left column */}
-        <div className="space-y-7">
+        <div className="space-y-6">
           <section className={card}>
             <SectionTitle icon={<Palette size={18} />} title="Appearance" />
             <p className="text-[13px] font-medium text-[#4B5563] mb-5">
@@ -290,7 +290,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
               })}
             </div>
             <div className="flex flex-wrap items-center gap-3 mb-6">
-              <label className="relative h-12 w-14 rounded-xl overflow-hidden cursor-pointer border border-gray-200" style={{ background: form.accentColor }}>
+              <label className="relative h-10 w-14 rounded-xl overflow-hidden cursor-pointer border border-gray-200" style={{ background: form.accentColor }}>
                 <input
                   type="color"
                   value={form.accentColor}
@@ -306,18 +306,18 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
                 maxLength={7}
                 aria-label="Accent colour hex code"
               />
-              <button type="button" onClick={() => pickAccent(DEFAULT_ACCENT)} className="text-[12px] font-black uppercase tracking-wider text-[#4B5563] underline underline-offset-4 hover:text-[#111111]">
+              <button type="button" onClick={() => pickAccent(DEFAULT_ACCENT)} className="text-[10px] font-bold uppercase tracking-wider text-[#4B5563] underline underline-offset-4 hover:text-[#111111]">
                 Reset
               </button>
             </div>
             <div className="rounded-2xl border border-gray-200 overflow-hidden">
               <div className="bg-primary text-primary-ink text-center px-4 py-5">
-                <p className="text-[16px] font-black uppercase tracking-tight">Card Preview</p>
+                <p className="text-sm font-black uppercase tracking-tight">Card Preview</p>
                 <p className="text-[12px] font-semibold opacity-80">Buttons, links, totals and invoice headers use this colour.</p>
               </div>
               <div className="flex items-center justify-between gap-3 px-4 py-3.5 bg-white">
                 <div className="flex items-center gap-3">
-                  <span className="rounded-lg bg-primary px-4 py-2 text-[12px] font-black uppercase text-primary-ink">Button</span>
+                  <span className="rounded-lg bg-primary px-4 py-2 text-[10px] font-bold uppercase text-primary-ink">Button</span>
                   <span className="text-[13px] font-bold text-primary">Accent link</span>
                 </div>
                 <span className="rounded-lg bg-primary-100 px-3 py-1.5 text-[12px] font-black text-primary">Total ₹1,250</span>
@@ -339,7 +339,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
             <div className="flex flex-wrap gap-2 mb-4">
               {categories.length === 0 && <span className="text-[13px] font-medium text-gray-400">No categories yet.</span>}
               {categories.map((c) => (
-                <span key={c.id} className="rounded-full border border-primary-200 bg-primary-50 px-3.5 py-1.5 text-[12px] font-black uppercase tracking-wide text-primary">
+                <span key={c.id} className="rounded-full border border-primary-200 bg-primary-50 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-primary">
                   {c.name_en}
                 </span>
               ))}
@@ -352,7 +352,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleAddCategory() } }}
                 placeholder="e.g. Shirts"
               />
-              <button type="button" onClick={() => void handleAddCategory()} className="inline-flex shrink-0 items-center gap-1.5 h-12 px-5 rounded-xl bg-[#111111] text-white text-[13px] font-black uppercase hover:bg-black">
+              <button type="button" onClick={() => void handleAddCategory()} className="inline-flex shrink-0 items-center gap-1.5 h-10 px-5 rounded-xl bg-[#111111] text-white text-[10px] font-bold uppercase hover:bg-black">
                 <Plus size={16} /> Add
               </button>
             </div>
@@ -364,7 +364,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
               <div className="grid grid-cols-2 gap-3">
                 {(['product', 'service'] as const).map((t) => (
                   <button key={t} type="button" onClick={() => setQuick((q) => ({ ...q, type: t }))}
-                    className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border text-[13px] font-black uppercase tracking-wide transition-colors ${quick.type === t ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#374151] hover:bg-gray-50'}`}>
+                    className={`inline-flex h-9 items-center justify-center gap-2 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-colors ${quick.type === t ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#374151] hover:bg-gray-50'}`}>
                     {t === 'product' ? <Package size={16} /> : <Scissors size={16} />} {t}
                   </button>
                 ))}
@@ -389,10 +389,10 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
                   <input className={`${inputBase} px-4`} value={quick.offer} onChange={(e) => setQuick((q) => ({ ...q, offer: e.target.value }))} placeholder="Offer %" inputMode="decimal" /></label>
               </div>
               {quickError && <p className="text-[12px] font-bold text-[#B91C1C]">{quickError}</p>}
-              <button type="submit" disabled={quickSaving} className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-primary text-primary-ink text-[13px] font-black uppercase tracking-wide shadow-md hover:bg-primary-hover disabled:opacity-60">
+              <button type="submit" disabled={quickSaving} className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-xl bg-primary text-primary-ink text-[10px] font-bold uppercase tracking-wider shadow-md hover:bg-primary-hover disabled:opacity-60">
                 <Plus size={17} /> {quickSaving ? 'Adding…' : 'Add to catalogue'}
               </button>
-              <button type="button" onClick={() => setAddOpen(true)} className="w-full text-center text-[12px] font-black uppercase tracking-wide text-gray-500 hover:text-[#111111]">
+              <button type="button" onClick={() => setAddOpen(true)} className="w-full text-center text-[10px] font-bold uppercase tracking-wide text-gray-500 hover:text-[#111111]">
                 More fields (GST, HSN, description) →
               </button>
             </form>
@@ -514,7 +514,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
 
           <div className="border-t border-gray-200 my-7" />
 
-          <p className="flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.14em] text-[#374151] mb-3">
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#374151] mb-3">
             <ImageIcon size={16} /> Shop logo
           </p>
           <div className="flex flex-wrap items-center gap-5">
@@ -526,7 +526,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-primary text-primary-ink text-[12px] font-black uppercase tracking-wide hover:bg-primary-hover"
+                  className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-primary text-primary-ink text-[10px] font-bold uppercase tracking-wide hover:bg-primary-hover"
                 >
                   <Upload size={15} /> Upload logo
                 </button>
@@ -534,7 +534,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
                   <button
                     type="button"
                     onClick={() => set('logo')('')}
-                    className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-gray-100 text-[#111111] text-[12px] font-black uppercase tracking-wide hover:bg-gray-200"
+                    className="inline-flex items-center gap-2 h-10 px-4 rounded-lg bg-gray-100 text-[#111111] text-[10px] font-bold uppercase tracking-wide hover:bg-gray-200"
                   >
                     <Trash2 size={15} /> Reset logo
                   </button>
@@ -562,7 +562,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-[#111111] text-white text-[13px] font-black uppercase tracking-wide hover:bg-black disabled:opacity-60"
+            className="inline-flex items-center gap-2 h-10 px-6 rounded-xl bg-[#111111] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-black disabled:opacity-60"
           >
             <Save size={17} /> {saving ? 'Saving…' : 'Save shop details'}
           </button>

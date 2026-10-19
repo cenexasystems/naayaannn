@@ -40,15 +40,15 @@ function ConfirmDeleteDialog({ options, close }: { options: ConfirmDeleteOptions
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-delete-title"
-        className="w-full max-w-[560px] max-h-[92dvh] overflow-y-auto rounded-[22px] bg-white shadow-[0_30px_70px_-15px_rgba(0,0,0,0.45)]"
+        className="w-full max-w-[560px] max-h-[92dvh] overflow-y-auto rounded-xl bg-white shadow-[0_30px_70px_-15px_rgba(0,0,0,0.45)]"
       >
         {/* Header */}
-        <div className="flex items-start gap-4 border-b border-gray-200 px-6 py-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-[#DC2626]">
+        <div className="flex items-start gap-4 border-b border-gray-200 px-4 py-3.5">
+          <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-[#DC2626]">
             <Trash2 size={22} />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 id="confirm-delete-title" className="text-[18px] font-black leading-snug text-[#111111] break-words">{options.title}</h2>
+            <h2 id="confirm-delete-title" className="text-base font-black leading-snug text-[#111111] break-words">{options.title}</h2>
             {options.subtitle && <p className="mt-0.5 text-[13px] font-semibold text-gray-500 break-words">{options.subtitle}</p>}
           </div>
           <button
@@ -61,9 +61,9 @@ function ConfirmDeleteDialog({ options, close }: { options: ConfirmDeleteOptions
           </button>
         </div>
 
-        <div className="space-y-5 px-6 py-5">
+        <div className="space-y-5 px-4 py-3.5">
           {/* Warning */}
-          <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-[13.5px] font-medium leading-relaxed text-[#92400E]">
+          <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-[11px] font-semibold leading-relaxed text-[#92400E]">
             <AlertTriangle size={18} className="mt-0.5 shrink-0 text-[#D97706]" />
             <p>{options.warning}</p>
           </div>
@@ -97,7 +97,7 @@ function ConfirmDeleteDialog({ options, close }: { options: ConfirmDeleteOptions
               placeholder={word}
               autoComplete="off"
               spellCheck={false}
-              className="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-[14px] font-bold uppercase tracking-wider text-[#111111] placeholder:text-gray-300 focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-red-100"
+              className="h-10 w-full rounded-xl border border-gray-200 bg-white px-4 text-[14px] font-bold uppercase tracking-wider text-[#111111] placeholder:text-gray-300 focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-red-100"
             />
           </div>
         </div>
@@ -107,7 +107,7 @@ function ConfirmDeleteDialog({ options, close }: { options: ConfirmDeleteOptions
           <button
             type="button"
             onClick={() => close(false)}
-            className="h-11 rounded-xl px-5 text-[14px] font-bold text-[#374151] hover:bg-gray-100"
+            className="h-9 rounded-xl px-5 text-[14px] font-bold text-[#374151] hover:bg-gray-100"
           >
             Cancel
           </button>
@@ -115,7 +115,7 @@ function ConfirmDeleteDialog({ options, close }: { options: ConfirmDeleteOptions
             type="button"
             disabled={!ready}
             onClick={() => close(true)}
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#DC2626] px-5 text-[14px] font-black text-white shadow-sm transition hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:bg-[#F3A9A9] disabled:shadow-none"
+            className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#DC2626] px-5 text-[14px] font-black text-white shadow-sm transition hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:bg-[#F3A9A9] disabled:shadow-none"
           >
             <Trash2 size={16} /> {options.confirmLabel || 'Permanently Delete'}
           </button>

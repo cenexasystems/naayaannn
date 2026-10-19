@@ -120,10 +120,10 @@ const recalc = (item: PosItem, nextQty: number): PosItem => {
 
 
 // ── Billing panel styles ───────────────────────────────────────────────────
-const posLabel = 'mb-2.5 block text-[12.5px] font-black uppercase tracking-[0.14em] text-[#111111]'
-const posSideLabel = 'mb-2.5 block text-[12.5px] font-black uppercase tracking-[0.12em] text-[#111111]'
-const posInput = 'h-12 w-full min-w-0 rounded-xl border border-gray-200 bg-white px-4 text-[15px] font-medium text-[#111111] placeholder:text-[#111111]/80 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15'
-const posToolBtn = 'inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-[13px] font-black uppercase tracking-wide text-[#111111] transition-colors hover:bg-gray-50 disabled:opacity-40'
+const posLabel = 'mb-2 block text-[10px] font-bold uppercase tracking-[0.15em] text-[#000000]'
+const posSideLabel = 'mb-2 block text-[10px] font-bold uppercase tracking-[0.15em] text-[#000000]'
+const posInput = 'w-full min-w-0 rounded-lg border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-[#000000] placeholder:text-[#000000]/70 focus:border-primary focus:outline-none'
+const posToolBtn = 'inline-flex items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider text-[#000000] transition-colors hover:bg-gray-50 disabled:opacity-40'
 
 // ── Category colours ───────────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1124,12 +1124,12 @@ export default function Pos(props: PosProps = {}) {
   return (
     <div data-embedded={embeddedMode} className={`flex flex-col bg-white print:hidden overflow-x-hidden ${embeddedMode ? '' : 'h-full overflow-y-auto hide-scrollbar'}`} style={embeddedMode ? undefined : { WebkitOverflowScrolling: 'touch' }}>
       {/* Header */}
-      <div className={`shrink-0 flex flex-col gap-4 pb-6 mb-7 border-b border-gray-200 sm:flex-row sm:items-center sm:justify-between ${embeddedMode ? '' : 'px-4 pt-5 md:px-8'}`}>
+      <div className={`shrink-0 flex flex-col gap-4 pb-6 mb-6 border-b border-gray-200 sm:flex-row sm:items-center sm:justify-between ${embeddedMode ? '' : 'px-4 pt-5 md:px-8'}`}>
         <div className="flex items-stretch gap-4 min-w-0">
           <span className="w-[6px] shrink-0 rounded-full bg-primary" aria-hidden />
           <div className="min-w-0">
-            <h2 className="text-[26px] sm:text-[30px] font-black leading-tight tracking-tight text-[#111111]">POS Billing Panel</h2>
-            <p className="text-[13.5px] font-medium text-[#111111]">Quick Invoice generator &amp; database synced checkout</p>
+            <h2 className="text-xl font-black leading-tight tracking-tight text-[#111111]">POS Billing Panel</h2>
+            <p className="text-[11px] font-semibold text-[#111111]">Quick Invoice generator &amp; database synced checkout</p>
           </div>
         </div>
 
@@ -1141,7 +1141,7 @@ export default function Pos(props: PosProps = {}) {
               role="tab"
               aria-selected={ordermode === 'offline'}
               onClick={() => setOrdermode('offline')}
-              className={`h-10 rounded-full px-6 text-[13px] font-black uppercase tracking-wide transition-colors ${ordermode === 'offline' ? 'bg-primary text-primary-ink shadow' : 'text-[#111111] hover:bg-gray-50'}`}
+              className={`h-10 rounded-full px-6 text-[10px] font-bold uppercase tracking-wider transition-colors ${ordermode === 'offline' ? 'bg-primary text-primary-ink shadow' : 'text-[#111111] hover:bg-gray-50'}`}
             >
               Offline (POS)
             </button>
@@ -1150,7 +1150,7 @@ export default function Pos(props: PosProps = {}) {
               role="tab"
               aria-selected={ordermode === 'online'}
               onClick={() => setOrdermode('online')}
-              className={`inline-flex h-10 items-center gap-2 rounded-full px-6 text-[13px] font-black uppercase tracking-wide transition-colors ${ordermode === 'online' ? 'bg-primary text-primary-ink shadow' : 'text-[#111111] hover:bg-gray-50'}`}
+              className={`inline-flex h-10 items-center gap-2 rounded-full px-6 text-[10px] font-bold uppercase tracking-wider transition-colors ${ordermode === 'online' ? 'bg-primary text-primary-ink shadow' : 'text-[#111111] hover:bg-gray-50'}`}
             >
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
               Online Order
@@ -1160,14 +1160,14 @@ export default function Pos(props: PosProps = {}) {
             <>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="h-11 rounded-full bg-primary px-4 text-[12px] font-black uppercase tracking-wider text-primary-ink hover:bg-primary-hover cursor-pointer"
+                className="h-9 rounded-full bg-primary px-4 text-[10px] font-bold uppercase tracking-wider text-primary-ink hover:bg-primary-hover cursor-pointer"
               >
                 Dashboard
               </button>
               <button
                 onClick={() => { logout(); navigate('/admin-login', { replace: true }) }}
                 title="Logout"
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
+                className="flex h-9 w-11 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
               >
                 <Power size={16} />
               </button>
@@ -1180,11 +1180,11 @@ export default function Pos(props: PosProps = {}) {
       <div className={`grid grid-cols-1 xl:grid-cols-[minmax(0,1.75fr)_minmax(340px,1fr)] gap-6 xl:gap-10 pb-6 items-start ${embeddedMode ? '' : 'px-4 md:px-8'}`} style={{ touchAction: 'pan-y' }}>
 
         {/* LEFT COLUMN */}
-        <div className="flex flex-col gap-7 min-w-0">
+        <div className="flex flex-col gap-6 min-w-0">
 
           {/* Customer Details Card */}
-          <section className="rounded-[22px] border border-gray-200 bg-white p-5 sm:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
-            <h3 className="mb-6 flex items-center gap-3 text-[19px] font-black text-[#111111]">
+          <section className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+            <h3 className="mb-6 flex items-center gap-3 text-base font-black tracking-tight text-[#111111]">
               <User size={20} strokeWidth={1.75} />
               Customer Details
             </h3>
@@ -1218,7 +1218,7 @@ export default function Pos(props: PosProps = {}) {
               </div>
               <div className="min-w-0">
                 <div className="mb-2.5 flex items-center justify-between gap-2">
-                  <label htmlFor="pos-billing-date" className="flex items-center gap-2 text-[12.5px] font-black uppercase tracking-[0.14em] text-[#111111]">
+                  <label htmlFor="pos-billing-date" className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]">
                     <CalendarDays size={15} strokeWidth={1.75} /> Bill Date
                   </label>
                   {billingDate ? (
@@ -1278,9 +1278,9 @@ export default function Pos(props: PosProps = {}) {
           </section>
 
           {/* Order Items Card */}
-          <section className="flex min-h-[420px] flex-col rounded-[22px] border border-gray-200 bg-white p-5 sm:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+          <section className="flex min-h-[420px] flex-col rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
             <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <h3 className="flex items-center gap-3 text-[19px] font-black text-[#111111]">
+              <h3 className="flex items-center gap-3 text-base font-black tracking-tight text-[#111111]">
                 <Receipt size={20} strokeWidth={1.75} />
                 Order Items{items.length > 0 ? ` (${items.length})` : ''}
               </h3>
@@ -1319,20 +1319,20 @@ export default function Pos(props: PosProps = {}) {
                 <div className="flex flex-col gap-3">
                   <div className="hidden md:grid grid-cols-[minmax(0,1fr)_120px_130px_44px] items-center gap-4">
                     <div className="flex gap-2.5">
-                      <button type="button" onClick={addCustomItem} className="h-11 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500 hover:border-gray-300">
+                      <button type="button" onClick={addCustomItem} className="h-9 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500 hover:border-gray-300">
                         Type custom item name...
                       </button>
-                      <button type="button" onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }} className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[13px] font-black uppercase tracking-wide text-[#111111] hover:bg-gray-100">
+                      <button type="button" onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }} className="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase tracking-wider text-[#111111] hover:bg-gray-100">
                         <List size={16} strokeWidth={1.75} /> Catalog
                       </button>
                     </div>
-                    <div className="flex h-11 items-center justify-center rounded-xl border border-gray-200 text-[14px] font-medium text-gray-400">0</div>
-                    <div className="flex h-11 items-center justify-between rounded-xl border border-gray-200 px-3 text-[14px] font-black text-gray-300"><span>−</span><span className="text-[#111111]">1</span><span>+</span></div>
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 text-gray-300"><Trash2 size={17} strokeWidth={1.75} /></span>
+                    <div className="flex h-9 items-center justify-center rounded-xl border border-gray-200 text-[14px] font-medium text-gray-400">0</div>
+                    <div className="flex h-9 items-center justify-between rounded-xl border border-gray-200 px-3 text-[14px] font-black text-gray-300"><span>−</span><span className="text-[#111111]">1</span><span>+</span></div>
+                    <span className="flex h-9 w-11 items-center justify-center rounded-xl border border-gray-200 text-gray-300"><Trash2 size={17} strokeWidth={1.75} /></span>
                   </div>
                   <div className="md:hidden flex gap-2">
-                    <button type="button" onClick={addCustomItem} className="h-11 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500">Type custom item name...</button>
-                    <button type="button" onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }} className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[13px] font-black uppercase text-[#111111]"><List size={16} /> Catalog</button>
+                    <button type="button" onClick={addCustomItem} className="h-9 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500">Type custom item name...</button>
+                    <button type="button" onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }} className="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase text-[#111111]"><List size={16} /> Catalog</button>
                   </div>
                 </div>
               )}
@@ -1352,10 +1352,10 @@ export default function Pos(props: PosProps = {}) {
                             className={posInput}
                           />
                         ) : (
-                          <p className="text-[15px] font-black text-[#111111] break-words">{itemDisplayName(item)}</p>
+                          <p className="text-sm font-black text-[#111111] break-words">{itemDisplayName(item)}</p>
                         )}
                       </div>
-                      <button type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-[#111111] hover:bg-red-50 hover:text-red-600">
+                      <button type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="flex h-9 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-[#111111] hover:bg-red-50 hover:text-red-600">
                         <Trash2 size={17} strokeWidth={1.75} />
                       </button>
                     </div>
@@ -1363,16 +1363,16 @@ export default function Pos(props: PosProps = {}) {
                       {item.source === 'manual' ? (
                         <input type="number" inputMode="decimal" onWheel={(e) => (e.target as HTMLInputElement).blur()} value={item.basePrice || ''} onChange={e => updateItem(item.id, 'basePrice', e.target.value)} placeholder="0" className={`${posInput} !w-28 text-center`} aria-label="Price" />
                       ) : (
-                        <button type="button" onClick={() => handleOpenPriceEdit(item)} className="h-11 rounded-xl border border-gray-200 px-4 text-[14px] font-black text-[#111111]">
+                        <button type="button" onClick={() => handleOpenPriceEdit(item)} className="h-9 rounded-xl border border-gray-200 px-4 text-[14px] font-black text-[#111111]">
                           ₹{Number(item.basePrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                         </button>
                       )}
-                      <div className="flex h-11 items-center gap-1 rounded-xl border border-gray-200 px-1.5">
+                      <div className="flex h-9 items-center gap-1 rounded-xl border border-gray-200 px-1.5">
                         <button type="button" onClick={() => bumpQty(item.id, -1)} className="h-8 w-8 rounded-lg text-[18px] font-bold text-[#111111] hover:bg-gray-100" aria-label="Decrease quantity">−</button>
-                        <span className="w-8 text-center text-[15px] font-black text-[#111111]">{item.qty}</span>
+                        <span className="w-8 text-center text-sm font-black text-[#111111]">{item.qty}</span>
                         <button type="button" onClick={() => bumpQty(item.id, 1)} className="h-8 w-8 rounded-lg text-[18px] font-bold text-[#111111] hover:bg-gray-100" aria-label="Increase quantity">+</button>
                       </div>
-                      <span className="text-[16px] font-black text-[#111111]">{formatCurrency(item.lineTotal)}</span>
+                      <span className="text-sm font-black text-[#111111]">{formatCurrency(item.lineTotal)}</span>
                     </div>
                   </div>
 
@@ -1389,14 +1389,14 @@ export default function Pos(props: PosProps = {}) {
                           autoFocus={!item.name}
                         />
                       ) : (
-                        <div className="flex h-11 min-w-0 flex-1 items-center rounded-xl border border-gray-200 px-4">
+                        <div className="flex h-9 min-w-0 flex-1 items-center rounded-xl border border-gray-200 px-4">
                           <span className="truncate text-[14px] font-bold text-[#111111]">{itemDisplayName(item)}</span>
                         </div>
                       )}
                       <button
                         type="button"
                         onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }}
-                        className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[13px] font-black uppercase tracking-wide text-[#111111] hover:bg-gray-100"
+                        className="inline-flex h-9 shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase tracking-wider text-[#111111] hover:bg-gray-100"
                         title="Pick from catalog"
                       >
                         <List size={16} strokeWidth={1.75} /> {item.itemType === 'service' ? 'Service' : 'Catalog'}
@@ -1418,17 +1418,17 @@ export default function Pos(props: PosProps = {}) {
                         type="button"
                         onClick={() => handleOpenPriceEdit(item)}
                         title="Click to edit price"
-                        className="h-11 rounded-xl border border-gray-200 text-center text-[14px] font-black text-[#111111] hover:border-gray-300"
+                        className="h-9 rounded-xl border border-gray-200 text-center text-[14px] font-black text-[#111111] hover:border-gray-300"
                       >
                         {Number(item.basePrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </button>
                     )}
-                    <div className="flex h-11 items-center justify-between rounded-xl border border-gray-200 px-2">
+                    <div className="flex h-9 items-center justify-between rounded-xl border border-gray-200 px-2">
                       <button type="button" onClick={() => bumpQty(item.id, -1)} className="h-8 w-8 rounded-lg text-[16px] font-bold text-[#111111] hover:bg-gray-100" aria-label="Decrease quantity">−</button>
-                      <span className="text-[15px] font-black text-[#111111]">{item.qty}</span>
+                      <span className="text-sm font-black text-[#111111]">{item.qty}</span>
                       <button type="button" onClick={() => bumpQty(item.id, 1)} className="h-8 w-8 rounded-lg text-[16px] font-bold text-[#111111] hover:bg-gray-100" aria-label="Increase quantity">+</button>
                     </div>
-                    <button type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 text-[#111111] hover:bg-red-50 hover:text-red-600 hover:border-red-200">
+                    <button type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="flex h-9 w-11 items-center justify-center rounded-xl border border-gray-200 text-[#111111] hover:bg-red-50 hover:text-red-600 hover:border-red-200">
                       <Trash2 size={17} strokeWidth={1.75} />
                     </button>
                   </div>
@@ -1439,9 +1439,9 @@ export default function Pos(props: PosProps = {}) {
         </div>
 
         {/* RIGHT COLUMN — Current Order */}
-        <aside className="xl:sticky xl:top-4 rounded-[22px] border border-gray-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-6 sm:px-7 py-6">
-            <h3 className="flex items-center gap-3 text-[19px] font-black text-[#111111]">
+        <aside className="xl:sticky xl:top-4 rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-3 border-b border-gray-200 p-4 sm:p-6">
+            <h3 className="flex items-center gap-3 text-base font-black tracking-tight text-[#111111]">
               <ShoppingBag size={20} strokeWidth={1.75} />
               Current Order
             </h3>
@@ -1451,10 +1451,10 @@ export default function Pos(props: PosProps = {}) {
             </span>
           </div>
 
-          <div className="space-y-6 px-6 sm:px-7 py-7">
+          <div className="space-y-6 p-4 sm:p-6">
             {/* Summary */}
-            <div className="rounded-[18px] border border-gray-200 px-5 py-5">
-              <dl className="space-y-3.5 text-[14.5px]">
+            <div className="rounded-xl border border-gray-200 px-4 py-3.5">
+              <dl className="space-y-3.5 text-sm">
                 <div className="flex items-center justify-between">
                   <dt className="uppercase text-[#111111]">Source</dt>
                   <dd className="rounded-md border border-[#111111] px-2.5 py-0.5 text-[10.5px] font-black uppercase tracking-[0.16em] text-[#111111]">{ordermode}</dd>
@@ -1510,9 +1510,9 @@ export default function Pos(props: PosProps = {}) {
                   {availableCoupons.map(c => <option key={c.code} value={c.code} />)}
                 </datalist>
                 {appliedCoupon ? (
-                  <button type="button" onClick={removeCoupon} className="h-11 shrink-0 rounded-xl bg-red-50 px-4 text-[12px] font-black uppercase text-red-600 hover:bg-red-100">Remove</button>
+                  <button type="button" onClick={removeCoupon} className="h-9 shrink-0 rounded-xl bg-red-50 px-4 text-[10px] font-bold uppercase text-red-600 hover:bg-red-100">Remove</button>
                 ) : (
-                  <button type="button" onClick={() => void applyCoupon()} disabled={couponLoading || !couponInput.trim()} className="h-11 shrink-0 rounded-xl bg-primary px-5 text-[12px] font-black uppercase text-primary-ink hover:bg-primary-hover disabled:opacity-40">Apply</button>
+                  <button type="button" onClick={() => void applyCoupon()} disabled={couponLoading || !couponInput.trim()} className="h-9 shrink-0 rounded-xl bg-primary px-5 text-[10px] font-bold uppercase text-primary-ink hover:bg-primary-hover disabled:opacity-40">Apply</button>
                 )}
               </div>
               {couponError && <p className="mt-1 text-[12px] font-bold text-red-500">{couponError}</p>}
@@ -1530,7 +1530,7 @@ export default function Pos(props: PosProps = {}) {
                     aria-label="Discount type"
                     value={manualDiscountType}
                     onChange={e => setManualDiscountType(e.target.value as 'flat' | 'percent')}
-                    className="h-11 appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-9 text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
+                    className="h-9 appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-9 text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
                   >
                     <option value="flat">₹</option>
                     <option value="percent">%</option>
@@ -1552,17 +1552,17 @@ export default function Pos(props: PosProps = {}) {
 
             {/* Totals */}
             <div className="space-y-4 border-t border-gray-200 pt-5">
-              <div className="flex items-center justify-between text-[15px] text-[#111111]">
+              <div className="flex items-center justify-between text-sm text-[#111111]">
                 <span>Subtotal ({items.length} items)</span>
                 <span className="font-black">{formatCurrency(subtotal)}</span>
               </div>
               {billGstEnabled && totalGst > 0 && (
-                <div className="flex items-center justify-between text-[15px] text-[#111111]">
+                <div className="flex items-center justify-between text-sm text-[#111111]">
                   <span>GST Amount</span>
                   <span className="font-black">{formatCurrency(totalGst)}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between text-[15px] text-[#111111]">
+              <div className="flex items-center justify-between text-sm text-[#111111]">
                 <label htmlFor="pos-shipping-input">Delivery</label>
                 <input
                   id="pos-shipping-input"
@@ -1578,8 +1578,8 @@ export default function Pos(props: PosProps = {}) {
 
             {/* Non-GST bill / GST invoice */}
             <div className="grid grid-cols-2 gap-1.5 rounded-full border border-gray-200 p-1.5" role="tablist" aria-label="Bill type">
-              <button type="button" role="tab" aria-selected={!billGstEnabled} onClick={() => setBillGstEnabled(false)} className={`h-10 rounded-full text-[13px] font-black uppercase tracking-wide transition-colors ${!billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>Non-GST Bill</button>
-              <button type="button" role="tab" aria-selected={billGstEnabled} onClick={() => setBillGstEnabled(true)} className={`h-10 rounded-full text-[13px] font-black uppercase tracking-wide transition-colors ${billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>GST Invoice</button>
+              <button type="button" role="tab" aria-selected={!billGstEnabled} onClick={() => setBillGstEnabled(false)} className={`h-10 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors ${!billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>Non-GST Bill</button>
+              <button type="button" role="tab" aria-selected={billGstEnabled} onClick={() => setBillGstEnabled(true)} className={`h-10 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors ${billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>GST Invoice</button>
             </div>
             {billGstEnabled && (
               <div className="flex gap-2.5">
@@ -1590,7 +1590,7 @@ export default function Pos(props: PosProps = {}) {
                     aria-label="GST type"
                     value={gstType}
                     onChange={e => setGstType(e.target.value as 'flat' | 'percent')}
-                    className="h-11 appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-9 text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
+                    className="h-9 appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-9 text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
                   >
                     <option value="percent">%</option>
                     <option value="flat">₹</option>
@@ -1612,14 +1612,14 @@ export default function Pos(props: PosProps = {}) {
 
             {/* Financial option */}
             <div>
-              <p className="mb-2.5 text-[11.5px] font-black uppercase tracking-[0.14em] text-[#111111]">Financial Option</p>
+              <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]">Financial Option</p>
               <div className="grid grid-cols-4 gap-2">
                 {(['cash', 'qr', 'card', 'split'] as const).map(mode => (
                   <button
                     key={mode}
                     type="button"
                     onClick={() => setPaymentType(mode)}
-                    className={`h-11 rounded-xl border text-[13px] font-black uppercase tracking-wide transition-colors ${
+                    className={`h-9 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-colors ${
                       paymentType === mode ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#111111] hover:bg-gray-50'
                     }`}
                   >
@@ -1631,20 +1631,20 @@ export default function Pos(props: PosProps = {}) {
 
             {/* Grand total */}
             <div className="flex items-center justify-between border-t border-gray-200 pt-5">
-              <span className="text-[19px] font-black uppercase tracking-wide text-[#111111]">Grand Total</span>
-              <span className="text-[28px] font-black tracking-tight text-primary">{formatCurrency(total)}</span>
+              <span className="text-base font-black tracking-tight uppercase tracking-wide text-[#111111]">Grand Total</span>
+              <span className="text-xl font-black tracking-tight text-primary">{formatCurrency(total)}</span>
             </div>
 
             {ordermode !== 'online' && paymentType === 'split' && (
-              <div className="rounded-[18px] border border-gray-200 p-5">
-                <p className="mb-2 text-[11.5px] font-black uppercase tracking-[0.14em] text-[#111111]">Split Payment — Cash / GPay</p>
+              <div className="rounded-xl border border-gray-200 p-5">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]">Split Payment — Cash / GPay</p>
                 <SplitPaymentInputs idPrefix="pos-split" total={total} value={splitForm} onChange={setSplitForm} />
               </div>
             )}
 
             {ordermode !== 'online' && paymentType !== 'split' && (
-              <div className="rounded-[18px] border border-gray-200 p-5">
-                <p className="text-[11.5px] font-black uppercase tracking-[0.14em] text-[#111111]">
+              <div className="rounded-xl border border-gray-200 p-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]">
                   {paymentType === 'qr' ? 'GPay' : paymentType === 'card' ? 'Card' : 'Cash'} Payment
                 </p>
                 <label htmlFor="pos-cash-received" className="mb-3 block text-[13px] font-black text-[#111111]">Amount Received (₹)</label>
@@ -1656,12 +1656,12 @@ export default function Pos(props: PosProps = {}) {
                   value={cashReceived}
                   onChange={e => setCashReceived(e.target.value)}
                   placeholder="0.00"
-                  className="h-14 w-full rounded-xl border border-gray-200 px-4 text-[20px] font-black text-[#111111] placeholder:text-[#111111] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  className="h-10 w-full rounded-xl border border-gray-200 px-4 text-base font-black text-[#111111] placeholder:text-[#111111] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                 />
                 {cashReceivedNum > 0 && (
                   <div className="mt-3 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-2.5">
                     <span className="text-[13px] font-bold text-[#111111]">Return Balance</span>
-                    <span className="text-[16px] font-black text-[#111111]">{formatCurrency(balanceToReturn)}</span>
+                    <span className="text-sm font-black text-[#111111]">{formatCurrency(balanceToReturn)}</span>
                   </div>
                 )}
               </div>
@@ -1676,7 +1676,7 @@ export default function Pos(props: PosProps = {}) {
                 type="button"
                 onClick={generateBill}
                 disabled={saving}
-                className="inline-flex h-[54px] w-full items-center justify-center gap-3 rounded-xl bg-primary text-[15px] font-black uppercase tracking-[0.16em] text-primary-ink shadow-[0_12px_24px_-10px_rgb(var(--primary)/0.7)] transition hover:bg-primary-hover active:scale-[0.99] disabled:opacity-50"
+                className="inline-flex h-9 w-full items-center justify-center gap-3 rounded-xl bg-primary text-[11px] font-black uppercase tracking-[0.16em] text-primary-ink shadow-[0_12px_24px_-10px_rgb(var(--primary)/0.7)] transition hover:bg-primary-hover active:scale-[0.99] disabled:opacity-50"
               >
                 <Check size={19} strokeWidth={2.5} />
                 {saving ? 'Processing...' : 'Complete Sale'}
@@ -1685,7 +1685,7 @@ export default function Pos(props: PosProps = {}) {
                 type="button"
                 onClick={openDepositOrder}
                 disabled={saving || items.length === 0}
-                className="inline-flex h-[54px] w-full items-center justify-center gap-3 rounded-xl border-2 border-amber-500 bg-white text-[14px] font-black uppercase tracking-[0.16em] text-amber-600 transition hover:bg-amber-50 disabled:opacity-40"
+                className="inline-flex h-9 w-full items-center justify-center gap-3 rounded-xl border-2 border-amber-500 bg-white text-[11px] font-black uppercase tracking-[0.16em] text-amber-600 transition hover:bg-amber-50 disabled:opacity-40"
               >
                 <Clock size={19} strokeWidth={2} />
                 Save as Advance Order
@@ -1729,7 +1729,7 @@ export default function Pos(props: PosProps = {}) {
       {depositCreated && (
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/55 p-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl">✓</div>
+            <div className="mx-auto flex h-10 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl">✓</div>
             <p className="mt-4 text-[11px] font-black uppercase tracking-[.16em] text-gray-600">Deposit order saved</p>
             <h3 className="mt-1 text-2xl font-black text-[#111111]">{depositCreated.deposit_id}</h3>
             <p className="mt-2 text-sm text-[#6B7280]">Deposit {formatCurrency(depositCreated.deposit_amount)} · Balance {formatCurrency(depositCreated.remaining_balance)}</p>
@@ -1897,7 +1897,7 @@ export default function Pos(props: PosProps = {}) {
                         void handleSavePrice(false)
                       }
                     }}
-                    className="w-full h-12 pl-8 pr-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-lg font-black text-gray-900 focus:outline-none focus:border-primary-soft focus:bg-white transition-all"
+                    className="w-full h-10 pl-8 pr-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-lg font-black text-gray-900 focus:outline-none focus:border-primary-soft focus:bg-white transition-all"
                   />
                 </div>
                 {priceEditModal.error && (
@@ -1920,7 +1920,7 @@ export default function Pos(props: PosProps = {}) {
                   type="button"
                   disabled={priceEditModal.isSubmitting}
                   onClick={() => void handleSavePrice(true)}
-                  className="h-11 px-3 bg-primary hover:bg-primary-hover text-primary-100 border border-primary-soft/50 font-bold text-xs rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  className="h-9 px-3 bg-primary hover:bg-primary-hover text-primary-100 border border-primary-soft/50 font-bold text-xs rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   {priceEditModal.isSubmitting ? (
                     <RefreshCw size={14} className="animate-spin" />
@@ -1934,7 +1934,7 @@ export default function Pos(props: PosProps = {}) {
                   type="button"
                   disabled={priceEditModal.isSubmitting}
                   onClick={() => void handleSavePrice(false)}
-                  className="h-11 px-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
+                  className="h-9 px-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"
                 >
                   <span>No (This Bill Only)</span>
                 </button>

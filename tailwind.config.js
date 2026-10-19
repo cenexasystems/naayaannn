@@ -62,12 +62,12 @@ export default {
         borderLight: '#F3F4F6', // Card borders with subtle slate/gold
       },
       fontFamily: {
-        sans:      ['"DM Sans"', '"Outfit"', '"Noto Sans Tamil"', 'system-ui', '-apple-system', 'sans-serif'],
-        dmsans:    ['"DM Sans"', 'sans-serif'],
-        'dm-sans': ['"DM Sans"', 'sans-serif'],
-        outfit:    ['"Outfit"', 'sans-serif'],
-        brand:     ['"Cinzel"', '"DM Sans"', '"Outfit"', '"Noto Sans Tamil"', 'serif'],
-        headline:  ['"DM Sans"', '"Outfit"', '"Noto Sans Tamil"', 'sans-serif'],
+        sans:      ['"Poppins"', '"Noto Sans Tamil"', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+        dmsans:    ['"Poppins"', 'sans-serif'],
+        'dm-sans': ['"Poppins"', 'sans-serif'],
+        outfit:    ['"Poppins"', 'sans-serif'],
+        brand:     ['"Poppins"', '"Noto Sans Tamil"', 'sans-serif'],
+        headline:  ['"Poppins"', '"Noto Sans Tamil"', 'sans-serif'],
       },
       boxShadow: {
         soft:   '0 1px 3px rgba(0,0,0,0.05)',

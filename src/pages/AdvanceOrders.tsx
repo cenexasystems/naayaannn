@@ -289,33 +289,33 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     cancelled: 'border-red-200 bg-red-50 text-red-700',
   })[status]
-  const iconBtn = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors cursor-pointer'
+  const iconBtn = 'flex h-9 w-11 shrink-0 items-center justify-center rounded-xl transition-colors cursor-pointer'
 
-  return <div className="space-y-7">
+  return <div className="space-y-6">
     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
       <div className="max-w-xl">
-        <h2 className="text-[32px] sm:text-[36px] font-black leading-tight tracking-tight text-[#111111]">Advance Orders</h2>
-        <p className="mt-1 text-[14.5px] font-medium text-[#111111]">Partial-payment holds — revenue is recognized only when the balance is collected.</p>
+        <h2 className="text-[28px] font-black leading-tight tracking-tight text-[#111111]">Advance Orders</h2>
+        <p className="mt-1 text-xs font-semibold text-[#111111]">Partial-payment holds — revenue is recognized only when the balance is collected.</p>
       </div>
       <div className="flex flex-col gap-3 xl:items-end">
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
-            <span className="px-3 text-[11px] font-black uppercase tracking-widest text-[#111111]">Period:</span>
+            <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#111111]">Period:</span>
             {periods.map(([value, text]) => (
               <button key={value} type="button" onClick={() => { setDateFilter(value); setDateFrom(''); setDateTo('') }}
-                className={`rounded-xl px-4 py-2 text-[13px] font-black uppercase tracking-wide transition-colors ${dateFilter === value ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>
+                className={`rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${dateFilter === value ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>
                 {text}
               </button>
             ))}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void load()} title="Refresh" aria-label="Refresh" className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 hover:text-[#111111]"><RefreshCw size={18} /></button>
+        <button type="button" onClick={() => void load()} title="Refresh" aria-label="Refresh" className="flex h-10 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 hover:text-[#111111]"><RefreshCw size={18} /></button>
         <div className="inline-flex flex-wrap items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
-          <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">From:</span>
-            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setDateFilter('custom') }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
-          <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">To:</span>
-            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setDateFilter('custom') }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
+          <label className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">From:</span>
+            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setDateFilter('custom') }} className="bg-transparent text-sm font-black text-[#111111] outline-none" /></label>
+          <label className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">To:</span>
+            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setDateFilter('custom') }} className="bg-transparent text-sm font-black text-[#111111] outline-none" /></label>
         </div>
         </div>
       </div>
@@ -326,40 +326,40 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
 
     <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {cards.map(card => (
-        <div key={card.label} className="flex items-center justify-between rounded-[20px] border border-gray-200 bg-white px-6 py-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+        <div key={card.label} className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm">
           <div>
-            <p className="text-[13.5px] font-black uppercase tracking-wide text-[#111111]">{card.label}</p>
-            <p className="mt-2 text-[26px] font-black text-[#111111]">{card.value}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">{card.label}</p>
+            <p className="mt-2 text-xl font-black text-[#111111]">{card.value}</p>
           </div>
-          <span className={`flex h-[52px] w-[52px] items-center justify-center rounded-xl ${card.tile}`}>{card.icon}</span>
+          <span className={`flex h-9 w-[52px] items-center justify-center rounded-xl ${card.tile}`}>{card.icon}</span>
         </div>
       ))}
     </div>
 
-    <div className="flex flex-col gap-3 rounded-[20px] border border-gray-200 bg-white p-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] lg:flex-row lg:items-center">
+    <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm lg:flex-row lg:items-center">
       <label className="relative flex-1">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#111111]" size={19} strokeWidth={1.75} />
-        <input className="h-12 w-full rounded-xl border border-gray-200 pl-12 pr-4 text-[15px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by ID, customer, phone, product or status" />
+        <input className="h-10 w-full rounded-xl border border-gray-200 pl-12 pr-4 text-sm font-semibold text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by ID, customer, phone, product or status" />
       </label>
       <div className="flex flex-wrap gap-2">
         {(['all', 'pending', 'ready', 'completed', 'cancelled'] as StatusFilter[]).map(value => (
           <button key={value} type="button" onClick={() => setStatusFilter(value)}
-            className={`h-11 rounded-xl px-4 text-[13px] font-black uppercase tracking-wide transition-colors ${statusFilter === value ? 'bg-primary text-primary-ink' : 'bg-gray-100 text-[#111111] hover:bg-gray-200'}`}>
+            className={`h-9 rounded-xl px-4 text-[10px] font-bold uppercase tracking-wider transition-colors ${statusFilter === value ? 'bg-primary text-primary-ink' : 'bg-gray-100 text-[#111111] hover:bg-gray-200'}`}>
             {value}
           </button>
         ))}
       </div>
     </div>
 
-    <div className="overflow-hidden rounded-[20px] border border-gray-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1100px] text-left">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr>
               {['Deposit ID', 'Customer', 'Product', 'Total / Paid / Balance', 'Delivery', 'Status'].map(h => (
-                <th key={h} className="whitespace-nowrap px-5 py-5 text-[13px] font-black uppercase tracking-wide text-[#111111]">{h}</th>
+                <th key={h} className="whitespace-nowrap px-4 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#111111]">{h}</th>
               ))}
-              <th className="whitespace-nowrap px-5 py-5 text-right text-[13px] font-black uppercase tracking-wide text-[#111111]">Actions</th>
+              <th className="whitespace-nowrap px-4 py-3.5 text-right text-[10px] font-bold uppercase tracking-wider text-[#111111]">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -373,35 +373,35 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
                 const firstProduct = productRows(order)[0]
                 return (
                 <tr key={order.id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/60">
-                  <td className="whitespace-nowrap px-5 py-5 align-middle">
+                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
                     <p className="font-mono text-[13px] font-bold text-[#111111]">{order.deposit_id}</p>
                     <p className="text-[11.5px] font-bold text-gray-600">{new Date(order.created_at).toLocaleDateString('en-IN')}</p>
                   </td>
-                  <td className="whitespace-nowrap px-5 py-5 align-middle">
-                    <p className="text-[15px] font-black text-[#111111]">{order.customer_name}</p>
+                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
+                    <p className="text-sm font-black text-[#111111]">{order.customer_name}</p>
                     <p className="text-[12.5px] text-gray-600">{formatPhoneDisplay(order.phone)}</p>
                   </td>
-                  <td className="max-w-[240px] px-5 py-5 align-middle">
+                  <td className="max-w-[240px] px-4 py-3.5 align-middle">
                     <p className="truncate text-[14px] font-black text-[#111111]">{Number(firstProduct?.quantity || 1)}× {order.product_name}</p>
                     {order.category && <p className="truncate text-[12px] text-gray-500">{order.category}</p>}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-5 align-middle text-[13.5px] font-black">
+                  <td className="whitespace-nowrap px-4 py-3.5 align-middle text-[13.5px] font-black">
                     <p className="text-[#111111]">Total: {formatCurrency(order.total_amount)}</p>
                     <p className="text-emerald-600">Paid: {formatCurrency(order.deposit_amount)}</p>
                     <p className="text-[#DC2626]">Balance: {formatCurrency(order.remaining_balance)}</p>
                   </td>
-                  <td className="whitespace-nowrap px-5 py-5 align-middle text-[14px] font-black text-[#111111]">
+                  <td className="whitespace-nowrap px-4 py-3.5 align-middle text-[14px] font-black text-[#111111]">
                     {order.expected_delivery_date ? new Date(`${order.expected_delivery_date}T00:00:00`).toLocaleDateString('en-IN') : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-5 align-middle">
+                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
                     {finalised ? (
-                      <span className={`inline-block rounded-md border px-3 py-1.5 text-[11.5px] font-black uppercase tracking-widest ${statusPill(order.status)}`}>{STATUS_LABELS[order.status]}</span>
+                      <span className={`inline-block rounded-md border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest ${statusPill(order.status)}`}>{STATUS_LABELS[order.status]}</span>
                     ) : (
                       <select
                         value={order.status}
                         aria-label={`Status of ${order.deposit_id}`}
                         onChange={e => void changeStatus(order, e.target.value as AdvanceStatus)}
-                        className={`rounded-md border px-2.5 py-1.5 text-[11.5px] font-black uppercase tracking-wide outline-none cursor-pointer ${statusPill(order.status)}`}
+                        className={`rounded-md border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide outline-none cursor-pointer ${statusPill(order.status)}`}
                       >
                         <option value="pending_deposit">Pending Deposit</option>
                         <option value="waiting_final_payment">Waiting for Final Payment</option>
@@ -411,11 +411,11 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
                       </select>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-5 align-middle">
+                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
                     <div className="flex items-center justify-end gap-2.5">
                       {!finalised && ['pending_deposit', 'waiting_final_payment', 'ready_for_delivery'].includes(order.status) && (
                         <button type="button" onClick={() => setPaymentOrder(order)} title="Receive Remaining Balance"
-                          className="h-11 rounded-xl bg-emerald-600 px-3.5 text-[12px] font-black uppercase tracking-wide text-white hover:bg-emerald-700">
+                          className="h-9 rounded-xl bg-emerald-600 px-3.5 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-emerald-700">
                           Receive Balance
                         </button>
                       )}
@@ -515,7 +515,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
             </button>
           </div>
           <div className="mb-6 rounded-2xl bg-emerald-50 py-5 text-center">
-            <p className="text-[11px] font-black uppercase tracking-widest text-emerald-600">Remaining Amount</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Remaining Amount</p>
             <p className="mt-1 text-4xl font-black text-emerald-800">{formatCurrency(paymentOrder.remaining_balance)}</p>
           </div>
           <div className="space-y-4">

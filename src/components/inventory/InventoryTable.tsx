@@ -216,19 +216,19 @@ export const InventoryTable: React.FC = () => {
   }
 
   const subTabs: Array<[InventoryTab, string]> = [['stock', 'Stock List'], ['products', 'Add / Edit Products'], ['categories', 'Categories'], ['analytics', 'Analytics & Reports']]
-  const toolBtn = 'inline-flex h-12 shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 text-[13.5px] font-black uppercase tracking-wide text-[#111111] transition-colors hover:bg-gray-50 cursor-pointer'
-  const darkBtn = 'inline-flex h-12 shrink-0 items-center gap-2 rounded-xl bg-primary px-4 text-[13.5px] font-black uppercase tracking-wide text-primary-ink shadow-sm transition-colors hover:bg-primary-hover cursor-pointer'
-  const rowBtn = 'inline-flex h-10 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 text-[12.5px] font-black uppercase tracking-wide text-[#374151] transition-colors hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40'
+  const toolBtn = 'inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 text-[10px] font-bold uppercase tracking-wider text-[#111111] transition-colors hover:bg-gray-50 cursor-pointer'
+  const darkBtn = 'inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-primary px-4 text-[10px] font-bold uppercase tracking-wider text-primary-ink shadow-sm transition-colors hover:bg-primary-hover cursor-pointer'
+  const rowBtn = 'inline-flex h-10 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 text-[10px] font-bold uppercase tracking-wide text-[#374151] transition-colors hover:bg-gray-50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40'
 
   return (
     <div className="space-y-6">
       {/* HEADER */}
       <div className="flex flex-col gap-5 min-[1750px]:flex-row min-[1750px]:items-start min-[1750px]:justify-between">
         <div className="shrink-0">
-          <h2 className="flex items-center gap-3 text-[32px] sm:text-[36px] font-black leading-tight tracking-tight text-[#111111]">
+          <h2 className="flex items-center gap-3 text-[28px] font-black leading-tight tracking-tight text-[#111111]">
             <Boxes size={36} strokeWidth={1.75} /> Inventory
           </h2>
-          <p className="mt-1 text-[14.5px] font-medium text-[#111111]">Manage products and categories — add, edit and delete.</p>
+          <p className="mt-1 text-xs font-semibold text-[#111111]">Manage products and categories — add, edit and delete.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 min-[1750px]:flex-nowrap">
           <label className="relative">
@@ -239,7 +239,7 @@ export const InventoryTable: React.FC = () => {
               onChange={(e) => { setSearch(e.target.value); setActiveTab('stock') }}
               placeholder="Search products..."
               aria-label="Search products"
-              className="h-12 w-64 rounded-xl border border-gray-300 bg-white pl-11 pr-4 text-[14.5px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none"
+              className="h-10 w-64 rounded-xl border border-gray-300 bg-white pl-11 pr-4 text-xs font-semibold text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none"
             />
           </label>
           <button type="button" onClick={exportInventoryCsv} className={toolBtn}><Download size={18} strokeWidth={1.75} /> Inventory CSV</button>
@@ -256,7 +256,7 @@ export const InventoryTable: React.FC = () => {
             key={id}
             type="button"
             onClick={() => { if (id === 'products') setEditProductId(null); setActiveTab(id) }}
-            className={`h-10 rounded-xl px-4 text-[12.5px] font-black uppercase tracking-wide transition-colors cursor-pointer ${activeTab === id ? 'bg-primary text-primary-ink' : 'bg-gray-100 text-[#111111] hover:bg-gray-200'}`}
+            className={`h-10 rounded-xl px-4 text-[10px] font-bold uppercase tracking-wide transition-colors cursor-pointer ${activeTab === id ? 'bg-primary text-primary-ink' : 'bg-gray-100 text-[#111111] hover:bg-gray-200'}`}
           >
             {text}
           </button>
@@ -265,7 +265,7 @@ export const InventoryTable: React.FC = () => {
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {([['all', `All (${totalSkus})`], ['in_stock', `In Stock (${inStockCount})`], ['low', `Low (${lowStockCount})`], ['out', `Out (${outOfStockCount})`]] as const).map(([id, text]) => (
               <button key={id} type="button" onClick={() => setFilterStatus(id)}
-                className={`h-10 rounded-xl border px-3.5 text-[12px] font-black uppercase tracking-wide transition-colors cursor-pointer ${filterStatus === id ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#374151] hover:bg-gray-50'}`}>
+                className={`h-10 rounded-xl border px-3.5 text-[10px] font-bold uppercase tracking-wide transition-colors cursor-pointer ${filterStatus === id ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#374151] hover:bg-gray-50'}`}>
                 {text}
               </button>
             ))}
@@ -273,7 +273,7 @@ export const InventoryTable: React.FC = () => {
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
             {role === 'admin' && (
-              <button type="button" onClick={() => { setSelectedForReceive(null); setShowReceiveModal(true) }} className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 text-[12px] font-black uppercase tracking-wide text-[#111111] hover:bg-gray-50 cursor-pointer" title="Generate & print barcodes">
+              <button type="button" onClick={() => { setSelectedForReceive(null); setShowReceiveModal(true) }} className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 text-[10px] font-bold uppercase tracking-wide text-[#111111] hover:bg-gray-50 cursor-pointer" title="Generate & print barcodes">
                 <Printer size={15} /> Add Barcode
               </button>
             )}
@@ -283,7 +283,7 @@ export const InventoryTable: React.FC = () => {
 
       {/* STOCK LIST */}
       {activeTab === 'stock' && (
-        <div className="overflow-hidden rounded-[20px] border border-gray-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           {loading && items.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-16 text-center text-[13px] font-bold text-gray-400">
               <RefreshCw size={24} className="mb-2 animate-spin" /> Loading inventory items...
@@ -295,12 +295,12 @@ export const InventoryTable: React.FC = () => {
               <table className="w-full min-w-[980px] text-left">
                 <thead className="border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-5 text-[13px] font-black uppercase tracking-wide text-[#111111]">Product</th>
-                    <th className="px-4 py-5 text-[13px] font-black uppercase tracking-wide text-[#111111]">Barcode</th>
-                    <th className="px-4 py-5 text-center text-[13px] font-black uppercase tracking-wide text-[#111111]">Type</th>
-                    <th className="px-4 py-5 text-center text-[13px] font-black uppercase tracking-wide text-[#111111]">Stock</th>
-                    <th className="px-4 py-5 text-[13px] font-black uppercase tracking-wide text-[#111111]">Price</th>
-                    <th className="px-4 py-5 text-right text-[13px] font-black uppercase tracking-wide text-[#111111]">Actions</th>
+                    <th className="px-4 py-5 text-[10px] font-bold uppercase tracking-wider text-[#111111]">Product</th>
+                    <th className="px-4 py-5 text-[10px] font-bold uppercase tracking-wider text-[#111111]">Barcode</th>
+                    <th className="px-4 py-5 text-center text-[10px] font-bold uppercase tracking-wider text-[#111111]">Type</th>
+                    <th className="px-4 py-5 text-center text-[10px] font-bold uppercase tracking-wider text-[#111111]">Stock</th>
+                    <th className="px-4 py-5 text-[10px] font-bold uppercase tracking-wider text-[#111111]">Price</th>
+                    <th className="px-4 py-5 text-right text-[10px] font-bold uppercase tracking-wider text-[#111111]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -319,7 +319,7 @@ export const InventoryTable: React.FC = () => {
                                 <ChevronDown size={17} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
                               </button>
                               <div className="min-w-0">
-                                <span className="text-[16px] font-black text-[#111111]">{item.name}</span>
+                                <span className="text-sm font-black text-[#111111]">{item.name}</span>
                                 {item.variant_name ? (
                                   <span className="ml-2 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-black text-[#374151]">Size: {item.variant_name}</span>
                                 ) : (
@@ -340,9 +340,9 @@ export const InventoryTable: React.FC = () => {
                               {isService ? 'Service' : 'Product'}
                             </span>
                           </td>
-                          <td className={`px-4 py-4 text-center text-[17px] font-black tabular-nums ${stockTone}`}>{isService ? '—' : item.stock}</td>
+                          <td className={`px-4 py-4 text-center text-sm font-black tabular-nums ${stockTone}`}>{isService ? '—' : item.stock}</td>
                           <td className="px-4 py-4">
-                            <button type="button" onClick={() => setPriceModalItem(item)} title="Quick edit price" className="text-[17px] font-black tabular-nums text-[#111111] hover:underline cursor-pointer">
+                            <button type="button" onClick={() => setPriceModalItem(item)} title="Quick edit price" className="text-sm font-black tabular-nums text-[#111111] hover:underline cursor-pointer">
                               {formatCurrency(item.price)}
                             </button>
                           </td>
@@ -384,7 +384,7 @@ export const InventoryTable: React.FC = () => {
                         </tr>
                         {open && (
                           <tr className="border-b border-gray-100 bg-gray-50/70">
-                            <td colSpan={6} className="px-6 py-5">
+                            <td colSpan={6} className="px-4 py-3.5">
                               <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-[13px] sm:grid-cols-3 lg:grid-cols-6">
                                 {[
                                   ['Category', item.category || 'General'],

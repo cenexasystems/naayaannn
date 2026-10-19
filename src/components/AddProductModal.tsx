@@ -28,9 +28,9 @@ const emptyForm = {
   active: true,
 }
 
-const label = 'mb-2 block text-[12.5px] font-black uppercase tracking-[0.1em] text-[#374151]'
+const label = 'mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-[#374151]'
 const input =
-  'h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-[15px] font-semibold text-[#111111] placeholder:font-medium placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15'
+  'h-10 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-[#111111] placeholder:font-medium placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15'
 const help = 'mt-1.5 text-[11.5px] font-medium leading-snug text-gray-400'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -173,7 +173,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
       type="button"
       onClick={() => setItemType(type)}
       aria-pressed={itemType === type}
-      className={`inline-flex h-[52px] items-center justify-center gap-3 rounded-2xl border text-[15px] font-black uppercase tracking-[0.12em] transition-colors ${
+      className={`inline-flex h-9 items-center justify-center gap-3 rounded-2xl border text-[11px] font-black uppercase tracking-[0.12em] transition-colors ${
         itemType === type ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#374151] hover:bg-gray-50'
       }`}
     >
@@ -191,9 +191,9 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
         className="flex max-h-[94dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-[26px] bg-white shadow-2xl"
       >
         <div className="flex items-center gap-4 border-b border-gray-200 px-7 py-5">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary"><PackagePlus size={24} strokeWidth={1.75} /></span>
+          <span className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary"><PackagePlus size={24} strokeWidth={1.75} /></span>
           <div className="min-w-0 flex-1">
-            <h2 id="add-item-title" className="text-[19px] font-black text-[#111111]">{isService ? 'Add New Service' : 'Add New Product'}</h2>
+            <h2 id="add-item-title" className="text-base font-black tracking-tight text-[#111111]">{isService ? 'Add New Service' : 'Add New Product'}</h2>
             <p className="text-[13px] font-medium text-gray-500">{isService ? 'Register a chargeable service' : 'Set pricing, stock and category for this item'}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-500 hover:text-[#111111]"><X size={20} /></button>
@@ -272,16 +272,16 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
           </div>
 
           <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
-            <p className="mb-4 flex items-center gap-2 text-[12.5px] font-black uppercase tracking-[0.1em] text-amber-800">
+            <p className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-amber-800">
               <Tag size={16} strokeWidth={1.75} /> {isService ? 'Service offer' : 'Product special offer'} (automatic on billing)
             </p>
             <div className="grid grid-cols-2 gap-4">
               <label className="block">
-                <span className="mb-2 block text-[12.5px] font-black uppercase tracking-[0.1em] text-amber-800">Offer discount (%)</span>
+                <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-amber-800">Offer discount (%)</span>
                 <input className={`${input} !border-amber-200`} value={form.offerPercent} onChange={(e) => setOfferPercent(e.target.value)} inputMode="decimal" placeholder="e.g. 10" />
               </label>
               <label className="block">
-                <span className="mb-2 block text-[12.5px] font-black uppercase tracking-[0.1em] text-amber-800">Discounted offer price (₹)</span>
+                <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-amber-800">Discounted offer price (₹)</span>
                 <input className={`${input} !border-amber-200`} value={form.offerPrice} onChange={(e) => setOfferPrice(e.target.value)} inputMode="decimal" placeholder="Offer Price" />
               </label>
             </div>
@@ -290,7 +290,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
             </p>
           </div>
 
-          <label className="flex items-center gap-3 rounded-2xl border border-gray-200 px-5 py-4 text-[14.5px] font-bold text-[#374151]">
+          <label className="flex items-center gap-3 rounded-2xl border border-gray-200 px-5 py-4 text-sm font-bold text-[#374151]">
             <input type="checkbox" checked={form.active} onChange={(e) => setForm(f => ({ ...f, active: e.target.checked }))} className="h-5 w-5 rounded accent-[rgb(var(--primary))]" />
             Active (visible in Billing Panel)
           </label>
@@ -302,7 +302,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess, initialTyp
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex h-[54px] w-full items-center justify-center gap-3 rounded-2xl bg-primary text-[15px] font-black uppercase tracking-[0.14em] text-primary-ink shadow-md hover:bg-primary-hover disabled:opacity-60"
+            className="inline-flex h-9 w-full items-center justify-center gap-3 rounded-2xl bg-primary text-[11px] font-black uppercase tracking-[0.14em] text-primary-ink shadow-md hover:bg-primary-hover disabled:opacity-60"
           >
             <PackagePlus size={19} strokeWidth={1.75} />
             {loading ? 'Saving…' : isService ? 'Save Service' : 'Save Product to Catalog'}

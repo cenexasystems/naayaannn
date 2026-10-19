@@ -49,12 +49,12 @@ const toDisplayDate = (key: string) => (key ? key.split('-').reverse().join('-')
 const timeOf = (iso: string | null) =>
   iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'
 
-const card = 'rounded-[22px] border border-gray-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]'
-const th = 'px-6 py-4 text-left text-[12px] font-black uppercase tracking-wider text-[#111111]'
-const input = 'h-11 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-[14px] font-semibold text-[#111111] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15'
+const card = 'rounded-xl border border-gray-200 bg-white shadow-sm'
+const th = 'px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#111111]'
+const input = 'h-9 w-full rounded-xl border border-gray-200 bg-white px-3.5 text-[14px] font-semibold text-[#111111] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15'
 
 const Avatar: React.FC<{ name: string }> = ({ name }) => (
-  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary-200 bg-primary-50 text-[13px] font-black text-primary">
+  <span className="flex h-9 w-11 shrink-0 items-center justify-center rounded-full border border-primary-200 bg-primary-50 text-[13px] font-black text-primary">
     {(name.trim()[0] || '?').toUpperCase()}
   </span>
 )
@@ -122,11 +122,11 @@ const TodayTab: React.FC<{ staff: Staff[] }> = ({ staff }) => {
 
   return (
     <div className="space-y-6">
-      <div className={`${card} flex flex-col gap-5 px-6 py-5 sm:flex-row sm:items-center sm:justify-between`}>
+      <div className={`${card} flex flex-col gap-5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between`}>
         <div className="flex items-center gap-4">
-          <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-50 text-primary"><CalendarDays size={24} /></span>
+          <span className="flex h-10 w-14 items-center justify-center rounded-xl bg-primary-50 text-primary"><CalendarDays size={24} /></span>
           <div>
-            <p className="text-[12px] font-black uppercase tracking-widest text-gray-500">Select date</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Select date</p>
             <input
               type="date"
               value={date}
@@ -144,7 +144,7 @@ const TodayTab: React.FC<{ staff: Staff[] }> = ({ staff }) => {
             { label: 'Leave/Half', value: count('leave') + count('half_day'), cls: 'text-orange-500' },
           ].map((k) => (
             <div key={k.label}>
-              <p className="text-[12px] font-black uppercase tracking-widest text-gray-500">{k.label}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{k.label}</p>
               <p className={`text-[28px] font-black leading-tight ${k.cls}`}>{k.value}</p>
             </div>
           ))}
@@ -173,13 +173,13 @@ const TodayTab: React.FC<{ staff: Staff[] }> = ({ staff }) => {
               return (
                 <tr key={p.id} className="border-b border-gray-100 last:border-0">
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-4"><Avatar name={p.name} /><span className="text-[16px] font-black text-[#111111]">{p.name}</span></div>
+                    <div className="flex items-center gap-4"><Avatar name={p.name} /><span className="text-sm font-black text-[#111111]">{p.name}</span></div>
                   </td>
-                  <td className="px-6 py-4 text-[15px] font-medium text-gray-600">{p.role}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-600">{p.role}</td>
                   <td className="px-6 py-4 text-[14px] font-bold text-[#111111]">{timeOf(r?.clock_in ?? null)}</td>
                   <td className="px-6 py-4 text-[14px] font-bold text-[#111111]">
                     {r?.clock_out ? timeOf(r.clock_out) : r?.clock_in && date === todayKey() ? (
-                      <button type="button" disabled={busy === p.id} onClick={() => void clockOut(p)} className="rounded-lg border border-red-200 px-3 py-1.5 text-[12px] font-black uppercase text-[#DC2626] hover:bg-red-50">
+                      <button type="button" disabled={busy === p.id} onClick={() => void clockOut(p)} className="rounded-lg border border-red-200 px-3 py-1.5 text-[10px] font-bold uppercase text-[#DC2626] hover:bg-red-50">
                         Clock out
                       </button>
                     ) : '—'}
@@ -192,7 +192,7 @@ const TodayTab: React.FC<{ staff: Staff[] }> = ({ staff }) => {
                           type="button"
                           disabled={busy === p.id}
                           onClick={() => void mark(p, s)}
-                          className={`rounded-lg border px-3.5 py-2 text-[12px] font-black uppercase tracking-wide transition-colors disabled:opacity-60 ${
+                          className={`rounded-lg border px-3.5 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors disabled:opacity-60 ${
                             r?.status === s ? STATUS_ACTIVE[s] : 'border-gray-200 bg-white text-[#374151] hover:bg-gray-50'
                           }`}
                         >
@@ -244,27 +244,27 @@ const ReportTab: React.FC<{ staff: Staff[] }> = ({ staff }) => {
     void downloadCsv(`${BRAND_EN.replace(/\s+/g, '')}_Attendance_${applied.from}_to_${applied.to}.csv`, [header.join(','), ...lines].join('\n'))
   }
 
-  const field = 'flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 h-12'
+  const field = 'flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 h-10'
   return (
     <div className="space-y-5">
       <div className={`${card} flex flex-wrap items-center gap-3 px-5 py-4`}>
         <label className={field}>
           <CalendarDays size={16} className="text-gray-400" />
-          <span className="text-[12px] font-black uppercase tracking-widest text-gray-400">Month:</span>
-          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="bg-transparent text-[15px] font-bold text-[#111111] outline-none" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Month:</span>
+          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="bg-transparent text-sm font-bold text-[#111111] outline-none" />
         </label>
         <label className={field}>
-          <span className="text-[12px] font-black uppercase tracking-widest text-gray-400">From</span>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-transparent text-[15px] font-bold text-[#111111] outline-none" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">From</span>
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="bg-transparent text-sm font-bold text-[#111111] outline-none" />
         </label>
         <label className={field}>
-          <span className="text-[12px] font-black uppercase tracking-widest text-gray-400">To</span>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-transparent text-[15px] font-bold text-[#111111] outline-none" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">To</span>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="bg-transparent text-sm font-bold text-[#111111] outline-none" />
         </label>
         <div className="ml-auto flex flex-wrap gap-2.5">
-          <button type="button" onClick={apply} className="h-11 rounded-xl bg-primary px-5 text-[14px] font-black text-primary-ink hover:bg-primary-hover">Apply Filter</button>
-          <button type="button" onClick={reset} className="h-11 rounded-xl border border-gray-200 px-5 text-[14px] font-black text-[#111111] hover:bg-gray-50">Reset</button>
-          <button type="button" onClick={exportCsv} className="inline-flex h-11 items-center gap-2 rounded-xl border-2 border-primary px-5 text-[14px] font-black text-[#111111] hover:bg-primary-50">
+          <button type="button" onClick={apply} className="h-9 rounded-xl bg-primary px-5 text-[14px] font-black text-primary-ink hover:bg-primary-hover">Apply Filter</button>
+          <button type="button" onClick={reset} className="h-9 rounded-xl border border-gray-200 px-5 text-[14px] font-black text-[#111111] hover:bg-gray-50">Reset</button>
+          <button type="button" onClick={exportCsv} className="inline-flex h-9 items-center gap-2 rounded-xl border-2 border-primary px-5 text-[14px] font-black text-[#111111] hover:bg-primary-50">
             <Download size={16} /> Export to Excel
           </button>
         </div>
@@ -295,12 +295,12 @@ const ReportTab: React.FC<{ staff: Staff[] }> = ({ staff }) => {
             {report.length === 0 && <tr><td colSpan={6} className="px-6 py-10 text-center text-[14px] font-semibold text-gray-400">No staff yet.</td></tr>}
             {report.map((r) => (
               <tr key={r.id} className="border-b border-gray-100 last:border-0">
-                <td className="px-6 py-4"><div className="flex items-center gap-4"><Avatar name={r.name} /><span className="text-[16px] font-black text-[#111111]">{r.name}</span></div></td>
-                <td className="px-6 py-4 text-[15px] font-medium text-gray-600">{r.role}</td>
-                <td className="px-6 py-4 text-center text-[20px] font-black text-emerald-700">{r.present}</td>
-                <td className="px-6 py-4 text-center text-[20px] font-black text-orange-500">{r.half_day}</td>
-                <td className="px-6 py-4 text-center text-[20px] font-black text-[#DC2626]">{r.absent}</td>
-                <td className="px-6 py-4 text-center text-[20px] font-black text-blue-600">{r.leave}</td>
+                <td className="px-6 py-4"><div className="flex items-center gap-4"><Avatar name={r.name} /><span className="text-sm font-black text-[#111111]">{r.name}</span></div></td>
+                <td className="px-6 py-4 text-sm font-semibold text-gray-600">{r.role}</td>
+                <td className="px-6 py-4 text-center text-base font-black text-emerald-700">{r.present}</td>
+                <td className="px-6 py-4 text-center text-base font-black text-orange-500">{r.half_day}</td>
+                <td className="px-6 py-4 text-center text-base font-black text-[#DC2626]">{r.absent}</td>
+                <td className="px-6 py-4 text-center text-base font-black text-blue-600">{r.leave}</td>
               </tr>
             ))}
           </tbody>
@@ -364,7 +364,7 @@ const StaffTab: React.FC<{ staff: Staff[]; reload: () => Promise<void> }> = ({ s
   return (
     <div className="space-y-5">
       <div className="flex justify-end">
-        <button type="button" onClick={openNew} className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 text-[16px] font-black text-primary-ink shadow-md hover:bg-primary-hover">
+        <button type="button" onClick={openNew} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-6 text-sm font-black text-primary-ink shadow-md hover:bg-primary-hover">
           <Plus size={18} /> Add Staff
         </button>
       </div>
@@ -385,16 +385,16 @@ const StaffTab: React.FC<{ staff: Staff[]; reload: () => Promise<void> }> = ({ s
             {staff.length === 0 && <tr><td colSpan={6} className="px-6 py-10 text-center text-[14px] font-semibold text-gray-400">No staff yet. Click “Add Staff”.</td></tr>}
             {staff.map((s) => (
               <tr key={s.id} className="border-b border-gray-100 last:border-0">
-                <td className="px-6 py-5 text-[16px] font-black text-[#111111]">{s.name}</td>
-                <td className="px-6 py-5 text-[15px] font-medium text-gray-600">{s.role}</td>
-                <td className="px-6 py-5 font-mono text-[14px] text-gray-600">{s.phone || '—'}</td>
-                <td className="px-6 py-5 text-[16px] font-black text-[#111111]">{formatCurrency(Number(s.base_salary) || 0)}</td>
-                <td className="px-6 py-5">
-                  <span className={`rounded-md border px-2.5 py-1 text-[11px] font-black uppercase tracking-widest ${s.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
+                <td className="px-4 py-3.5 text-sm font-black text-[#111111]">{s.name}</td>
+                <td className="px-4 py-3.5 text-sm font-semibold text-gray-600">{s.role}</td>
+                <td className="px-4 py-3.5 font-mono text-[14px] text-gray-600">{s.phone || '—'}</td>
+                <td className="px-4 py-3.5 text-sm font-black text-[#111111]">{formatCurrency(Number(s.base_salary) || 0)}</td>
+                <td className="px-4 py-3.5">
+                  <span className={`rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${s.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
                     {s.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td className="px-6 py-5">
+                <td className="px-4 py-3.5">
                   <div className="flex justify-end gap-2">
                     <button type="button" onClick={() => openEdit(s)} aria-label={`Edit ${s.name}`} className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-[#111111] hover:bg-gray-100"><Pencil size={16} /></button>
                     <button type="button" onClick={() => void remove(s)} aria-label={`Delete ${s.name}`} className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-[#DC2626] hover:bg-red-100"><Trash2 size={16} /></button>
@@ -408,21 +408,21 @@ const StaffTab: React.FC<{ staff: Staff[]; reload: () => Promise<void> }> = ({ s
 
       {open && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false) }}>
-          <form onSubmit={save} className="w-full max-w-md rounded-[22px] bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
-              <h3 className="text-[18px] font-black text-[#111111]">{editing ? 'Edit Staff' : 'Add Staff'}</h3>
+          <form onSubmit={save} className="w-full max-w-md rounded-xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3.5">
+              <h3 className="text-base font-black text-[#111111]">{editing ? 'Edit Staff' : 'Add Staff'}</h3>
               <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:text-[#111111]"><X size={18} /></button>
             </div>
-            <div className="space-y-4 px-6 py-5">
-              <label className="block"><span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-gray-600">Name *</span>
+            <div className="space-y-4 px-4 py-3.5">
+              <label className="block"><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-600">Name *</span>
                 <input className={input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus maxLength={60} /></label>
               <div className="grid grid-cols-2 gap-3">
-                <label className="block"><span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-gray-600">Role</span>
+                <label className="block"><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-600">Role</span>
                   <input className={input} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} maxLength={40} /></label>
-                <label className="block"><span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-gray-600">Phone</span>
+                <label className="block"><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-600">Phone</span>
                   <input className={input} value={form.phone} inputMode="tel" onChange={(e) => setForm({ ...form, phone: e.target.value })} maxLength={15} /></label>
               </div>
-              <label className="block"><span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-gray-600">Base salary (₹ / month)</span>
+              <label className="block"><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-gray-600">Base salary (₹ / month)</span>
                 <input className={input} value={form.base_salary} inputMode="decimal" onChange={(e) => setForm({ ...form, base_salary: e.target.value })} placeholder="0.00" /></label>
               <label className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-[14px] font-bold text-[#111111]">
                 <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="h-5 w-5 accent-[rgb(var(--primary))]" />
@@ -431,8 +431,8 @@ const StaffTab: React.FC<{ staff: Staff[]; reload: () => Promise<void> }> = ({ s
               {error && <p className="text-[13px] font-bold text-[#B91C1C]">{error}</p>}
             </div>
             <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
-              <button type="button" onClick={() => setOpen(false)} className="h-11 rounded-xl px-5 text-[14px] font-bold text-[#374151] hover:bg-gray-100">Cancel</button>
-              <button type="submit" disabled={saving} className="h-11 rounded-xl bg-primary px-6 text-[14px] font-black text-primary-ink hover:bg-primary-hover disabled:opacity-60">{saving ? 'Saving…' : 'Save Staff'}</button>
+              <button type="button" onClick={() => setOpen(false)} className="h-9 rounded-xl px-5 text-[14px] font-bold text-[#374151] hover:bg-gray-100">Cancel</button>
+              <button type="submit" disabled={saving} className="h-9 rounded-xl bg-primary px-6 text-[14px] font-black text-primary-ink hover:bg-primary-hover disabled:opacity-60">{saving ? 'Saving…' : 'Save Staff'}</button>
             </div>
           </form>
         </div>
@@ -467,15 +467,15 @@ export const AttendanceView: React.FC = () => {
   }, [applyStaff])
 
   return (
-    <div className="space-y-7">
-      <h2 className="border-l-[6px] border-primary pl-5 text-[32px] sm:text-[36px] font-black leading-tight tracking-tight text-[#111111]">Attendance &amp; Staff</h2>
+    <div className="space-y-6">
+      <h2 className="border-l-[6px] border-primary pl-5 text-[28px] font-black leading-tight tracking-tight text-[#111111]">Attendance &amp; Staff</h2>
       <div className="flex flex-wrap gap-2.5">
         {([['today', "Today's Attendance"], ['report', 'Monthly Report'], ['staff', 'Staff Management']] as const).map(([id, label]) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`h-[52px] rounded-xl border px-6 text-[17px] font-black transition-colors ${tab === id ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#111111] hover:bg-gray-50'}`}
+            className={`h-9 rounded-xl border px-6 text-sm font-black transition-colors ${tab === id ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#111111] hover:bg-gray-50'}`}
           >
             {label}
           </button>
