@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { CalendarDays, CheckCircle2, Clock3, Download, Eye, FileText, MessageCircle, PackageCheck, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Check } from 'lucide-react'
+import { Download, Eye, FileText, MessageCircle, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Check } from 'lucide-react'
 import { formatCurrency } from '../lib/retail'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
@@ -293,14 +293,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     { label: 'Completed Deposits', value: String(analytics.completed), icon: <Check size={22} strokeWidth={2} />, tile: 'bg-emerald-100 text-emerald-600' },
   ]
   const periods: Array<[DateFilter, string]> = [['all', 'All Time'], ['today', 'Today'], ['week', 'This Week'], ['month', 'This Month'], ['year', 'This Year']]
-  const statusPill = (status: AdvanceStatus) => ({
-    pending_deposit: 'border-amber-200 bg-amber-50 text-amber-700',
-    waiting_final_payment: 'border-amber-200 bg-amber-50 text-amber-700',
-    ready_for_delivery: 'border-blue-200 bg-blue-50 text-blue-700',
-    completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    cancelled: 'border-red-200 bg-red-50 text-red-700',
-  })[status]
-  const iconBtn = 'flex h-9 w-11 shrink-0 items-center justify-center rounded-xl transition-colors cursor-pointer'
+  const iconBtn = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors cursor-pointer'
 
   return <div className="space-y-6">
     {preview && (() => {
@@ -386,13 +379,13 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
 
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] text-left">
+        <table className="w-full min-w-[960px] text-left">
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr>
               {['Deposit ID', 'Customer', 'Product', 'Total / Paid / Balance', 'Delivery', 'Status'].map(h => (
-                <th key={h} className="whitespace-nowrap px-4 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#111111]">{h}</th>
+                <th key={h} className="whitespace-nowrap px-4 py-3.5 text-[10px] font-black uppercase tracking-wider text-primary">{h}</th>
               ))}
-              <th className="whitespace-nowrap px-4 py-3.5 text-right text-[10px] font-bold uppercase tracking-wider text-[#111111]">Actions</th>
+              <th className="whitespace-nowrap px-4 py-3.5 text-right text-[10px] font-black uppercase tracking-wider text-primary">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -404,77 +397,78 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
               filtered.map(order => {
                 const finalised = order.status === 'completed' || order.status === 'cancelled' || !!order.invoice_number || !!order.completed_order_id
                 const firstProduct = productRows(order)[0]
+                const ready = order.status === 'ready_for_delivery'
+                const pillText = order.status === 'completed' ? 'Completed' : order.status === 'cancelled' ? 'Cancelled' : ready ? 'Ready' : 'Pending'
+                const pillTone = order.status === 'completed' ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : order.status === 'cancelled' ? 'border-red-200 bg-red-50 text-red-700'
+                  : ready ? 'border-blue-200 bg-blue-50 text-blue-700'
+                  : 'border-amber-200 bg-amber-50 text-amber-800'
                 return (
-                <tr key={order.id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/60">
-                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
-                    <p className="font-mono text-[13px] font-bold text-[#111111]">{order.deposit_id}</p>
-                    <p className="text-[11.5px] font-bold text-gray-600">{new Date(order.created_at).toLocaleDateString('en-IN')}</p>
+                <tr key={order.id} className="border-b border-gray-100 last:border-0">
+                  <td className="whitespace-nowrap px-4 py-4 align-middle">
+                    <p className="font-mono text-[12.5px] font-bold text-[#111111]">{order.deposit_id}</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-primary">{new Date(order.created_at).toLocaleDateString('en-US')}</p>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
-                    <p className="text-sm font-black text-[#111111]">{order.customer_name}</p>
-                    <p className="text-[12.5px] text-gray-600">{formatPhoneDisplay(order.phone)}</p>
+                  <td className="whitespace-nowrap px-4 py-4 align-middle">
+                    <p className="text-[14px] font-black text-[#111111]">{order.customer_name}</p>
+                    <p className="text-[11px] font-medium text-gray-600">{order.phone}</p>
                   </td>
-                  <td className="max-w-[240px] px-4 py-3.5 align-middle">
-                    <p className="truncate text-[14px] font-black text-[#111111]">{Number(firstProduct?.quantity || 1)}× {order.product_name}</p>
-                    {order.category && <p className="truncate text-[12px] text-gray-500">{order.category}</p>}
+                  <td className="max-w-[220px] px-4 py-4 align-middle">
+                    <p className="truncate text-[12.5px] font-bold text-[#111111]">{/^\s*\d+\s*×/.test(order.product_name) ? order.product_name : `${Number(firstProduct?.quantity || 1)}× ${order.product_name}`}</p>
+                    {order.category && <p className="truncate text-[11px] text-gray-500">{order.category}</p>}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 align-middle text-[13.5px] font-black">
+                  <td className="whitespace-nowrap px-4 py-4 align-middle text-[12px] font-bold leading-snug">
                     <p className="text-[#111111]">Total: {formatCurrency(order.total_amount)}</p>
-                    <p className="text-emerald-600">Paid: {formatCurrency(order.deposit_amount)}</p>
-                    <p className="text-[#DC2626]">Balance: {formatCurrency(order.remaining_balance)}</p>
+                    <p className="text-emerald-600">Paid: {formatCurrency(order.status === 'completed' ? order.total_amount : order.deposit_amount)}</p>
+                    <p className={order.status === 'completed' ? 'text-gray-500' : 'text-[#DC2626]'}>Balance: {formatCurrency(order.status === 'completed' ? 0 : order.remaining_balance)}</p>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 align-middle text-[14px] font-black text-[#111111]">
-                    {order.expected_delivery_date ? new Date(`${order.expected_delivery_date}T00:00:00`).toLocaleDateString('en-IN') : '—'}
+                  <td className="whitespace-nowrap px-4 py-4 align-middle text-[12px] font-bold text-primary">
+                    {order.expected_delivery_date ? new Date(`${order.expected_delivery_date}T00:00:00`).toLocaleDateString('en-US') : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
-                    {finalised ? (
-                      <span className={`inline-block rounded-md border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest ${statusPill(order.status)}`}>{STATUS_LABELS[order.status]}</span>
-                    ) : (
-                      <select
-                        value={order.status}
-                        aria-label={`Status of ${order.deposit_id}`}
-                        onChange={e => void changeStatus(order, e.target.value as AdvanceStatus)}
-                        className={`rounded-md border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide outline-none cursor-pointer ${statusPill(order.status)}`}
+                  <td className="whitespace-nowrap px-4 py-4 align-middle">
+                    <span className={`inline-block rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${pillTone}`}>{pillText}</span>
+                    {!finalised && (
+                      <button
+                        type="button"
+                        onClick={() => void changeStatus(order, ready ? 'waiting_final_payment' : 'ready_for_delivery')}
+                        className="mt-1 block text-[9.5px] font-black uppercase tracking-wider text-blue-600 hover:underline"
                       >
-                        <option value="pending_deposit">Pending Deposit</option>
-                        <option value="waiting_final_payment">Waiting for Final Payment</option>
-                        <option value="ready_for_delivery">Ready to Collect</option>
-                        <option value="completed">Completed (receive payment)</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                        {ready ? 'Mark as pending' : 'Mark as ready'}
+                      </button>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 align-middle">
-                    <div className="flex items-center justify-end gap-2.5">
-                      {!finalised && ['pending_deposit', 'waiting_final_payment', 'ready_for_delivery'].includes(order.status) && (
-                        <button type="button" onClick={() => setPaymentOrder(order)} title="Receive Remaining Balance"
-                          className="h-9 rounded-xl bg-emerald-600 px-3.5 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-emerald-700">
-                          Receive Balance
-                        </button>
-                      )}
+                  <td className="whitespace-nowrap px-4 py-4 align-middle">
+                    <div className="flex items-center justify-end gap-2">
                       <button type="button" onClick={() => order.status === 'completed' ? whatsappInvoice(order) : whatsappDepositReceipt(order)}
                         className={`${iconBtn} bg-emerald-50 text-emerald-600 hover:bg-emerald-100`}
                         title={order.status === 'completed' ? 'Share Final Invoice via WhatsApp' : 'Share Advance Receipt via WhatsApp'} aria-label="Share on WhatsApp">
-                        <MessageCircle size={19} strokeWidth={1.75} />
+                        <MessageCircle size={17} strokeWidth={2} />
                       </button>
                       <button type="button" onClick={() => void openPreview(order)}
-                        className={`${iconBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`}
+                        className={`${iconBtn} bg-primary-50 text-primary hover:bg-primary-100`}
                         title={order.status === 'completed' ? 'View Invoice' : 'View Advance Receipt'} aria-label={order.status === 'completed' ? 'View invoice' : 'View advance receipt'}>
-                        <FileText size={19} strokeWidth={1.75} />
-                      </button>
-                      <button type="button" onClick={() => void printDocument(order)}
-                        className={`${iconBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`}
-                        title={order.status === 'completed' ? 'Print Final Receipt' : 'Print Advance Receipt'} aria-label="Print">
-                        <Printer size={19} strokeWidth={1.75} />
+                        <FileText size={17} strokeWidth={2} />
                       </button>
                       <button type="button" onClick={() => void openDetails(order)}
                         className={`${iconBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`} title="View Details" aria-label="View details">
-                        <Eye size={19} strokeWidth={1.75} />
+                        <Eye size={17} strokeWidth={2} />
                       </button>
+                      {!finalised && (
+                        <button type="button" onClick={() => setPaymentOrder(order)}
+                          className={`${iconBtn} bg-emerald-50 text-emerald-600 hover:bg-emerald-100`} title="Receive Remaining Balance" aria-label="Receive remaining balance">
+                          <IndianRupee size={17} strokeWidth={2} />
+                        </button>
+                      )}
+                      {!finalised && (
+                        <button type="button" onClick={() => { if (window.confirm(`Cancel advance order ${order.deposit_id}?`)) void changeStatus(order, 'cancelled') }}
+                          className={`${iconBtn} bg-amber-50 text-amber-600 hover:bg-amber-100`} title="Cancel Order" aria-label="Cancel order">
+                          <X size={17} strokeWidth={2} />
+                        </button>
+                      )}
                       {role !== 'staff' && (
                         <button type="button" onClick={() => void handleDeleteOrder(order.id, order.customer_name)}
                           className={`${iconBtn} bg-red-50 text-[#DC2626] hover:bg-red-100`} title="Delete Order" aria-label="Delete order">
-                          <Trash2 size={19} strokeWidth={1.75} />
+                          <Trash2 size={17} strokeWidth={2} />
                         </button>
                       )}
                     </div>
