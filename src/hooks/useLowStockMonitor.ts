@@ -16,6 +16,7 @@ export function useLowStockMonitor(enabled: boolean = true, role?: string | null
         .from('products')
         .select('id, name, stock_quantity, low_stock_alert, barcode, has_variants, category, category_id')
         .eq('is_active', true)
+        .neq('item_type', 'service')
         .eq('has_variants', false)
 
       if (prodErr) {

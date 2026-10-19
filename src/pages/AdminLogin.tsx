@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Lock, Eye, EyeOff, AlertCircle, User, ChevronRight } from 'lucide-react'
+import { Lock, Eye, EyeOff, AlertCircle, ChevronRight } from 'lucide-react'
 import { useAdminAuthStore } from '../store/store'
 import { BRAND_EN, BRAND_TAGLINE, BRAND_LOGO } from '../lib/brand'
 import { useLangStore } from '../store/langStore'
@@ -19,7 +19,6 @@ export default function AdminLogin() {
   const l = (en: string, ta: string) => lang === 'ta' ? ta : en
   const login = useAdminAuthStore((state) => state.login)
 
-  const [portalId, setPortalId] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -33,7 +32,7 @@ export default function AdminLogin() {
     void alarmSound.unlock()
     setError('')
     setLoading(true)
-    const role = await login(portalId.trim(), password)
+    const role = await login('', password)
     setLoading(false)
     if (role === 'admin') {
       const destination = from === '/pos' ? '/dashboard' : from
@@ -41,7 +40,7 @@ export default function AdminLogin() {
     } else if (role === 'staff') {
       navigate('/dashboard', { replace: true })
     } else {
-      setError(l('Invalid Admin or Staff credentials', 'தவறான நிர்வாகி அல்லது பணியாளர் விவரங்கள்'))
+      setError(l('Incorrect passcode', 'தவறான கடவுச்சொல்'))
     }
   }
 
@@ -75,27 +74,6 @@ export default function AdminLogin() {
 
           <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
             <div>
-              <label htmlFor="admin-portal-id" className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-[0.18em] text-primary">
-                {l('Portal ID', 'நுழைவு அடையாளம்')}
-              </label>
-              <div className={fieldWrap}>
-                <User size={17} className="shrink-0 text-primary" />
-                <input
-                  id="admin-portal-id"
-                  name="portalId"
-                  type="text"
-                  autoComplete="username"
-                  placeholder={l('Enter portal ID', 'அடையாளத்தை உள்ளிடவும்')}
-                  className={fieldInput}
-                  value={portalId}
-                  onChange={(e) => { setPortalId(e.target.value); setError('') }}
-                  disabled={loading}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
               <label htmlFor="admin-portal-password" className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-[0.18em] text-primary">
                 {l('Security Passcode', 'பாதுகாப்பு கடவுச்சொல்')}
               </label>
@@ -106,6 +84,7 @@ export default function AdminLogin() {
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
+                  autoFocus
                   placeholder="••••••••"
                   className={`${fieldInput} ${showPassword ? '' : 'tracking-[0.3em]'}`}
                   value={password}

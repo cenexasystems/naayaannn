@@ -4,7 +4,7 @@ import {
   Box, AlertCircle, ArrowUp, ArrowDown, Power, Download, TrendingUp, TrendingDown,
   Package, Search, RefreshCw, ShieldCheck, ShieldOff, Trophy,
   MessageCircle, ChevronDown, Eye, FileText, Printer, MoreVertical, X, Layers, Receipt,
-  SlidersHorizontal, Tag, Ticket, Percent, CheckCircle2, Info, Sparkles, Banknote, QrCode, CreditCard, Gift, Settings as SettingsIcon, LogOut, Clock, History, Boxes, ChartNoAxesColumn, Wallet, TicketPercent, Settings2,
+  SlidersHorizontal, Tag, Ticket, Percent, CheckCircle2, Info, Sparkles, Banknote, QrCode, CreditCard, Gift, Settings as SettingsIcon, LogOut, Clock, History, UserCheck, Boxes, ChartNoAxesColumn, Wallet, TicketPercent, Settings2,
 } from 'lucide-react'
 import { paymentBreakdown, formatPaymentLabel } from '../lib/payments'
 
@@ -58,6 +58,7 @@ import { CategoryManagerView } from '../components/inventory/CategoryManagerView
 import { ExpensesView } from '../components/expenses/ExpensesView'
 import { BirthdaysView } from '../components/birthdays/BirthdaysView'
 import { ShopSettingsView } from '../components/settings/ShopSettingsView'
+import { AttendanceView } from '../components/attendance/AttendanceView'
 import { expenseService, type ExpenseRecord } from '../services/expenseService'
 import { useNavigationStore } from '../store/navigationStore'
 import { useAlarmStore } from '../store/alarmStore'
@@ -96,7 +97,7 @@ type DashboardCoupon = {
   usage_count: number
   min_order_value: number
 }
-type TabKey = 'overview' | 'whatsapp' | 'pos_analytics' | 'billing' | 'advance_orders' | 'inventory' | 'expenses' | 'birthdays' | 'products' | 'categories' | 'coupons' | 'users' | 'history' | 'settings'
+type TabKey = 'overview' | 'whatsapp' | 'pos_analytics' | 'billing' | 'advance_orders' | 'inventory' | 'expenses' | 'birthdays' | 'products' | 'categories' | 'coupons' | 'users' | 'history' | 'settings' | 'attendance'
 type PosAnalyticsTab = 'revenue' | 'today' | 'products' | 'categories' | 'coupons'
 type ProfileUser = { id: string; email: string; name: string; mobile: string; role: string; created_at: string }
 
@@ -296,7 +297,7 @@ export default function Dashboard() {
   const [search, setSearch] = useState({ invoiceNo: '', phone: '', customerName: '', dateFrom: '', dateTo: '' })
   const [todayBillsSearch, setTodayBillsSearch] = useState('')
   const [productAnalyticsSearch, setProductAnalyticsSearch] = useState('')
-  const [datePreset, setDatePreset] = useState<'today' | 'week' | 'month' | 'custom' | ''>('')
+  const [datePreset, setDatePreset] = useState<'today' | 'week' | 'month' | 'year' | 'custom' | ''>('')
   const [historyQuickSearch, setHistoryQuickSearch] = useState('')
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const [searchResults, setSearchResults] = useState<DashboardOrder[]>([])
@@ -367,8 +368,8 @@ export default function Dashboard() {
       navigate('/dashboard?tab=advance_orders', { replace: true })
     } else if (tabKey === 'inventory') {
       navigate('/dashboard?tab=inventory', { replace: true })
-    } else if (tabKey === 'settings') {
-      navigate('/dashboard?tab=settings', { replace: true })
+    } else if (tabKey === 'settings' || tabKey === 'attendance') {
+      navigate(`/dashboard?tab=${tabKey}`, { replace: true })
     } else {
       navigate('/dashboard', { replace: true })
     }
@@ -1356,7 +1357,7 @@ export default function Dashboard() {
     }
   }
 
-  const applyDatePreset = (preset: 'today' | 'week' | 'month' | 'custom') => {
+  const applyDatePreset = (preset: 'today' | 'week' | 'month' | 'year' | 'custom') => {
     setDatePreset(preset)
     if (preset === 'custom') {
       setSearch(s => ({ ...s, dateFrom: '', dateTo: '' }))
@@ -1378,6 +1379,9 @@ export default function Dashboard() {
     } else if (preset === 'month') {
       from = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
       to = toLocalDateKey(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+    } else if (preset === 'year') {
+      from = `${today.getFullYear()}-01-01`
+      to = `${today.getFullYear()}-12-31`
     }
 
     setSearch(s => ({ ...s, dateFrom: from, dateTo: to }))
@@ -1889,6 +1893,7 @@ export default function Dashboard() {
         { id: 'inventory',      icon: <Boxes size={21} strokeWidth={1.75} />,             label: 'Inventory', badge: lowStockCount },
         { id: 'pos_analytics',  icon: <ChartNoAxesColumn size={21} strokeWidth={1.75} />, label: 'Analytics Dashboard' },
         { id: 'expenses',       icon: <Wallet size={21} strokeWidth={1.75} />,            label: 'Expense Tracker' },
+        { id: 'attendance',     icon: <UserCheck size={21} strokeWidth={1.75} />,         label: 'Attendance' },
         { id: 'birthdays',      icon: <Gift size={21} strokeWidth={1.75} />,              label: 'Birthdays' },
         { id: 'coupons',        icon: <TicketPercent size={21} strokeWidth={1.75} />,     label: 'Coupons' },
         { id: 'settings',       icon: <Settings2 size={21} strokeWidth={1.75} />,         label: 'Settings' },
@@ -1913,10 +1918,7 @@ export default function Dashboard() {
             {!sidebarCollapsed && (
               <div className="flex flex-col min-w-0 gap-0.5">
                 <h1 className="text-[17px] leading-tight font-black text-white break-words">{BRAND_EN}</h1>
-                {BRAND_TAGLINE && <p className="text-[10.5px] leading-snug font-bold text-white/75 break-words">{BRAND_TAGLINE}</p>}
-                <span className="mt-0.5 text-[8.5px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded w-fit bg-white/10 text-white/85 border border-white/20">
-                  {role === 'admin' ? 'ADMIN' : 'STAFF'}
-                </span>
+                {BRAND_TAGLINE && <p className="text-[10.5px] leading-snug font-bold text-white/80 break-words">{BRAND_TAGLINE}</p>}
               </div>
             )}
           </Link>
@@ -2662,57 +2664,50 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 border-b border-[#E7E7E7] pb-4 md:flex-row md:items-center md:justify-between">
-              {/* Sub-tabs enclosed in icon box */}
-              <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#F3F4F6] border border-gray-200/80 overflow-x-auto hide-scrollbar max-w-full">
+            <div className="flex flex-col-reverse gap-5">
+              {/* Sub-tabs */}
+              <div className="flex items-end gap-8 overflow-x-auto hide-scrollbar border-b border-gray-200 xl:flex-1" role="tablist" aria-label="Analytics view">
                 {([
-                  { id: 'revenue' as const,  label: 'Revenue',       icon: <TrendingUp size={15} className="shrink-0" /> },
-                  { id: 'today' as const,    label: "Today's Sales", icon: <Receipt size={15} className="shrink-0" /> },
-                  { id: 'products' as const, label: 'Products',      icon: <Package size={15} className="shrink-0" /> },
-                  { id: 'coupons' as const,  label: 'Coupons',       icon: <Ticket size={15} className="shrink-0" /> },
-                ]).map(({ id, label, icon }) => {
+                  { id: 'revenue' as const,  label: 'Revenue' },
+                  { id: 'today' as const,    label: "Today's Sales" },
+                  { id: 'products' as const, label: 'Products' },
+                  { id: 'coupons' as const,  label: 'Coupons' },
+                ]).map(({ id, label }) => {
                   const isActive = posAnalyticsTab === id
                   return (
                     <button
                       key={id}
                       type="button"
+                      role="tab"
+                      aria-selected={isActive}
                       onClick={() => setPosAnalyticsTab(id as PosAnalyticsTab)}
-                      className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-[13px] font-black tracking-wide transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                        isActive
-                          ? 'bg-white text-[#111111] shadow-sm'
-                          : 'text-[#6B7280] hover:text-[#111111] hover:bg-white/60'
+                      className={`-mb-px shrink-0 whitespace-nowrap border-b-[3px] pb-3.5 pt-1 text-[15px] font-black uppercase tracking-wide transition-colors cursor-pointer ${
+                        isActive ? 'border-primary text-[#111111]' : 'border-transparent text-[#111111]/80 hover:text-[#111111]'
                       }`}
                     >
-                      <span className={isActive ? 'text-[#111111]' : 'text-gray-400'}>
-                        {icon}
-                      </span>
-                      <span>{label}</span>
+                      {label}
                     </button>
                   )
                 })}
               </div>
 
-              {/* Date filter (hidden for Today's Sales) */}
+              {/* Period filter (hidden for Today's Sales) */}
               {posAnalyticsTab !== 'today' && (
-                <div className="flex flex-col gap-3 md:items-end">
-                  <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#F8F8F8] p-2">
-                    <span className="text-[10px] font-bold uppercase text-[#6B7280] ml-1 mr-1">Period:</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+                    <span className="px-3 text-[11px] font-black uppercase tracking-widest text-[#111111]">Period:</span>
                     {(['all', 'today', 'week', 'month', 'year'] as const).map(preset => (
                       <button key={preset} type="button" onClick={() => applyAnalyticsPreset(preset)}
-                        className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase transition-all cursor-pointer ${analyticsDatePreset === preset ? 'bg-primary text-primary-100 shadow-sm' : 'text-[#6B7280] hover:text-[#111111]'}`}>
+                        className={`rounded-xl px-4 py-2 text-[13px] font-black uppercase tracking-wide transition-colors cursor-pointer ${analyticsDatePreset === preset ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>
                         {preset === 'all' ? 'All Time' : preset === 'today' ? 'Today' : preset === 'week' ? 'This Week' : preset === 'month' ? 'This Month' : 'This Year'}
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 w-full">
-                    <div className="flex items-center border border-[#E7E7E7] rounded-xl px-3 py-2 bg-white min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-[#6B7280] mr-2">From:</span>
-                      <input type="date" value={analyticsDateFrom} onChange={e => { setAnalyticsDateFrom(e.target.value); setAnalyticsDatePreset('custom'); }} className="w-full min-w-0 text-[12px] font-semibold text-[#111111] bg-transparent outline-none" />
-                    </div>
-                    <div className="flex items-center border border-[#E7E7E7] rounded-xl px-3 py-2 bg-white min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-[#6B7280] mr-2">To:</span>
-                      <input type="date" value={analyticsDateTo} onChange={e => { setAnalyticsDateTo(e.target.value); setAnalyticsDatePreset('custom'); }} className="w-full min-w-0 text-[12px] font-semibold text-[#111111] bg-transparent outline-none" />
-                    </div>
+                  <div className="inline-flex flex-wrap items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+                    <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">From:</span>
+                      <input type="date" value={analyticsDateFrom} onChange={e => { setAnalyticsDateFrom(e.target.value); setAnalyticsDatePreset('custom') }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
+                    <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">To:</span>
+                      <input type="date" value={analyticsDateTo} onChange={e => { setAnalyticsDateTo(e.target.value); setAnalyticsDatePreset('custom') }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
                   </div>
                 </div>
               )}
@@ -2890,14 +2885,14 @@ export default function Dashboard() {
                       bg: 'bg-gray-50',
                     },
                   ].filter(card => !['Net Profit', 'Net Loss', 'Total Expenses'].includes(card.label)).map((card, index) => (
-                    <div key={index} className="bg-white rounded-card border border-borderLight p-5 sm:p-5 shadow-soft flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div key={index} className="bg-white rounded-[20px] border border-gray-200 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] flex flex-col justify-between hover:shadow-md transition-shadow">
                       <div>
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <p className="text-[11px] font-bold text-[#111111]">{card.label}</p>
-                          <div className={`w-8 h-8 rounded-full ${card.bg} flex items-center justify-center ${card.color} shrink-0`}>{card.icon}</div>
+                        <div className="flex items-start justify-between gap-2 mb-5">
+                          <p className="text-[13.5px] font-black uppercase tracking-wide text-[#111111]">{card.label}</p>
+                          <div className={`w-10 h-10 rounded-full ${card.bg} flex items-center justify-center ${card.color} shrink-0`}>{card.icon}</div>
                         </div>
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <p className={`text-[22px] sm:text-[24px] font-bold leading-tight ${card.valueColor || 'text-[#111111]'}`}>
+                          <p className={`text-[26px] font-black leading-tight ${card.valueColor || 'text-[#111111]'}`}>
                             {card.value}
                           </p>
                           {card.arrow && (
@@ -3441,7 +3436,7 @@ export default function Dashboard() {
 
         {/* ── BILLING PANEL ── */}
         {tab === 'billing' && (
-          <div className="-m-4 sm:-m-6 lg:-m-8">
+          <div>
             <Pos
               isEmbedded
               externalScannedCode={cartItemToInject}
@@ -3452,16 +3447,7 @@ export default function Dashboard() {
 
         {/* ── INVENTORY & BARCODES TAB ── */}
         {tab === 'inventory' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="flex items-center gap-3 text-[30px] sm:text-[34px] font-black leading-tight tracking-tight text-[#111111]">
-                <Boxes size={34} strokeWidth={1.75} className="text-primary" />
-                Inventory
-              </h2>
-              <p className="mt-1 text-[14px] font-medium text-[#374151]">Manage products and categories — add, edit and delete.</p>
-            </div>
-            <InventoryTable />
-          </div>
+          <InventoryTable />
         )}
 
         {tab === 'advance_orders' && (
@@ -3475,266 +3461,93 @@ export default function Dashboard() {
 
         {/* ── ORDER MANAGEMENT ── */}
         {tab === 'history' && (
-          <div className="space-y-4 sm:space-y-6 rounded-[20px] sm:rounded-[28px] border border-[#F3F4F6]/60 bg-[#FAFAFA] p-3 sm:p-6 lg:p-7 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#10B981]">{l('Billing history', 'பில் வரலாறு')}</p>
-                <h2 className="mt-1 text-xl font-black text-[#111111]">{l('Order Management', 'ஆர்டர் மேலாண்மை')} <span className="text-[11px] font-semibold text-[#374151]">({l('POS Bills only', 'POS பில்கள் மட்டுமே')})</span></h2>
+          <div className="space-y-7">
+            <div className="flex flex-col gap-5 min-[1750px]:flex-row min-[1750px]:items-center min-[1750px]:justify-between">
+              <div className="shrink-0">
+                <h2 className="whitespace-nowrap text-[32px] sm:text-[36px] font-black leading-tight tracking-tight text-[#111111]">{l('Order History', 'ஆர்டர் வரலாறு')}</h2>
+                <p className="mt-1 text-[14.5px] font-medium text-[#111111]">{l('Manage and track past invoices', 'கடந்த பில்களை நிர்வகிக்கவும்')}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+                  <span className="px-3 text-[11px] font-black uppercase tracking-widest text-[#111111]">Period:</span>
+                  {([['', 'All Time'], ['today', 'Today'], ['week', 'This Week'], ['month', 'This Month'], ['year', 'This Year']] as const).map(([value, text]) => (
+                    <button
+                      key={text}
+                      type="button"
+                      onClick={() => {
+                        if (!value) {
+                          setDatePreset('')
+                          setSearch(s => ({ ...s, dateFrom: '', dateTo: '' }))
+                          void runSearch(undefined, { dateFrom: '', dateTo: '' })
+                        } else applyDatePreset(value)
+                      }}
+                      className={`rounded-xl px-4 py-2 text-[13px] font-black uppercase tracking-wide transition-colors cursor-pointer ${datePreset === value ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+                <div className="inline-flex flex-wrap items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+                  <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">From:</span>
+                    <input type="date" value={search.dateFrom} onChange={e => { const v = e.target.value; setDatePreset('custom'); setSearch(s => ({ ...s, dateFrom: v })); void runSearch(undefined, { dateFrom: v, dateTo: search.dateTo }) }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
+                  <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">To:</span>
+                    <input type="date" value={search.dateTo} onChange={e => { const v = e.target.value; setDatePreset('custom'); setSearch(s => ({ ...s, dateTo: v })); void runSearch(undefined, { dateFrom: search.dateFrom, dateTo: v }) }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
+                </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (historyQuickSearch.trim() || search.invoiceNo.trim() || search.phone.trim() || search.customerName.trim()) {
-                      void runSearch()
-                    } else {
-                      void loadData()
-                    }
-                  }}
-                  disabled={loading || searchLoading}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#F3F4F6]/80 bg-white px-3.5 py-2 text-[13px] font-bold text-[#111111] shadow-sm hover:bg-[#F9FAFB] transition-colors cursor-pointer disabled:opacity-50"
-                  title="Refresh orders"
+                  onClick={() => exportCSV(filteredSearchResults)}
+                  disabled={filteredSearchResults.length === 0}
+                  className="inline-flex h-12 items-center gap-2 rounded-2xl border-2 border-primary bg-white px-5 text-[15px] font-black uppercase tracking-wide text-[#111111] hover:bg-primary-50 disabled:opacity-40 cursor-pointer"
                 >
-                  <RefreshCw size={14} className={loading || searchLoading ? 'animate-spin text-primary-hover' : ''} />
-                  <span>{l('Refresh', 'புதுப்பி')}</span>
+                  <Download size={18} strokeWidth={2} /> Export CSV
                 </button>
-                <Link to="/pos" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-[13px] font-bold text-white shadow-sm hover:bg-[#1F1F1F]">
-                  <ShoppingCart size={14} /> Open POS
-                </Link>
               </div>
             </div>
-            <div className="rounded-2xl border border-[#F3F4F6]/60 bg-white p-3 sm:p-4 shadow-sm space-y-2.5">
-              {/* Primary compact search & quick filter bar */}
-              <form onSubmit={runSearch} className="space-y-2.5">
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2">
-                  {/* Smart Quick Search + Search Button */}
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="relative flex-1 min-w-0">
-                      <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                      <input
-                        type="text"
-                        className="w-full h-11 pl-9 pr-8 rounded-xl bg-[#F9FAFB] border border-gray-200 text-xs sm:text-[13px] font-semibold text-[#111111] placeholder:text-gray-400 focus:outline-none focus:border-primary-soft focus:ring-1 focus:ring-primary-soft transition-all"
-                        placeholder={l('Search by Invoice, Customer, Phone...', 'பில் எண், வாடிக்கையாளர், போன் எண்...')}
-                        value={historyQuickSearch}
-                        onChange={e => setHistoryQuickSearch(e.target.value)}
-                      />
-                      {historyQuickSearch && (
-                        <button
-                          type="button"
-                          onClick={() => { setHistoryQuickSearch(''); void loadData() }}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-200 transition-colors"
-                          title="Clear"
-                        >
-                          <X size={13} />
-                        </button>
-                      )}
-                    </div>
 
-                    {/* Search Submit Button */}
-                    <button
-                      type="submit"
-                      disabled={searchLoading}
-                      className="h-11 px-3.5 sm:px-4 rounded-xl bg-primary-soft text-white text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 shrink-0 hover:bg-primary-muted disabled:opacity-50 transition-colors cursor-pointer"
-                    >
-                      {searchLoading ? (
-                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Search size={13} />
-                      )}
-                      <span>{searchLoading ? l('Searching...', 'தேடுகிறது...') : l('Search', 'தேடு')}</span>
-                    </button>
-                  </div>
-
-                  {/* Dropdown controls & Filters toggle in a 3-column grid on mobile with generous width */}
-                  <div className="grid grid-cols-3 gap-2 shrink-0 w-full lg:w-auto">
-                    {/* Bill Type Dropdown */}
-                    <div className="relative min-w-0">
-                      <select
-                        value={billTypeFilter}
-                        onChange={e => setBillTypeFilter(e.target.value as typeof billTypeFilter)}
-                        className="w-full lg:w-32 h-11 appearance-none pl-2.5 pr-6 rounded-xl bg-[#F9FAFB] border border-gray-200 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary-soft cursor-pointer hover:bg-gray-100 transition-colors truncate"
-                      >
-                        <option value="all">{l('All Bills', 'அனைத்து')}</option>
-                        <option value="offline">{l('Offline', 'ஆஃப்லைன்')}</option>
-                        <option value="online">{l('Online', 'ஆன்லைன்')}</option>
-                        <option value="manual">{l('Manual', 'கைமுறை')}</option>
-                      </select>
-                      <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                    </div>
-
-                    {/* Date Preset Dropdown */}
-                    <div className="relative min-w-0">
-                      <select
-                        value={datePreset}
-                        onChange={e => {
-                          const val = e.target.value as 'today' | 'week' | 'month' | 'custom' | ''
-                          if (!val) {
-                            setDatePreset('')
-                            setSearch(s => ({ ...s, dateFrom: '', dateTo: '' }))
-                            void runSearch(undefined, { dateFrom: '', dateTo: '' })
-                          } else {
-                            applyDatePreset(val)
-                            if (val === 'custom') {
-                              setShowAdvancedFilters(true)
-                            }
-                          }
-                        }}
-                        className="w-full lg:w-32 h-11 appearance-none pl-2.5 pr-6 rounded-xl bg-[#F9FAFB] border border-gray-200 text-xs font-bold text-gray-800 focus:outline-none focus:border-primary-soft cursor-pointer hover:bg-gray-100 transition-colors truncate"
-                      >
-                        <option value="">{l('All Dates', 'தேதி: அனைத்து')}</option>
-                        <option value="today">{l('Today', 'இன்று')}</option>
-                        <option value="week">{l('This Week', 'இந்த வாரம்')}</option>
-                        <option value="month">{l('This Month', 'இந்த மாதம்')}</option>
-                        <option value="custom">{l('Custom', 'தேர்வு')}</option>
-                      </select>
-                      <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                    </div>
-
-                    {/* Advanced Filters Toggle Button */}
-                    <button
-                      type="button"
-                      onClick={() => setShowAdvancedFilters(v => !v)}
-                      className={`w-full lg:w-auto h-11 px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-colors cursor-pointer min-w-0 ${
-                        showAdvancedFilters || activeHistoryFiltersCount > 0
-                          ? 'bg-primary text-white border-[#111111]'
-                          : 'bg-[#F9FAFB] text-gray-700 border-gray-200 hover:bg-gray-100'
-                      }`}
-                      title="Toggle detailed filters"
-                    >
-                      <SlidersHorizontal size={12} className="shrink-0" />
-                      <span className="truncate">{l('Filters', 'வடிகட்டி')}</span>
-                      {activeHistoryFiltersCount > 0 && (
-                        <span className="w-4 h-4 rounded-full bg-primary-soft text-black text-[9px] font-black flex items-center justify-center shrink-0">
-                          {activeHistoryFiltersCount}
-                        </span>
-                      )}
-                      <ChevronDown size={11} className={`transition-transform duration-200 shrink-0 ${showAdvancedFilters ? 'rotate-180' : ''}`} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Collapsible Advanced Filter Panel */}
-                {showAdvancedFilters && (
-                  <div className="pt-3 pb-1 border-t border-gray-100 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-                      <span className="uppercase text-[10px] tracking-wider text-gray-600 flex items-center gap-1">
-                        <SlidersHorizontal size={11} /> {l('Detailed Filters', 'கூடுதல் வடிகட்டிகள்')}
-                      </span>
-                      {(activeHistoryFiltersCount > 0 || historyQuickSearch) && (
-                        <button
-                          type="button"
-                          onClick={handleClearHistoryFilters}
-                          className="text-[11px] font-bold text-red-600 hover:underline cursor-pointer"
-                        >
-                          {l('Reset All Filters', 'அனைத்தையும் மீட்டமை')}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* If Custom Date selected: From and To Date Inputs */}
-                    {datePreset === 'custom' && (
-                      <div className="p-2.5 sm:p-3 bg-amber-50/60 border border-amber-200 rounded-xl space-y-1.5">
-                        <span className="text-[11px] font-bold text-amber-900 block">
-                          {l('Select Custom Date Range', 'தேதி வரம்பை தேர்வு செய்யவும்')}:
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">From Date</label>
-                            <input
-                              type="date"
-                              className="w-full h-10 px-3 rounded-lg bg-white border border-gray-300 text-xs font-semibold text-gray-800 focus:outline-none focus:border-primary-soft"
-                              value={search.dateFrom}
-                              onChange={e => setSearch(s => ({ ...s, dateFrom: e.target.value }))}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">To Date</label>
-                            <input
-                              type="date"
-                              className="w-full h-10 px-3 rounded-lg bg-white border border-gray-300 text-xs font-semibold text-gray-800 focus:outline-none focus:border-primary-soft"
-                              value={search.dateTo}
-                              onChange={e => setSearch(s => ({ ...s, dateTo: e.target.value }))}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Specific Text Field Inputs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">{l('Invoice / Bill No', 'பில் எண்')}</label>
-                        <input
-                          type="text"
-                          className="w-full h-10 px-3 rounded-lg bg-[#F9FAFB] border border-gray-200 text-xs font-semibold text-gray-900 focus:outline-none focus:border-primary-soft"
-                          placeholder="e.g. INV000001"
-                          value={search.invoiceNo}
-                          onChange={e => setSearch(s => ({ ...s, invoiceNo: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">{l('Customer Name', 'வாடிக்கையாளர் பெயர்')}</label>
-                        <input
-                          type="text"
-                          className="w-full h-10 px-3 rounded-lg bg-[#F9FAFB] border border-gray-200 text-xs font-semibold text-gray-900 focus:outline-none focus:border-primary-soft"
-                          placeholder="e.g. Priya"
-                          value={search.customerName}
-                          onChange={e => setSearch(s => ({ ...s, customerName: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">{l('Mobile Number', 'மொபைல் எண்')}</label>
-                        <input
-                          type="text"
-                          className="w-full h-10 px-3 rounded-lg bg-[#F9FAFB] border border-gray-200 text-xs font-semibold text-gray-900 focus:outline-none focus:border-primary-soft"
-                          placeholder="e.g. 9876543210"
-                          value={search.phone}
-                          onChange={e => setSearch(s => ({ ...s, phone: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </form>
-
-              {/* Active Filter Chips / Status bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-gray-100 text-xs">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="font-bold text-gray-600">
-                    {filteredSearchResults.length} {l('result(s)', 'முடிவுகள்')}
+            <form onSubmit={runSearch} className="rounded-[20px] border border-gray-200 bg-white px-5 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto] xl:items-end">
+                <label className="block">
+                  <span className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[#111111]">Search Order ID</span>
+                  <span className="relative block">
+                    <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#111111]" />
+                    <input type="text" value={search.invoiceNo} onChange={e => setSearch(s => ({ ...s, invoiceNo: e.target.value }))} placeholder="e.g. INV-..." className="h-11 w-full rounded-xl border border-gray-200 pl-10 pr-3 text-[14px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" />
                   </span>
-
-                  {/* Active filter badges that can be clicked to dismiss */}
-                  {billTypeFilter !== 'all' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 text-[11px] font-semibold">
-                      Type: {billTypeFilter}
-                      <button type="button" onClick={() => setBillTypeFilter('all')} className="hover:text-red-600 cursor-pointer"><X size={11} /></button>
-                    </span>
-                  )}
-                  {datePreset && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-semibold">
-                      Date: {datePreset === 'today' ? 'Today' : datePreset === 'week' ? 'This Week' : datePreset === 'month' ? 'This Month' : 'Custom'}
-                      <button type="button" onClick={() => { setDatePreset(''); setSearch(s => ({ ...s, dateFrom: '', dateTo: '' })); void runSearch(undefined, { dateFrom: '', dateTo: '' }) }} className="hover:text-red-600 cursor-pointer"><X size={11} /></button>
-                    </span>
-                  )}
-                  {historyQuickSearch && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 text-gray-900 border border-gray-200 text-[11px] font-semibold">
-                      "{historyQuickSearch}"
-                      <button type="button" onClick={() => { setHistoryQuickSearch(''); void loadData() }} className="hover:text-red-600 cursor-pointer"><X size={11} /></button>
-                    </span>
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[#111111]">Customer Name</span>
+                  <input type="text" value={search.customerName} onChange={e => setSearch(s => ({ ...s, customerName: e.target.value }))} placeholder="Search name..." className="h-11 w-full rounded-xl border border-gray-200 px-4 text-[14px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[#111111]">Customer Phone</span>
+                  <input type="text" inputMode="tel" value={search.phone} onChange={e => setSearch(s => ({ ...s, phone: e.target.value }))} placeholder="Search phone..." className="h-11 w-full rounded-xl border border-gray-200 px-4 text-[14px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-[11px] font-black uppercase tracking-widest text-[#111111]">Order Source</span>
+                  <span className="relative block">
+                    <select value={billTypeFilter} onChange={e => setBillTypeFilter(e.target.value as typeof billTypeFilter)} className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-9 text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none cursor-pointer">
+                      <option value="all">All Sources</option>
+                      <option value="offline">Offline (POS)</option>
+                      <option value="online">Online Order</option>
+                      <option value="manual">Manual Bill</option>
+                    </select>
+                    <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#111111]" />
+                  </span>
+                </label>
+                <div className="flex gap-2">
+                  <button type="submit" disabled={searchLoading} className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-[13px] font-black uppercase tracking-wide text-primary-ink hover:bg-primary-hover disabled:opacity-50 cursor-pointer">
+                    {searchLoading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Search size={15} />}
+                    {l('Search', 'தேடு')}
+                  </button>
+                  {(activeHistoryFiltersCount > 0 || search.invoiceNo || search.customerName || search.phone) && (
+                    <button type="button" onClick={handleClearHistoryFilters} className="h-11 rounded-xl border border-gray-200 px-4 text-[13px] font-black uppercase text-[#111111] hover:bg-gray-50 cursor-pointer">Reset</button>
                   )}
                 </div>
-
-                {filteredSearchResults.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => exportCSV(filteredSearchResults)}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-primary-hover hover:text-primary-muted transition-colors cursor-pointer"
-                  >
-                    <Download size={11} /> Export CSV
-                  </button>
-                )}
               </div>
+            </form>
+
+            <p className="px-1 text-[13px] font-bold text-gray-600">{filteredSearchResults.length} {l('bill(s)', 'பில்கள்')}</p>
+
+            <div className="space-y-3">
               <div className="space-y-3 md:hidden">
                 {filteredSearchResults.slice(0, 50).map(o => {
                   const billTypeLabel = normalizeOrderType(o.order_type) === 'manual_sale' ? 'MANUAL' : normalizeOrderMode(o.order_mode) === 'online' ? 'ONLINE' : 'OFFLINE'
@@ -3832,81 +3645,73 @@ export default function Dashboard() {
                   <div className="rounded-2xl border border-[#F3F4F6]/60 bg-[#FAFAFA] px-4 py-8 text-center text-[#374151]">{l('No matching bills', 'பில்கள் இல்லை')}</div>
                 )}
               </div>
-              <div className="hidden md:block overflow-x-auto rounded-xl border border-[#F3F4F6]/60 bg-[#FAFAFA]">
-                <table className="w-full text-left text-[13px]">
-                  <thead className="bg-[#F9FAFB] text-[10px] uppercase tracking-wider text-[#374151]">
+              <div className="hidden md:block overflow-x-auto rounded-[20px] border border-gray-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                <table className="w-full min-w-[1100px] text-left">
+                  <thead className="border-b border-gray-200">
                     <tr>
-                      {['Invoice No', 'Customer Name', 'Phone', 'Bill Type', 'Coupon', 'Discount', 'Delivery', 'Total', 'Date', 'Status', 'Actions', 'Details'].map(h => (
-                        <th key={h} className="px-2 py-3 font-black text-center">{h}</th>
+                      {['Order ID', 'Date & Time', 'Customer Name', 'Mobile Number', 'Source', 'Total Due'].map(h => (
+                        <th key={h} className="whitespace-nowrap px-5 py-6 text-[13px] font-black uppercase tracking-wide text-[#111111]">{h}</th>
                       ))}
+                      <th className="whitespace-nowrap px-5 py-6 text-right text-[13px] font-black uppercase tracking-wide text-[#111111]">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F3F4F6]/30 bg-white">
+                  <tbody>
                     {filteredSearchResults.slice(0, 50).map(o => {
-                      const billTypeLabel = normalizeOrderType(o.order_type) === 'manual_sale' ? 'MANUAL' : normalizeOrderMode(o.order_mode) === 'online' ? 'ONLINE' : 'OFFLINE'
-                      const billTypeClass = normalizeOrderType(o.order_type) === 'manual_sale' ? 'bg-gray-50 text-gray-700' : normalizeOrderMode(o.order_mode) === 'online' ? 'bg-gray-50 text-gray-700' : 'bg-orange-50 text-orange-700'
+                      const sourceLabel = normalizeOrderType(o.order_type) === 'manual_sale' ? 'Manual' : normalizeOrderMode(o.order_mode) === 'online' ? 'Online' : 'Offline'
+                      const created = new Date(o.created_at)
+                      const completedStatus = normalizeStatus(o.status) === 'completed'
+                      const actionBtn = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors cursor-pointer'
                       return (
                         <React.Fragment key={o.id}>
-                        <tr key={o.id} className="hover:bg-[#F9FAFB] text-center">
-                          <td className="whitespace-nowrap px-2 py-3 text-[11px] font-bold text-[#111111]">{formatInvoiceNo(o.invoice_no)}</td>
-                          <td className="max-w-[100px] truncate px-2 py-3 text-[11px] font-semibold text-[#111111]">{o.customer_name}</td>
-                          <td className="whitespace-nowrap px-2 py-3 text-[11px] text-[#374151]">{formatPhoneDisplay(o.phone)}</td>
-                          <td className="px-2 py-3"><span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase ${billTypeClass}`}>{billTypeLabel}</span></td>
-                          <td className="px-2 py-3 text-[11px]">
-                            {o.coupon_code ? <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">{o.coupon_code}</span> : <span className="text-[#9CA3AF]">—</span>}
+                        <tr className="border-b border-gray-100">
+                          <td className="whitespace-nowrap px-5 py-6 text-[15px] font-medium text-[#111111]">{formatInvoiceNo(o.invoice_no)}</td>
+                          <td className="whitespace-nowrap px-5 py-6">
+                            <p className="text-[15px] font-black text-[#111111]">{created.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                            <p className="text-[12.5px] text-gray-600">{created.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
                           </td>
-                          <td className="px-2 py-3 text-[11px]">
-                            {(o.discount_amount + o.manual_discount_amount) > 0 ? <span className="font-bold text-emerald-700">-{formatCurrency(o.discount_amount + o.manual_discount_amount)}</span> : <span className="text-[#9CA3AF]">—</span>}
+                          <td className="max-w-[260px] truncate px-5 py-6 text-[15px] font-black text-[#111111]">{o.customer_name || 'Walk-in'}</td>
+                          <td className="whitespace-nowrap px-5 py-6 font-mono text-[14px] font-bold text-[#111111]">{o.phone ? o.phone.replace(/^91(?=\d{10}$)/, '') : '—'}</td>
+                          <td className="whitespace-nowrap px-5 py-6">
+                            <div className="flex flex-col items-start gap-1.5">
+                              <span className="rounded-md border border-gray-700 px-2.5 py-0.5 text-[10.5px] font-black uppercase tracking-[0.16em] text-gray-700">{sourceLabel}</span>
+                              <span className="rounded-md border border-gray-300 bg-gray-50 px-2.5 py-0.5 text-[10.5px] font-black uppercase tracking-[0.16em] text-gray-700">{isGstBill(o) ? 'GST' : 'Non-GST'}</span>
+                            </div>
                           </td>
-                          <td className="px-2 py-3 text-[11px]">
-                            {o.delivery_charge > 0 ? <span className="font-bold text-[#111111]">{formatCurrency(o.delivery_charge)}</span> : <span className="text-[#9CA3AF]">—</span>}
-                          </td>
-                          <td className="whitespace-nowrap px-2 py-3 text-[11px] font-bold text-[#111111]">{formatCurrency(getOrderTotal(o))}</td>
-                          <td className="whitespace-nowrap px-2 py-3 text-[11px] text-[#374151]">{new Date(o.created_at).toLocaleDateString('en-IN')}</td>
-                          <td className="px-2 py-3">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <select value={normalizeStatus(o.status)} onChange={e => void updateOrderStatus(o.id, e.target.value)}
-                                className={`cursor-pointer rounded-lg border px-1.5 py-1 text-[10px] font-black outline-none ${normalizeStatus(o.status) === 'completed' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-                                <option value="pending">{l('Pending', 'நிலுவை')}</option>
+                          <td className="whitespace-nowrap px-5 py-6 text-[18px] font-black text-primary">{formatCurrency(getOrderTotal(o))}</td>
+                          <td className="whitespace-nowrap px-5 py-6">
+                            <div className="flex items-center justify-end gap-2.5">
+                              <select
+                                value={normalizeStatus(o.status)}
+                                aria-label={`Status of ${formatInvoiceNo(o.invoice_no)}`}
+                                onChange={e => void updateOrderStatus(o.id, e.target.value)}
+                                className={`h-11 cursor-pointer appearance-none rounded-xl px-4 text-center text-[13px] font-black uppercase tracking-wide outline-none ${completedStatus ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-700'}`}
+                              >
                                 <option value="completed">{l('Completed', 'முடிந்தது')}</option>
+                                <option value="pending">{l('Pending', 'நிலுவை')}</option>
                               </select>
-                              {role !== 'staff' && (
-                                <button onClick={() => void deleteOrder(o.id, o.invoice_no)} className="rounded-lg p-1 text-primary-hover transition-colors hover:bg-primary-soft/5 cursor-pointer" title="Delete Order">
-                                <Trash2 size={13} />
+                              <button type="button" onClick={() => window.open(`/invoice/${o.id}`, '_blank')} className={`${actionBtn} bg-emerald-50 text-emerald-600 hover:bg-emerald-100`} title="Invoice & WhatsApp share" aria-label="Share invoice on WhatsApp">
+                                <MessageCircle size={19} strokeWidth={1.75} />
                               </button>
+                              <button type="button" onClick={() => void openOrderInvoice(o, 'view')} className={`${actionBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`} title="View invoice" aria-label="View invoice">
+                                <FileText size={19} strokeWidth={1.75} />
+                              </button>
+                              <button type="button" onClick={() => setHistoryExpandedId(historyExpandedId === o.id ? null : o.id)} className={`${actionBtn} ${historyExpandedId === o.id ? 'bg-primary text-primary-ink' : 'bg-gray-100 text-[#111111] hover:bg-gray-200'}`} title="View details" aria-label="View details">
+                                <Eye size={19} strokeWidth={1.75} />
+                              </button>
+                              <button type="button" onClick={() => startEditOrder(o)} className={`${actionBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`} title="Edit order details" aria-label="Edit order">
+                                <Edit2 size={17} strokeWidth={1.75} />
+                              </button>
+                              {role !== 'staff' && (
+                                <button type="button" onClick={() => void deleteOrder(o.id, o.invoice_no)} className={`${actionBtn} bg-red-50 text-[#DC2626] hover:bg-red-100`} title="Delete Order" aria-label="Delete order">
+                                  <Trash2 size={19} strokeWidth={1.75} />
+                                </button>
                               )}
                             </div>
-                          </td>
-                          <td className="px-2 py-3">
-                            <div className="flex items-center justify-center gap-1">
-                              <button onClick={() => void openOrderInvoice(o, 'view')} className="rounded-lg p-1 text-[#111111] transition-colors hover:bg-[#F9FAFB] cursor-pointer" title="View Invoice">
-                                <Eye size={13} />
-                              </button>
-                              <button onClick={() => window.open(`/invoice/${o.id}`, '_blank')} className="rounded-lg p-1.5 text-green-600 transition-colors hover:bg-green-50 cursor-pointer" title="Invoice & Share">
-                                <MessageCircle size={14} />
-                              </button>
-                              <button onClick={() => startEditOrder(o)} className="rounded-lg p-1 text-primary-hover transition-colors hover:bg-primary-soft/10 cursor-pointer" title="Edit Order Details">
-                                <Edit2 size={13} />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-2 py-3 text-center">
-                            <button
-                              onClick={() => setHistoryExpandedId(historyExpandedId === o.id ? null : o.id)}
-                              className={`rounded-lg p-1 transition-colors cursor-pointer ${
-                                historyExpandedId === o.id
-                                  ? 'bg-primary text-white'
-                                  : 'text-[#374151] hover:bg-[#F9FAFB]'
-                              }`}
-                              title="View Details"
-                            >
-                              <ChevronDown size={13} className={`transition-transform ${historyExpandedId === o.id ? 'rotate-180' : ''}`} />
-                            </button>
                           </td>
                         </tr>
                         {historyExpandedId === o.id && (
                           <tr className="bg-[#F9FAFB] border-b border-[#F3F4F6]/40">
-                            <td colSpan={12} className="px-4 py-4">
+                            <td colSpan={7} className="px-5 py-5">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-[#F3F4F6]/50 mb-3">
                                 <p className="text-[11px] font-black uppercase text-[#10B981] tracking-wider">
                                   {l('Order Details & Remarks', 'ஆர்டர் விவரங்கள் மற்றும் குறிப்புகள்')}
@@ -3966,7 +3771,7 @@ export default function Dashboard() {
                       )
                     })}
                     {filteredSearchResults.length === 0 && (
-                      <tr><td colSpan={12} className="px-4 py-8 text-center text-[#374151]">{l('No matching bills', 'பில்கள் இல்லை')}</td></tr>
+                      <tr><td colSpan={7} className="px-5 py-12 text-center text-[14px] text-gray-500">{l('No matching bills', 'பில்கள் இல்லை')}</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -4898,6 +4703,11 @@ export default function Dashboard() {
         {/* ── BIRTHDAYS TAB ── */}
         {tab === 'birthdays' && (
           <BirthdaysView />
+        )}
+
+        {/* ── ATTENDANCE TAB ── */}
+        {tab === 'attendance' && role === 'admin' && (
+          <AttendanceView />
         )}
 
         {/* ── SETTINGS TAB ── */}

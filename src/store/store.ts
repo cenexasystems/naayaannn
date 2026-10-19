@@ -66,6 +66,9 @@ export interface Product {
   supplier?: string
   size?: string
   color?: string
+  /** 'service' items (alterations, delivery…) are billed without stock tracking */
+  itemType?: 'product' | 'service'
+  hsnCode?: string
 }
 
 export interface CartItem extends Product {
@@ -259,6 +262,8 @@ const mapDbProduct = (input: unknown, categoriesById: Record<string, string> = {
     purchasePrice: toNumber(p.purchase_price, 0),
     mrp: toNumber(p.mrp, 0),
     gstPercent: toNumber(p.gst_percent, 0),
+    itemType: p.item_type === 'service' ? 'service' : 'product',
+    hsnCode: readString(p.hsn_code),
     openingStock: toNumber(p.opening_stock, 0),
     lowStockAlert: toNumber(p.low_stock_alert, 5),
     supplier: readString(p.supplier),
@@ -594,14 +599,14 @@ export const useAdminAuthStore = create<AdminAuthState>()(
       login: async (portalId: string, password: string) => {
         const trimmedId = String(portalId || '').trim()
         const trimmedPass = String(password || '').trim()
-        if (!trimmedId || !trimmedPass) return false
+        if (!trimmedPass) return false
 
         // Credentials are checked on the server (ADMIN_* / STAFF_* env vars), never in the browser
         const { role, token } = await loginPortal(trimmedId, trimmedPass)
         if (!role || !token) return false
         setDbAuthToken(token)
         useAlarmStore.getState().resetSilencedState()
-        set({ isLoggedIn: true, role, adminId: trimmedId, token })
+        set({ isLoggedIn: true, role, adminId: trimmedId || role, token })
         return role
       },
       logout: () => {

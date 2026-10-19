@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   Save, Store, User, Phone, Mail, MapPin, AtSign, Upload, Trash2, CheckCircle2, AlertCircle,
-  Settings2, Palette, Image as ImageIcon, Package, Plus, Languages, Sparkles, MessageCircle,
+  Settings2, Palette, Image as ImageIcon, Package, Plus, Languages, Sparkles, MessageCircle, Clock, Scissors, Hash, Check, Pencil,
 } from 'lucide-react'
 import {
   BRAND_SETTINGS, DEFAULT_ACCENT, DEFAULT_LOGO, applyAccentColor, isValidAccent, toE164, type BrandSettings,
@@ -11,6 +11,8 @@ import { inventoryService, type CategoryRecord } from '../../services/inventoryS
 import { useProductStore } from '../../store/store'
 import { formatCurrency } from '../../lib/retail'
 import AddProductModal from '../AddProductModal'
+import { db } from '../../lib/db'
+import { confirmDelete } from '../../lib/confirmDelete'
 
 const card = 'bg-white rounded-[22px] border border-gray-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] p-5 sm:p-7'
 const label = 'block text-[11px] font-black uppercase tracking-[0.12em] text-[#4B5563] mb-2'
@@ -96,6 +98,73 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
   const [newCategory, setNewCategory] = useState('')
   const [catalogError, setCatalogError] = useState('')
   const [addOpen, setAddOpen] = useState(false)
+  const [quick, setQuick] = useState({ type: 'product' as 'product' | 'service', name: '', category: '', price: '', cost: '', stock: '', alert: '', offer: '' })
+  const [quickSaving, setQuickSaving] = useState(false)
+  const [quickError, setQuickError] = useState('')
+
+  const quickAdd = async () => {
+    const price = Number(quick.price)
+    if (!quick.name.trim()) { setQuickError('Enter an item name.'); return }
+    if (!price || price <= 0) { setQuickError('Enter a price greater than 0.'); return }
+    const offerPct = Number(quick.offer)
+    setQuickSaving(true)
+    setQuickError('')
+    try {
+      const categoryName = quick.category.trim() || (quick.type === 'service' ? 'Services' : 'General')
+      let categoryId: number | null = categories.find((c) => c.name_en.toLowerCase() === categoryName.toLowerCase())?.id ?? null
+      if (categoryId === null) categoryId = (await inventoryService.createCategory({ name_en: categoryName, is_active: true })).id
+      const stock = quick.type === 'service' ? 0 : Math.max(0, parseInt(quick.stock) || 0)
+      const { error: err } = await db.from('products').insert({
+        name: quick.name.trim(),
+        category: categoryName,
+        category_id: categoryId,
+        item_type: quick.type,
+        price,
+        offer_price: offerPct > 0 && offerPct < 100 ? Math.round(price * (1 - offerPct / 100) * 100) / 100 : null,
+        purchase_price: Number(quick.cost) || 0,
+        stock,
+        stock_quantity: stock,
+        low_stock_alert: quick.type === 'service' ? 0 : Math.max(0, parseInt(quick.alert) || 5),
+        is_active: true,
+        unit: quick.type === 'service' ? 'service' : '1pc',
+        base_quantity: 1,
+        unit_type: 'unit',
+        unit_label: quick.type === 'service' ? 'service' : 'pc',
+      })
+      if (err) throw new Error(err.message)
+      setQuick((q) => ({ ...q, name: '', price: '', cost: '', stock: '', alert: '', offer: '' }))
+      await Promise.all([fetchProducts(true), loadCategories()])
+    } catch (e) {
+      setQuickError(e instanceof Error ? e.message : 'Could not add the item.')
+    } finally {
+      setQuickSaving(false)
+    }
+  }
+
+  const toggleActive = async (id: string | number, active: boolean) => {
+    const { error: err } = await db.from('products').update({ is_active: active }).eq('id', id)
+    if (err) setCatalogError(err.message)
+    else void fetchProducts(true)
+  }
+
+  const removeItem = async (id: string | number, name: string) => {
+    const ok = await confirmDelete({
+      title: `Permanently Delete “${name}”`,
+      warning: 'This catalogue item will be deleted from the catalogue and inventory in the Neon database.',
+      impact: [
+        { label: 'Item', value: name },
+        { label: 'Billing Panel', value: 'Removed immediately', tone: 'danger' },
+        { label: 'Past Bills', value: 'Kept unchanged', tone: 'success' },
+      ],
+    })
+    if (!ok) return
+    try {
+      await inventoryService.deleteInventoryItem(Number(id), null)
+      void fetchProducts(true)
+    } catch (e) {
+      setCatalogError(e instanceof Error ? e.message : 'Could not delete the item.')
+    }
+  }
 
   const set = (key: keyof BrandSettings) => (v: string) => setForm((f) => ({ ...f, [key]: v }))
 
@@ -290,28 +359,71 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
             {catalogError && <p className="text-[12px] font-bold text-[#B91C1C] mb-2">{catalogError}</p>}
 
             <div className="border-t border-gray-200 my-6" />
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-primary text-primary-ink text-[13px] font-black uppercase tracking-wide shadow-md hover:bg-primary-hover"
-            >
-              <Plus size={17} /> Add to catalogue
-            </button>
-            <div className="mt-5 max-h-[420px] overflow-y-auto pr-1 space-y-2.5">
+            <p className={label}>Add catalogue item</p>
+            <form onSubmit={(e) => { e.preventDefault(); void quickAdd() }} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {(['product', 'service'] as const).map((t) => (
+                  <button key={t} type="button" onClick={() => setQuick((q) => ({ ...q, type: t }))}
+                    className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl border text-[13px] font-black uppercase tracking-wide transition-colors ${quick.type === t ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#374151] hover:bg-gray-50'}`}>
+                    {t === 'product' ? <Package size={16} /> : <Scissors size={16} />} {t}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-[1.4fr_1.4fr_1fr_1fr] gap-3">
+                <input className={`${inputBase} px-4`} value={quick.name} onChange={(e) => setQuick((q) => ({ ...q, name: e.target.value }))} placeholder="Item name" aria-label="Item name" />
+                <input className={`${inputBase} px-4`} value={quick.category} onChange={(e) => setQuick((q) => ({ ...q, category: e.target.value }))} placeholder="Category" aria-label="Category" list="settings-categories" />
+                <input className={`${inputBase} px-4`} value={quick.price} onChange={(e) => setQuick((q) => ({ ...q, price: e.target.value }))} placeholder="Price" aria-label="Price" inputMode="decimal" />
+                <input className={`${inputBase} px-4`} value={quick.cost} onChange={(e) => setQuick((q) => ({ ...q, cost: e.target.value }))} placeholder="Cost" aria-label="Cost price" inputMode="decimal" />
+              </div>
+              <datalist id="settings-categories">{categories.map((c) => <option key={c.id} value={c.name_en} />)}</datalist>
+              <div className="grid grid-cols-3 gap-3 sm:w-2/3">
+                {quick.type === 'product' && (
+                  <>
+                    <label className="block"><span className="sr-only">Stock</span>
+                      <input className={`${inputBase} px-4`} value={quick.stock} onChange={(e) => setQuick((q) => ({ ...q, stock: e.target.value }))} placeholder="Stock" title="Opening stock" inputMode="numeric" /></label>
+                    <label className="block"><span className="sr-only">Low stock alert</span>
+                      <input className={`${inputBase} px-4`} value={quick.alert} onChange={(e) => setQuick((q) => ({ ...q, alert: e.target.value }))} placeholder="Alert at" title="Low stock alert" inputMode="numeric" /></label>
+                  </>
+                )}
+                <label className="block"><span className="sr-only">Offer %</span>
+                  <input className={`${inputBase} px-4`} value={quick.offer} onChange={(e) => setQuick((q) => ({ ...q, offer: e.target.value }))} placeholder="Offer %" inputMode="decimal" /></label>
+              </div>
+              {quickError && <p className="text-[12px] font-bold text-[#B91C1C]">{quickError}</p>}
+              <button type="submit" disabled={quickSaving} className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-primary text-primary-ink text-[13px] font-black uppercase tracking-wide shadow-md hover:bg-primary-hover disabled:opacity-60">
+                <Plus size={17} /> {quickSaving ? 'Adding…' : 'Add to catalogue'}
+              </button>
+              <button type="button" onClick={() => setAddOpen(true)} className="w-full text-center text-[12px] font-black uppercase tracking-wide text-gray-500 hover:text-[#111111]">
+                More fields (GST, HSN, description) →
+              </button>
+            </form>
+
+            <div className="border-t border-gray-200 my-6" />
+            <div className="max-h-[460px] overflow-y-auto pr-1 space-y-2.5">
               {sortedProducts.length === 0 && (
                 <p className="text-center text-[13px] font-medium text-gray-400 py-6">No products yet.</p>
               )}
               {sortedProducts.map((p) => (
-                <div key={String(p.id)} className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3">
+                <div key={String(p.id)} className={`flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 ${p.isActive ? '' : 'opacity-60'}`}>
                   <div className="min-w-0">
                     <p className="truncate text-[14px] font-black text-[#111111]">{p.name}</p>
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                      {p.category || 'Uncategorised'} • Stock {p.stockQuantity ?? p.stock ?? 0}
+                      {p.category || 'Uncategorised'} • {p.itemType === 'service' ? 'Service' : `Stock ${p.stockQuantity ?? p.stock ?? 0} (alert < ${p.lowStockAlert ?? 5})`}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-[13px] font-black text-[#111111]">{formatCurrency(p.offerPrice || p.price)}</span>
-                    {p.isActive && <CheckCircle2 size={16} className="text-[#10B981]" aria-label="Active" />}
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span className="mr-1 font-mono text-[13px] font-black text-[#111111]">{formatCurrency(p.offerPrice || p.price)}</span>
+                    <button type="button" onClick={() => void toggleActive(p.id, !p.isActive)} title={p.isActive ? 'Active — click to hide from billing' : 'Hidden — click to activate'} aria-label={p.isActive ? 'Deactivate' : 'Activate'}
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100 ${p.isActive ? 'text-[#10B981]' : 'text-gray-300'}`}>
+                      <Check size={17} strokeWidth={2.5} />
+                    </button>
+                    {onOpenInventory && (
+                      <button type="button" onClick={onOpenInventory} title="Edit in inventory" aria-label="Edit in inventory" className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#111111]">
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                    <button type="button" onClick={() => void removeItem(p.id, p.name)} title="Delete" aria-label={`Delete ${p.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-[#DC2626]">
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -365,12 +477,38 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
               </div>
             </div>
             <div>
+              <span className={label}>City / location</span>
+              <IconInput icon={<MapPin size={17} />} value={form.city} onChange={set('city')} maxLength={80} placeholder="e.g. Aruppukottai, Tamil Nadu" />
+            </div>
+            <div>
+              <span className={label}>Business hours</span>
+              <IconInput icon={<Clock size={17} />} value={form.businessHours} onChange={set('businessHours')} maxLength={80} placeholder="e.g. Open Daily, 10 AM – 9 PM" />
+            </div>
+            <div>
               <span className={label}>Shop name (Tamil)</span>
               <IconInput icon={<Languages size={17} />} value={form.nameTa} onChange={set('nameTa')} maxLength={60} />
             </div>
             <div>
               <span className={label}>Instagram ID</span>
               <IconInput icon={<AtSign size={17} />} value={form.instagram} onChange={set('instagram')} placeholder="naayan.official" />
+            </div>
+            <div className="sm:col-span-2">
+              <span className={label}>Catalogue headline / services</span>
+              <div className="relative">
+                <Scissors size={17} className="pointer-events-none absolute left-4 top-4 text-gray-400" />
+                <textarea
+                  className={`${inputBase} h-auto min-h-[76px] pl-11 pr-4 py-3 resize-y`}
+                  value={form.catalogueHeadline}
+                  onChange={(e) => set('catalogueHeadline')(e.target.value)}
+                  rows={2}
+                  maxLength={240}
+                  placeholder="e.g. Mens Wear • Womens Wear • Kids Wear • Alterations"
+                />
+              </div>
+            </div>
+            <div>
+              <span className={label}>GSTIN (on GST invoices)</span>
+              <IconInput icon={<Hash size={17} />} value={form.gstin} onChange={(v) => set('gstin')(v.toUpperCase())} maxLength={15} placeholder="Optional" />
             </div>
           </div>
 

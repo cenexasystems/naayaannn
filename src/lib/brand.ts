@@ -22,6 +22,10 @@ export interface BrandSettings {
   instagram: string // handle without "@"
   logo: string // data URL of an uploaded logo, '' = bundled default logo
   accentColor: string // hex, drives the whole app theme
+  city: string
+  businessHours: string
+  catalogueHeadline: string
+  gstin: string
 }
 
 export const DEFAULT_BRAND_SETTINGS: BrandSettings = {
@@ -37,6 +41,10 @@ export const DEFAULT_BRAND_SETTINGS: BrandSettings = {
   instagram: '',
   logo: '',
   accentColor: '#3F3F46',
+  city: 'Aruppukottai, Tamil Nadu',
+  businessHours: '',
+  catalogueHeadline: '',
+  gstin: '',
 }
 
 const CACHE_KEY = 'naayan_brand_settings_v1'
@@ -100,6 +108,10 @@ export let BRAND_ADDRESS = ''
 export let BRAND_INSTAGRAM = ''
 export let BRAND_INSTAGRAM_URL = ''
 export let BRAND_LOCATION_LINK = '#'
+export let BRAND_CITY = ''
+export let BRAND_HOURS = ''
+export let BRAND_CATALOGUE_HEADLINE = ''
+export let BRAND_GSTIN = ''
 
 export const BRAND_CATEGORIES = ['Mens Wear', 'Womens Wear', 'Kids Wear'] as const
 
@@ -186,6 +198,10 @@ export function applyBrandSettings(input: Partial<BrandSettings>): void {
   BRAND_ADDRESS = s.address
   BRAND_INSTAGRAM = s.instagram
   BRAND_INSTAGRAM_URL = s.instagram ? `https://instagram.com/${s.instagram}` : ''
+  BRAND_CITY = s.city
+  BRAND_HOURS = s.businessHours
+  BRAND_CATALOGUE_HEADLINE = s.catalogueHeadline
+  BRAND_GSTIN = s.gstin.toUpperCase()
   BRAND_LOCATION_LINK = s.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`
     : '#'

@@ -7,7 +7,7 @@ import {
   RefreshCw, ShoppingBag, MessageCircle,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Wifi, WifiOff, Layers, X, ChevronDown, Power,
-  Edit2, AlertCircle, Check
+  Edit2, AlertCircle, Check, User, CalendarDays, Scissors, PackagePlus, List, Clock
 } from 'lucide-react'
 import { useProductStore, useVariantStore, useAdminAuthStore, type Product } from '../store/store'
 import { useNavigationStore } from '../store/navigationStore'
@@ -15,6 +15,7 @@ import { barcodeService } from '../services/barcodeService'
 import { normalizeBarcode } from '../lib/barcode'
 import { Invoice } from '../components/Invoice'
 import CatalogModal from '../components/CatalogModal'
+import AddProductModal from '../components/AddProductModal'
 import { invoicePdfFile } from '../lib/invoicePdf'
 import { uploadInvoicePdf } from '../lib/storage'
 import { createOrderWithStock } from '../services/orderService'
@@ -118,6 +119,12 @@ const recalc = (item: PosItem, nextQty: number): PosItem => {
 }
 
 
+// ── Billing panel styles ───────────────────────────────────────────────────
+const posLabel = 'mb-2.5 block text-[12.5px] font-black uppercase tracking-[0.14em] text-[#111111]'
+const posSideLabel = 'mb-2.5 block text-[12.5px] font-black uppercase tracking-[0.12em] text-[#111111]'
+const posInput = 'h-12 w-full min-w-0 rounded-xl border border-gray-200 bg-white px-4 text-[15px] font-medium text-[#111111] placeholder:text-[#111111]/80 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15'
+const posToolBtn = 'inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-[13px] font-black uppercase tracking-wide text-[#111111] transition-colors hover:bg-gray-50 disabled:opacity-40'
+
 // ── Category colours ───────────────────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CAT_COLOR: Record<string, string> = {
@@ -178,6 +185,8 @@ export default function Pos(props: PosProps = {}) {
   const [gstInput, setGstInput] = useState('')
   const [gstType, setGstType] = useState<'percent' | 'flat'>('percent')
   const [catalogOpen, setCatalogOpen] = useState(false)
+  const [catalogServiceOnly, setCatalogServiceOnly] = useState(false)
+  const [addToCatalogOpen, setAddToCatalogOpen] = useState(false)
   const [depositOpen, setDepositOpen] = useState(false)
   const [depositCreated, setDepositCreated] = useState<AdvanceOrder | null>(null)
   const [depositForm, setDepositForm] = useState({ amount: '', expectedDeliveryDate: '', paymentMethod: 'cash' as AdvancePaymentMethod, address: '', remarks: '' })
@@ -489,6 +498,34 @@ export default function Pos(props: PosProps = {}) {
     }))
   }
 
+  /** Adds an editable line for an item that is not in the catalogue. */
+  const addCustomItem = () => {
+    const custom = {
+      id: `manual-${Date.now()}`,
+      name: '',
+      category: 'Unregistered',
+      categoryId: null,
+      remedy: [],
+      price: 0,
+      offerPrice: null,
+      unitType: 'unit',
+      unitLabel: 'pcs',
+      baseQuantity: 1,
+      stockQuantity: 999999,
+      stockUnit: 'pcs',
+      allowDecimalQuantity: false,
+      predefinedOptions: [],
+      isActive: true,
+      sortOrder: 0,
+      unit: 'pcs',
+      rating: 0,
+      stock: 999999,
+      description: '',
+      benefits: '',
+    } as unknown as Product
+    setItems(cur => [...cur, makePosItem(custom)])
+  }
+
   const bumpQty = (id: string | number, delta: number) => {
     setItems(cur => {
       const ex = cur.find(i => i.id === id)
@@ -767,7 +804,7 @@ export default function Pos(props: PosProps = {}) {
           basePrice: Number(item.basePrice) || 0,
           imageUrl: item.imageUrl || item.image || null,
           source: item.source || 'catalogue',
-          isManual: item.source === 'manual' || item.category === 'Unregistered',
+          isManual: item.source === 'manual' || item.category === 'Unregistered' || item.itemType === 'service',
           category: item.category || null,
           note: item.note || null,
         })),
@@ -1085,45 +1122,52 @@ export default function Pos(props: PosProps = {}) {
 
   // ══ MAIN POS SCREEN ══════════════════════════════════════════════════
   return (
-    <div data-embedded={embeddedMode} className={`flex flex-col bg-[#F9FAFB] print:hidden overflow-x-hidden ${embeddedMode ? '' : 'h-full overflow-y-auto hide-scrollbar'}`} style={embeddedMode ? undefined : { WebkitOverflowScrolling: 'touch' }}>
+    <div data-embedded={embeddedMode} className={`flex flex-col bg-white print:hidden overflow-x-hidden ${embeddedMode ? '' : 'h-full overflow-y-auto hide-scrollbar'}`} style={embeddedMode ? undefined : { WebkitOverflowScrolling: 'touch' }}>
       {/* Header */}
-      <div className="px-3 pt-3 pb-2.5 sm:px-4 sm:pt-4 md:px-6 md:pt-6 md:pb-4 shrink-0 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-start min-[480px]:justify-between">
-        <div className="min-w-0">
-          <h2 className="text-[18px] sm:text-[22px] md:text-[24px] font-black text-[#111111] flex items-center gap-2 leading-tight">
-            <div className="w-1.5 h-5 sm:h-6 bg-primary-soft rounded-full shrink-0"></div>
-            POS Billing Panel
-          </h2>
-          <p className="text-[11px] sm:text-[12px] text-gray-500 font-medium ml-3.5 mt-0.5 pr-2">Quick Invoice generator & database synced checkout</p>
+      <div className={`shrink-0 flex flex-col gap-4 pb-6 mb-7 border-b border-gray-200 sm:flex-row sm:items-center sm:justify-between ${embeddedMode ? '' : 'px-4 pt-5 md:px-8'}`}>
+        <div className="flex items-stretch gap-4 min-w-0">
+          <span className="w-[6px] shrink-0 rounded-full bg-primary" aria-hidden />
+          <div className="min-w-0">
+            <h2 className="text-[26px] sm:text-[30px] font-black leading-tight tracking-tight text-[#111111]">POS Billing Panel</h2>
+            <p className="text-[13.5px] font-medium text-[#111111]">Quick Invoice generator &amp; database synced checkout</p>
+          </div>
         </div>
 
-        {/* Online/Offline Toggle & Logout */}
-        <div className="flex gap-2 w-full min-[480px]:w-auto">
-          <div className="grid grid-cols-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm flex-1 min-[480px]:flex-none">
+        <div className="flex items-center gap-2">
+          {/* Offline (POS) / Online order */}
+          <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.05)]" role="tablist" aria-label="Order source">
             <button
+              type="button"
+              role="tab"
+              aria-selected={ordermode === 'offline'}
               onClick={() => setOrdermode('offline')}
-              className={`min-h-[38px] sm:min-h-[42px] px-3 sm:px-4 py-1.5 rounded-lg text-[11px] font-black tracking-wider uppercase transition-colors ${ordermode === 'offline' ? 'bg-primary text-primary-100 shadow-sm font-black' : 'text-[#374151] hover:bg-[#F9FAFB]'}`}
+              className={`h-10 rounded-full px-6 text-[13px] font-black uppercase tracking-wide transition-colors ${ordermode === 'offline' ? 'bg-primary text-primary-ink shadow' : 'text-[#111111] hover:bg-gray-50'}`}
             >
-              Offline
+              Offline (POS)
             </button>
             <button
+              type="button"
+              role="tab"
+              aria-selected={ordermode === 'online'}
               onClick={() => setOrdermode('online')}
-              className={`min-h-[38px] sm:min-h-[42px] px-3 sm:px-4 py-1.5 rounded-lg text-[11px] font-black tracking-wider uppercase transition-colors ${ordermode === 'online' ? 'bg-primary text-primary-100 shadow-sm font-black' : 'text-[#374151] hover:bg-[#F9FAFB]'}`}
+              className={`inline-flex h-10 items-center gap-2 rounded-full px-6 text-[13px] font-black uppercase tracking-wide transition-colors ${ordermode === 'online' ? 'bg-primary text-primary-ink shadow' : 'text-[#111111] hover:bg-gray-50'}`}
             >
-              Online
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              Online Order
             </button>
           </div>
           {!embeddedMode && (
             <>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="flex items-center justify-center min-h-[38px] sm:min-h-[42px] px-3 sm:px-4 rounded-xl bg-primary text-primary-100 hover:bg-primary-hover border border-primary-soft/40 transition-colors text-[11px] font-black tracking-wider uppercase shadow-sm cursor-pointer"
+                className="h-11 rounded-full bg-primary px-4 text-[12px] font-black uppercase tracking-wider text-primary-ink hover:bg-primary-hover cursor-pointer"
               >
                 Dashboard
               </button>
               <button
                 onClick={() => { logout(); navigate('/admin-login', { replace: true }) }}
                 title="Logout"
-                className="flex items-center justify-center min-h-[38px] sm:min-h-[42px] px-3 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors cursor-pointer"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer"
               >
                 <Power size={16} />
               </button>
@@ -1133,68 +1177,56 @@ export default function Pos(props: PosProps = {}) {
       </div>
 
       {/* Main Content Split */}
-      <div className="flex flex-col lg:flex-row gap-4 sm:gap-5 md:gap-6 px-3 sm:px-4 md:px-6 pb-6 lg:h-[calc(100vh-120px)] lg:overflow-hidden" style={{ touchAction: 'pan-y' }}>
+      <div className={`grid grid-cols-1 xl:grid-cols-[minmax(0,1.75fr)_minmax(340px,1fr)] gap-6 xl:gap-10 pb-6 items-start ${embeddedMode ? '' : 'px-4 md:px-8'}`} style={{ touchAction: 'pan-y' }}>
 
-        {/* LEFT COLUMN (approx 68%) */}
-        <div className="flex-[2.1] flex flex-col gap-4 sm:gap-6 min-w-0 max-w-full lg:overflow-y-auto lg:pb-4">
+        {/* LEFT COLUMN */}
+        <div className="flex flex-col gap-7 min-w-0">
 
           {/* Customer Details Card */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3.5 sm:p-4 md:p-5 shrink-0 min-w-0 max-w-full">
-            <h3 className="text-[14px] sm:text-[15px] font-black text-[#111111] flex items-center gap-2 mb-3 sm:mb-4">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary-hover"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <section className="rounded-[22px] border border-gray-200 bg-white p-5 sm:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+            <h3 className="mb-6 flex items-center gap-3 text-[19px] font-black text-[#111111]">
+              <User size={20} strokeWidth={1.75} />
               Customer Details
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 min-w-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-7 gap-y-5">
               <div className="min-w-0">
-                <label htmlFor="pos-customer-name" className="block text-[11px] md:text-[10px] font-bold text-[#374151] mb-1">Customer Name</label>
+                <label htmlFor="pos-customer-name" className={posLabel}>Customer Name</label>
                 <input
                   id="pos-customer-name"
                   name="customerName"
                   autoComplete="name"
                   type="text"
                   value={customer.name}
-                  onChange={e => setCustomer({...customer, name: e.target.value})}
-                  placeholder="Enter name"
-                  className="w-full min-w-0 max-w-full box-border h-10 sm:h-11 px-3 sm:px-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary-soft text-[13px] font-bold text-[#111111] placeholder:text-gray-400 placeholder:font-medium"
+                  onChange={e => setCustomer({ ...customer, name: e.target.value })}
+                  placeholder="Walk-in Customer"
+                  className={posInput}
                 />
               </div>
               <div className="min-w-0">
-                <label htmlFor="pos-customer-phone" className="block text-[11px] md:text-[10px] font-bold text-[#374151] mb-1">Mobile Number (WhatsApp)</label>
+                <label htmlFor="pos-customer-phone" className={posLabel}>Mobile Number (WhatsApp)</label>
                 <input
                   id="pos-customer-phone"
                   name="customerPhone"
                   autoComplete="tel"
                   type="text"
+                  inputMode="tel"
                   value={customer.phone}
-                  onChange={e => setCustomer({...customer, phone: e.target.value})}
-                  placeholder="Enter WhatsApp number"
-                  className="w-full min-w-0 max-w-full box-border h-10 sm:h-11 px-3 sm:px-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary-soft text-[13px] font-bold text-[#111111] placeholder:text-gray-400 placeholder:font-medium"
+                  onChange={e => setCustomer({ ...customer, phone: e.target.value })}
+                  placeholder="Enter 10-digit number"
+                  className={`${posInput} ${customer.phone && !normalizePhone(customer.phone) ? '!border-red-400 !bg-red-50' : ''}`}
                 />
               </div>
               <div className="min-w-0">
-                <label htmlFor="pos-birth-date" className="block text-[11px] md:text-[10px] font-bold text-[#374151] mb-1">Birthday (Optional)</label>
-                <input
-                  id="pos-birth-date"
-                  name="birthDate"
-                  type="date"
-                  max={new Date().toISOString().slice(0, 10)}
-                  value={birthDate}
-                  onChange={e => setBirthDate(e.target.value)}
-                  className="block w-full min-w-0 max-w-full box-border h-10 sm:h-11 px-3 sm:px-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary-soft text-[13px] font-bold text-[#111111]"
-                />
-                <p className="mt-1 text-[10px] text-gray-400 font-medium">Used to send birthday offers on WhatsApp</p>
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[11px] md:text-[10px] font-bold text-[#374151]">Billing Date (Optional)</label>
-                  {billingDate && (
-                    <button
-                      type="button"
-                      onClick={() => setBillingDate('')}
-                      className="text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded transition-colors"
-                    >
-                      Reset to Now
+                <div className="mb-2.5 flex items-center justify-between gap-2">
+                  <label htmlFor="pos-billing-date" className="flex items-center gap-2 text-[12.5px] font-black uppercase tracking-[0.14em] text-[#111111]">
+                    <CalendarDays size={15} strokeWidth={1.75} /> Bill Date
+                  </label>
+                  {billingDate ? (
+                    <button type="button" onClick={() => setBillingDate('')} className="text-[10.5px] font-black uppercase tracking-[0.14em] text-[#DC2626] hover:underline">
+                      Reset to now
                     </button>
+                  ) : (
+                    <span className="text-[10.5px] font-black uppercase tracking-[0.14em] text-primary">Custom / Past</span>
                   )}
                 </div>
                 <input
@@ -1202,13 +1234,36 @@ export default function Pos(props: PosProps = {}) {
                   type="datetime-local"
                   value={billingDate}
                   onChange={e => setBillingDate(e.target.value)}
-                  className="block w-full min-w-0 max-w-full box-border h-10 sm:h-11 px-3 sm:px-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary-soft text-[13px] font-bold text-[#111111]"
-                  style={{ maxWidth: '100%', boxSizing: 'border-box' }}
+                  className={`${posInput} !font-black`}
                 />
-                <p className="mt-1 text-[10px] text-gray-400 font-medium">Leave blank to use today's date &amp; time</p>
+              </div>
+              <div className="min-w-0 md:col-span-3">
+                <label htmlFor="pos-customer-address" className={posLabel}>Customer Address (Optional)</label>
+                <input
+                  id="pos-customer-address"
+                  name="customerAddress"
+                  autoComplete="street-address"
+                  type="text"
+                  value={customer.address}
+                  onChange={e => setCustomer({ ...customer, address: e.target.value })}
+                  placeholder="Enter full address"
+                  className={posInput}
+                />
+              </div>
+              <div className="min-w-0">
+                <label htmlFor="pos-birth-date" className={posLabel}>Birthday (Optional)</label>
+                <input
+                  id="pos-birth-date"
+                  name="birthDate"
+                  type="date"
+                  max={new Date().toISOString().slice(0, 10)}
+                  value={birthDate}
+                  onChange={e => setBirthDate(e.target.value)}
+                  className={posInput}
+                />
               </div>
               <div className="min-w-0 md:col-span-2">
-                <label htmlFor="pos-remarks" className="block text-[11px] md:text-[10px] font-bold text-[#374151] mb-1">Remarks (Internal)</label>
+                <label htmlFor="pos-remarks" className={posLabel}>Remarks (Internal)</label>
                 <input
                   id="pos-remarks"
                   name="remarks"
@@ -1216,522 +1271,429 @@ export default function Pos(props: PosProps = {}) {
                   value={remarks}
                   onChange={e => setRemarks(e.target.value)}
                   placeholder="Optional remarks"
-                  className="w-full min-w-0 max-w-full box-border h-10 sm:h-11 px-3 sm:px-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary-soft text-[13px] font-bold text-[#111111] placeholder:text-gray-400 placeholder:font-medium"
+                  className={posInput}
                 />
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Order Items Card */}
-          <div className="bg-white rounded-2xl border border-[#F3F4F6] shadow-sm flex-1 flex flex-col min-h-[400px]">
-            {/* Card Header & Barcode Scanner */}
-            <div className="flex flex-col gap-3 p-4 md:p-5 border-b border-[#F3F4F6]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[18px] md:text-[14px] font-black text-[#111111] flex items-center gap-2">
-                  <Receipt size={16} className="text-primary-hover" />
-                  Order Items ({items.length})
-                </h3>
-              </div>
-
-              {/* Barcode Scanner Bar */}
-              <div className="w-full">
-                <BarcodeScannerInput onItemScanned={handleScannedItem} />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                {/* Clear Order Button */}
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  disabled={items.length === 0}
-                  className="inline-flex items-center gap-1.5 h-8 px-2.5 sm:px-3 text-[11px] font-bold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40 transition-colors shrink-0 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5 text-gray-500" />
-                  <span>Clear Order</span>
+          <section className="flex min-h-[420px] flex-col rounded-[22px] border border-gray-200 bg-white p-5 sm:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+            <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <h3 className="flex items-center gap-3 text-[19px] font-black text-[#111111]">
+                <Receipt size={20} strokeWidth={1.75} />
+                Order Items{items.length > 0 ? ` (${items.length})` : ''}
+              </h3>
+              <div className="flex flex-wrap justify-end gap-2.5">
+                <button type="button" onClick={clearAll} disabled={items.length === 0} className={posToolBtn}>
+                  <Trash2 size={16} strokeWidth={1.75} /> Clear Order
                 </button>
-
-                {/* Button 1: Search Catalog */}
-                <button
-                  type="button"
-                  onClick={() => setCatalogOpen(true)}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 sm:px-3.5 text-[11px] font-bold rounded-lg bg-primary text-white hover:bg-primary-hover border border-primary-soft/50 shadow-xs transition-all shrink-0 cursor-pointer"
-                >
-                  <Search className="w-3.5 h-3.5 text-primary-hover" />
-                  <span className="tracking-wide">Search Catalog</span>
+                <button type="button" onClick={() => { setCatalogServiceOnly(true); setCatalogOpen(true) }} className={`${posToolBtn} !bg-primary-50`}>
+                  <Scissors size={16} strokeWidth={1.75} /> Add Service
+                </button>
+                <button type="button" onClick={() => setAddToCatalogOpen(true)} className={posToolBtn}>
+                  <PackagePlus size={16} strokeWidth={1.75} /> Add to Catalog
+                </button>
+                <button type="button" onClick={addCustomItem} className={`${posToolBtn} !bg-gray-50`}>
+                  <Plus size={16} strokeWidth={1.75} /> Add Custom Item
                 </button>
               </div>
+            </div>
+
+            {/* Barcode scanner */}
+            <div className="mb-4">
+              <BarcodeScannerInput onItemScanned={handleScannedItem} />
             </div>
 
             {/* Table Header */}
-            <div className="hidden md:grid grid-cols-[1fr_100px_120px_40px] gap-3 px-5 py-3 border-b border-gray-200 bg-[#FAFAFA]">
-              <span className="text-[10px] font-bold text-[#374151] tracking-wide">Item Name / Description</span>
-              <span className="text-[10px] font-bold text-[#374151] tracking-wide text-right">Price (₹)</span>
-              <span className="text-[10px] font-bold text-[#374151] tracking-wide text-center">Qty</span>
-              <span></span>
+            <div className="hidden md:grid grid-cols-[minmax(0,1fr)_120px_130px_44px] gap-4 border-b border-gray-200 px-2.5 pb-3 pt-2">
+              <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[#111111]">Item Name / Description</span>
+              <span className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-[#111111]">Price (₹)</span>
+              <span className="text-center text-[11px] font-black uppercase tracking-[0.18em] text-[#111111]">Qty</span>
+              <span />
             </div>
 
             {/* Table Body */}
-            <div className="flex-1 lg:overflow-y-auto p-3 space-y-3 md:space-y-2">
+            <div className="flex-1 space-y-3 pt-4">
               {items.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-[#374151]/60">
-                  <ShoppingBag size={40} className="mb-3 opacity-20" />
-                  <p className="text-[13px] font-bold">No items added yet</p>
+                <div className="flex flex-col gap-3">
+                  <div className="hidden md:grid grid-cols-[minmax(0,1fr)_120px_130px_44px] items-center gap-4">
+                    <div className="flex gap-2.5">
+                      <button type="button" onClick={addCustomItem} className="h-11 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500 hover:border-gray-300">
+                        Type custom item name...
+                      </button>
+                      <button type="button" onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }} className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[13px] font-black uppercase tracking-wide text-[#111111] hover:bg-gray-100">
+                        <List size={16} strokeWidth={1.75} /> Catalog
+                      </button>
+                    </div>
+                    <div className="flex h-11 items-center justify-center rounded-xl border border-gray-200 text-[14px] font-medium text-gray-400">0</div>
+                    <div className="flex h-11 items-center justify-between rounded-xl border border-gray-200 px-3 text-[14px] font-black text-gray-300"><span>−</span><span className="text-[#111111]">1</span><span>+</span></div>
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 text-gray-300"><Trash2 size={17} strokeWidth={1.75} /></span>
+                  </div>
+                  <div className="md:hidden flex gap-2">
+                    <button type="button" onClick={addCustomItem} className="h-11 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500">Type custom item name...</button>
+                    <button type="button" onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }} className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[13px] font-black uppercase text-[#111111]"><List size={16} /> Catalog</button>
+                  </div>
                 </div>
               )}
 
               {items.map(item => (
                 <div key={item.id}>
-                  <div className="md:hidden bg-white border border-gray-200/90 rounded-2xl p-3.5 shadow-sm hover:border-primary-soft/50 transition-all space-y-3">
-                    {/* Header Row: Product Name + Trash Delete */}
-                    <div className="flex items-start justify-between gap-2.5">
+                  {/* Mobile row */}
+                  <div className="md:hidden space-y-3 rounded-2xl border border-gray-200 p-3.5">
+                    <div className="flex items-start gap-2.5">
                       <div className="min-w-0 flex-1">
                         {item.source === 'manual' ? (
                           <input
                             type="text"
                             value={item.name}
                             onChange={e => updateItem(item.id, 'name', e.target.value)}
-                            placeholder="Enter item name..."
-                            className="w-full px-3 py-1.5 bg-[#FAFAFA] border border-gray-200 rounded-xl text-[14px] font-bold text-[#111111] focus:outline-none focus:border-primary-soft"
+                            placeholder="Type custom item name..."
+                            className={posInput}
                           />
                         ) : (
-                          <div>
-                            <h4 className="text-[14px] font-bold text-[#111111] leading-snug break-words">
-                              {itemDisplayName(item)}
-                            </h4>
-                          </div>
+                          <p className="text-[15px] font-black text-[#111111] break-words">{itemDisplayName(item)}</p>
                         )}
-                        {/* Clickable Unit Price Pill Badge */}
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenPriceEdit(item)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FAFAFA] hover:bg-primary-50 border border-[#F3F4F6]/70 hover:border-primary-soft text-[12px] text-[#374151] transition-all cursor-pointer active:scale-95"
-                            title="Tap to change unit price"
-                          >
-                            <span className="text-gray-500 font-medium">Rate:</span>
-                            <span className="font-bold text-[#111111]">
-                              ₹{Number(item.basePrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                            </span>
-                            <Edit2 size={11} className="text-primary-hover" />
-                          </button>
-                        </div>
                       </div>
-
-                      {/* Delete Button */}
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200/80 text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors shrink-0 active:scale-95"
-                        aria-label={`Delete ${item.name}`}
-                      >
-                        <Trash2 size={15} />
+                      <button type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-[#111111] hover:bg-red-50 hover:text-red-600">
+                        <Trash2 size={17} strokeWidth={1.75} />
                       </button>
                     </div>
-
-                    {/* Bottom Row: Quantity Stepper & Line Total */}
-                    <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-gray-100">
-                      {/* Quantity Stepper */}
-                      <div className="inline-flex items-center bg-[#F9FAFB] border border-gray-200 rounded-xl p-1">
-                        <button
-                          type="button"
-                          onClick={() => bumpQty(item.id, -1)}
-                          className="w-8 h-8 rounded-lg bg-white border border-gray-200/80 hover:bg-gray-100 text-gray-700 font-bold flex items-center justify-center text-[18px] shadow-sm active:scale-90 transition-all cursor-pointer"
-                          aria-label="Decrease quantity"
-                        >
-                          −
+                    <div className="flex items-center justify-between gap-3">
+                      {item.source === 'manual' ? (
+                        <input type="number" inputMode="decimal" onWheel={(e) => (e.target as HTMLInputElement).blur()} value={item.basePrice || ''} onChange={e => updateItem(item.id, 'basePrice', e.target.value)} placeholder="0" className={`${posInput} !w-28 text-center`} aria-label="Price" />
+                      ) : (
+                        <button type="button" onClick={() => handleOpenPriceEdit(item)} className="h-11 rounded-xl border border-gray-200 px-4 text-[14px] font-black text-[#111111]">
+                          ₹{Number(item.basePrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                         </button>
-                        <span className="w-10 text-center text-[15px] font-black text-[#111111]">
-                          {item.qty}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => bumpQty(item.id, 1)}
-                          className="w-8 h-8 rounded-lg bg-white border border-gray-200/80 hover:bg-gray-100 text-gray-700 font-bold flex items-center justify-center text-[18px] shadow-sm active:scale-90 transition-all cursor-pointer"
-                          aria-label="Increase quantity"
-                        >
-                          +
-                        </button>
+                      )}
+                      <div className="flex h-11 items-center gap-1 rounded-xl border border-gray-200 px-1.5">
+                        <button type="button" onClick={() => bumpQty(item.id, -1)} className="h-8 w-8 rounded-lg text-[18px] font-bold text-[#111111] hover:bg-gray-100" aria-label="Decrease quantity">−</button>
+                        <span className="w-8 text-center text-[15px] font-black text-[#111111]">{item.qty}</span>
+                        <button type="button" onClick={() => bumpQty(item.id, 1)} className="h-8 w-8 rounded-lg text-[18px] font-bold text-[#111111] hover:bg-gray-100" aria-label="Increase quantity">+</button>
                       </div>
-
-                      {/* Line Total */}
-                      <div className="text-right">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total</span>
-                        <span className="text-[17px] font-black text-[#111111] leading-tight block">
-                          {formatCurrency(item.lineTotal)}
-                        </span>
-                      </div>
+                      <span className="text-[16px] font-black text-[#111111]">{formatCurrency(item.lineTotal)}</span>
                     </div>
                   </div>
 
-                  <div className="hidden md:grid grid-cols-[1fr_100px_120px_40px] items-center gap-3 p-2 bg-white border border-gray-200 rounded-xl hover:border-primary-soft/50 transition-colors">
-                    {/* Item Name */}
-                    <div className="min-w-0 flex items-center gap-2">
+                  {/* Desktop row */}
+                  <div className="hidden md:grid grid-cols-[minmax(0,1fr)_120px_130px_44px] items-center gap-4">
+                    <div className="flex min-w-0 gap-2.5">
                       {item.source === 'manual' ? (
                         <input
                           type="text"
                           value={item.name}
                           onChange={e => updateItem(item.id, 'name', e.target.value)}
-                          placeholder="Item name"
-                          className="w-full px-3 py-2 bg-[#FAFAFA] border border-gray-200 rounded-lg text-[13px] font-bold text-[#111111] focus:outline-none focus:border-primary-soft"
+                          placeholder="Type custom item name..."
+                          className={`${posInput} flex-1`}
+                          autoFocus={!item.name}
                         />
                       ) : (
-                        <div className="px-3 py-2 w-full truncate border border-transparent flex items-center gap-2">
-                          <span className="text-[13px] font-bold text-[#111111] truncate">{itemDisplayName(item)}</span>
+                        <div className="flex h-11 min-w-0 flex-1 items-center rounded-xl border border-gray-200 px-4">
+                          <span className="truncate text-[14px] font-bold text-[#111111]">{itemDisplayName(item)}</span>
                         </div>
                       )}
-                      {item.source !== 'manual' && (
-                        <span className="hidden sm:inline-flex px-2 py-0.5 rounded border border-primary-soft/30 text-primary-hover text-[9px] font-black tracking-wider uppercase shrink-0 bg-primary-soft/10">
-                          CATALOG
-                        </span>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => { setCatalogServiceOnly(false); setCatalogOpen(true) }}
+                        className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[13px] font-black uppercase tracking-wide text-[#111111] hover:bg-gray-100"
+                        title="Pick from catalog"
+                      >
+                        <List size={16} strokeWidth={1.75} /> {item.itemType === 'service' ? 'Service' : 'Catalog'}
+                      </button>
                     </div>
-
-                    {/* Price */}
-                    <div className="flex items-center justify-end px-2 py-1 text-right">
+                    {item.source === 'manual' ? (
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                        value={item.basePrice || ''}
+                        onChange={e => updateItem(item.id, 'basePrice', e.target.value)}
+                        placeholder="0"
+                        aria-label="Price"
+                        className={`${posInput} text-center`}
+                      />
+                    ) : (
                       <button
                         type="button"
                         onClick={() => handleOpenPriceEdit(item)}
-                        className="group flex items-center justify-end gap-1.5 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-primary-soft/50 hover:bg-primary-soft/10 transition-all text-right cursor-pointer"
                         title="Click to edit price"
+                        className="h-11 rounded-xl border border-gray-200 text-center text-[14px] font-black text-[#111111] hover:border-gray-300"
                       >
-                        <span className="text-[13px] font-black text-[#111111] group-hover:text-primary-hover tracking-tight">
-                          ₹{Number(item.basePrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                        </span>
-                        <Edit2 size={12} className="text-gray-400 group-hover:text-primary-hover transition-colors shrink-0" />
+                        {Number(item.basePrice || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </button>
+                    )}
+                    <div className="flex h-11 items-center justify-between rounded-xl border border-gray-200 px-2">
+                      <button type="button" onClick={() => bumpQty(item.id, -1)} className="h-8 w-8 rounded-lg text-[16px] font-bold text-[#111111] hover:bg-gray-100" aria-label="Decrease quantity">−</button>
+                      <span className="text-[15px] font-black text-[#111111]">{item.qty}</span>
+                      <button type="button" onClick={() => bumpQty(item.id, 1)} className="h-8 w-8 rounded-lg text-[16px] font-bold text-[#111111] hover:bg-gray-100" aria-label="Increase quantity">+</button>
                     </div>
-
-                    {/* Quantity Controls */}
-                    <div className="flex items-center justify-between border border-gray-200 rounded-lg px-2 py-1 bg-white">
-                      <button
-                        onClick={() => bumpQty(item.id, -1)}
-                        className="w-6 h-6 rounded-md hover:bg-[#FAFAFA] flex items-center justify-center text-[#374151] font-bold"
-                      >-</button>
-                      <span className="text-[13px] font-black text-[#111111] min-w-[20px] text-center">{item.qty}</span>
-                      <button
-                        onClick={() => bumpQty(item.id, 1)}
-                        className="w-6 h-6 rounded-md hover:bg-[#FAFAFA] flex items-center justify-center text-[#374151] font-bold"
-                      >+</button>
-                    </div>
-
-                    {/* Delete */}
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-[#374151] hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"
-                    >
-                      <Trash2 size={14} />
+                    <button type="button" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.name || 'item'}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 text-[#111111] hover:bg-red-50 hover:text-red-600 hover:border-red-200">
+                      <Trash2 size={17} strokeWidth={1.75} />
                     </button>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         </div>
 
-        {/* RIGHT COLUMN (approx 32%) */}
-        <div className="flex-[1] flex min-h-0 flex-col gap-6 lg:sticky lg:top-4 lg:h-[calc(100vh-140px)] lg:max-h-[calc(100vh-140px)]">
-          <div className="flex min-h-0 lg:h-full lg:max-h-full flex-col lg:overflow-hidden rounded-2xl border border-[#F3F4F6]/70 bg-white shadow-soft">
+        {/* RIGHT COLUMN — Current Order */}
+        <aside className="xl:sticky xl:top-4 rounded-[22px] border border-gray-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-6 sm:px-7 py-6">
+            <h3 className="flex items-center gap-3 text-[19px] font-black text-[#111111]">
+              <ShoppingBag size={20} strokeWidth={1.75} />
+              Current Order
+            </h3>
+            <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3.5 py-1.5 text-[10.5px] font-black uppercase tracking-wider text-[#111111]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#111111]" />
+              {ordermode === 'online' ? 'Online Order' : 'Offline (POS)'}
+            </span>
+          </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-primary text-white shrink-0">
-              <h3 className="text-[15px] font-black text-white flex items-center gap-2">
-                <Receipt size={17} className="text-primary-hover" />
-                Current Order
-              </h3>
-              <span className="px-2.5 py-0.5 rounded-full border border-primary-soft/50 text-[9.5px] font-black tracking-wider uppercase flex items-center gap-1.5 bg-white/10 text-white shadow-xs">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary-soft"></div>
-                {ordermode} (POS)
-              </span>
+          <div className="space-y-6 px-6 sm:px-7 py-7">
+            {/* Summary */}
+            <div className="rounded-[18px] border border-gray-200 px-5 py-5">
+              <dl className="space-y-3.5 text-[14.5px]">
+                <div className="flex items-center justify-between">
+                  <dt className="uppercase text-[#111111]">Source</dt>
+                  <dd className="rounded-md border border-[#111111] px-2.5 py-0.5 text-[10.5px] font-black uppercase tracking-[0.16em] text-[#111111]">{ordermode}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="uppercase text-[#111111]">Customer</dt>
+                  <dd className="truncate font-bold text-[#111111]">{customer.name.trim() || '-'}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="uppercase text-[#111111]">Phone</dt>
+                  <dd className="font-bold text-[#111111]">{customer.phone.trim() || '-'}</dd>
+                </div>
+              </dl>
+              <div className="mt-4 border-t border-gray-200 pt-4">
+                {items.length === 0 ? (
+                  <p className="py-3 text-center text-[13px] italic text-[#111111]">No items added yet</p>
+                ) : (
+                  <ul className="max-h-[160px] space-y-1.5 overflow-y-auto">
+                    {items.map(item => (
+                      <li key={item.id} className="flex justify-between gap-3 text-[13px] text-[#111111]">
+                        <span className="truncate">{item.qty}× {itemDisplayName(item) || 'Custom item'}</span>
+                        <span className="font-black">{formatCurrency(item.lineTotal)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
-            {/* Content body */}
-            <div className="min-h-0 flex-1 lg:overflow-y-auto bg-white p-3 space-y-2.5">
-
-              {/* Info Table */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden text-[11px] font-bold">
-                <div className="flex justify-between px-3 py-2 border-b border-gray-200 bg-[#F9FAFB]">
-                  <span className="text-[#374151] uppercase">Source</span>
-                  <span className="text-[#111111] border border-[#F3F4F6] bg-[#F9FAFB] px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">{ordermode.toUpperCase()}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-0 border-b border-gray-200">
-                  <div className="p-2 border-r border-gray-200">
-                    <label htmlFor="pos-mobile-customer-name" className="text-[10px] text-[#374151] uppercase block mb-0.5">Customer Name</label>
-                    <input
-                      id="pos-mobile-customer-name"
-                      name="mobileCustomerName"
-                      autoComplete="name"
-                      type="text"
-                      value={customer.name}
-                      onChange={e => setCustomer({...customer, name: e.target.value})}
-                      placeholder="Enter name"
-                      className="w-full h-8 px-2 bg-white border border-gray-200 rounded-lg text-[12px] font-bold text-[#111111] focus:outline-none focus:border-[#111111]"
-                    />
-                  </div>
-                  <div className="p-2">
-                    <label htmlFor="pos-mobile-customer-phone" className="text-[10px] text-[#374151] uppercase block mb-0.5">WhatsApp Number</label>
-                    <input
-                      id="pos-mobile-customer-phone"
-                      name="mobileCustomerPhone"
-                      autoComplete="tel"
-                      type="text"
-                      value={customer.phone}
-                      onChange={e => setCustomer({...customer, phone: e.target.value})}
-                      placeholder="Enter WhatsApp number"
-                      className={`w-full h-8 px-2 bg-white border rounded-lg text-[12px] font-bold text-[#111111] focus:outline-none ${customer.phone && !normalizePhone(customer.phone) ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-[#111111]'}`}
-                    />
-                  </div>
-                </div>
-                {items.length > 0 && (
-                  <div className="px-3 py-2 bg-[#F9FAFB] space-y-1 border-b border-gray-200 max-h-[80px] overflow-y-auto">
-                    {items.map(item => (
-                      <div key={item.id} className="flex justify-between text-[#111111] text-[11px]">
-                        <span className="truncate pr-2">{item.qty}x {item.name}</span>
-                        <span className="font-black text-[#111111]">{formatCurrency(item.lineTotal)}</span>
-                      </div>
-                    ))}
-                  </div>
+            {/* Coupon Code */}
+            <div>
+              <label htmlFor="pos-coupon-input" className={posSideLabel}>Coupon Code</label>
+              <div className="flex gap-2.5">
+                <input
+                  id="pos-coupon-input"
+                  name="posCouponCode"
+                  autoComplete="off"
+                  type="text"
+                  value={couponInput}
+                  onChange={e => {
+                    const val = e.target.value.toUpperCase()
+                    setCouponInput(val)
+                    if (availableCoupons.some(c => c.code.toUpperCase() === val)) {
+                      void applyCoupon(val)
+                    }
+                  }}
+                  placeholder="Enter code"
+                  disabled={appliedCoupon !== null}
+                  list="pos-coupons"
+                  className={`${posInput} uppercase disabled:bg-gray-100`}
+                />
+                <datalist id="pos-coupons">
+                  {availableCoupons.map(c => <option key={c.code} value={c.code} />)}
+                </datalist>
+                {appliedCoupon ? (
+                  <button type="button" onClick={removeCoupon} className="h-11 shrink-0 rounded-xl bg-red-50 px-4 text-[12px] font-black uppercase text-red-600 hover:bg-red-100">Remove</button>
+                ) : (
+                  <button type="button" onClick={() => void applyCoupon()} disabled={couponLoading || !couponInput.trim()} className="h-11 shrink-0 rounded-xl bg-primary px-5 text-[12px] font-black uppercase text-primary-ink hover:bg-primary-hover disabled:opacity-40">Apply</button>
                 )}
               </div>
+              {couponError && <p className="mt-1 text-[12px] font-bold text-red-500">{couponError}</p>}
+              {appliedCoupon && <p className="mt-1 text-[12px] font-bold text-emerald-600">Applied: -{formatCurrency(couponDiscount)}</p>}
+            </div>
 
-              {/* Coupon Code */}
-              <div>
-                <label htmlFor="pos-coupon-input" className="block text-[10px] font-black text-[#374151] tracking-wider uppercase mb-1">Coupon Code</label>
-                <div className="flex gap-2">
-                  <input
-                    id="pos-coupon-input"
-                    name="posCouponCode"
-                    autoComplete="off"
-                    type="text"
-                    value={couponInput}
-                    onChange={e => {
-                      const val = e.target.value.toUpperCase()
-                      setCouponInput(val)
-                      if (availableCoupons.some(c => c.code.toUpperCase() === val)) {
-                        void applyCoupon(val)
-                      }
-                    }}
-                    placeholder="Enter code"
-                    disabled={appliedCoupon !== null}
-                    list="pos-coupons"
-                    className="w-full h-9 px-3 bg-white border border-gray-200 rounded-xl text-[12px] font-bold text-[#111111] focus:outline-none focus:border-[#111111] uppercase disabled:bg-gray-100"
-                  />
-                  <datalist id="pos-coupons">
-                    {availableCoupons.map(c => (
-                      <option key={c.code} value={c.code} />
-                    ))}
-                  </datalist>
-                  {appliedCoupon ? (
-                    <button
-                      onClick={removeCoupon}
-                      className="h-9 px-3 bg-red-100 text-red-600 hover:bg-red-200 rounded-xl text-[11px] font-black transition-colors shrink-0 cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => void applyCoupon()}
-                      disabled={couponLoading || !couponInput.trim()}
-                      className="h-9 px-4 bg-primary text-primary-100 border border-[#111111] hover:bg-primary-hover rounded-xl text-[11px] font-black transition-colors disabled:opacity-50 shrink-0 cursor-pointer shadow-xs"
-                    >
-                      Apply
-                    </button>
-                  )}
+            {/* Manual Discount */}
+            <div>
+              <label htmlFor="pos-manual-discount-value" className={posSideLabel}>Manual Discount</label>
+              <div className="flex gap-2.5">
+                <div className="relative shrink-0">
+                  <select
+                    id="pos-manual-discount-type"
+                    name="manualDiscountType"
+                    aria-label="Discount type"
+                    value={manualDiscountType}
+                    onChange={e => setManualDiscountType(e.target.value as 'flat' | 'percent')}
+                    className="h-11 appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-9 text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
+                  >
+                    <option value="flat">₹</option>
+                    <option value="percent">%</option>
+                  </select>
+                  <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#111111]" />
                 </div>
-                {couponError && <p className="text-[10px] font-bold text-red-500 mt-0.5">{couponError}</p>}
-                {appliedCoupon && (
-                  <p className="text-[10px] font-bold text-emerald-600 mt-0.5">Applied: -{formatCurrency(couponDiscount)}</p>
-                )}
+                <input
+                  id="pos-manual-discount-value"
+                  name="manualDiscountValue"
+                  type="number"
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  value={manualDiscountValue}
+                  onChange={e => setManualDiscountValue(e.target.value)}
+                  placeholder="0"
+                  className={`${posInput} text-right !font-black`}
+                />
               </div>
+            </div>
 
-              {/* Discount */}
-              <div>
-                <label htmlFor="pos-manual-discount-value" className="block text-[10px] font-black text-[#374151] tracking-wider uppercase mb-1">Manual Discount</label>
-                <div className="flex gap-2">
-                  <div className="relative shrink-0">
-                    <select
-                      id="pos-manual-discount-type"
-                      name="manualDiscountType"
-                      value={manualDiscountType}
-                      onChange={e => setManualDiscountType(e.target.value as 'flat'|'percent')}
-                      className="appearance-none h-9 bg-white border border-gray-200 rounded-xl pl-2 pr-7 text-[12px] font-black text-[#111111] focus:outline-none focus:border-[#111111]"
-                    >
-                      <option value="flat">₹</option>
-                      <option value="percent">%</option>
-                    </select>
-                    <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#374151] pointer-events-none" />
-                  </div>
-                  <input
-                    id="pos-manual-discount-value"
-                    name="manualDiscountValue"
-                    type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                    value={manualDiscountValue}
-                    onChange={e => setManualDiscountValue(e.target.value)}
-                    placeholder="0"
-                    className="w-full h-9 px-3 bg-white border border-gray-200 rounded-xl text-[12px] font-black text-[#111111] text-right focus:outline-none focus:border-[#111111]"
-                  />
-                </div>
+            {/* Totals */}
+            <div className="space-y-4 border-t border-gray-200 pt-5">
+              <div className="flex items-center justify-between text-[15px] text-[#111111]">
+                <span>Subtotal ({items.length} items)</span>
+                <span className="font-black">{formatCurrency(subtotal)}</span>
               </div>
-
-              {/* GST Toggle */}
-              <div className="flex items-center justify-between py-1 border-b border-gray-200">
-                <span className="text-[11px] font-black text-[#374151]">Enable GST on Bill</span>
-                <button
-                  type="button"
-                  onClick={() => setBillGstEnabled(!billGstEnabled)}
-                  className={`w-9 h-5 rounded-full p-0.5 transition-colors ${billGstEnabled ? 'bg-primary' : 'bg-gray-200'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-white transition-transform ${billGstEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                </button>
-              </div>
-
-              {billGstEnabled && (
-                <div className="flex gap-2">
-                  <div className="relative shrink-0">
-                    <select
-                      id="pos-gst-type"
-                      name="gstType"
-                      value={gstType}
-                      onChange={e => setGstType(e.target.value as 'flat'|'percent')}
-                      className="appearance-none h-9 bg-white border border-gray-200 rounded-xl pl-2 pr-7 text-[12px] font-black text-[#111111] focus:outline-none focus:border-[#111111]"
-                    >
-                      <option value="percent">%</option>
-                      <option value="flat">₹</option>
-                    </select>
-                    <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#374151] pointer-events-none" />
-                  </div>
-                  <input
-                    id="pos-gst-input"
-                    name="gstInput"
-                    type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                    value={gstInput}
-                    onChange={e => setGstInput(e.target.value)}
-                    placeholder={gstType === 'percent' ? "e.g. 6" : "0"}
-                    className="w-full h-9 px-3 bg-white border border-gray-200 rounded-xl text-[12px] font-black text-[#111111] text-right focus:outline-none focus:border-[#111111]"
-                  />
+              {billGstEnabled && totalGst > 0 && (
+                <div className="flex items-center justify-between text-[15px] text-[#111111]">
+                  <span>GST Amount</span>
+                  <span className="font-black">{formatCurrency(totalGst)}</span>
                 </div>
               )}
-
-              {/* Summary calculations */}
-              <div className="bg-[#F9FAFB] rounded-xl border border-[#F3F4F6] p-3 space-y-1.5 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black text-[#374151]">Subtotal ({items.length} items)</span>
-                  <span className="text-[12px] font-black text-[#111111]">{formatCurrency(subtotal)}</span>
-                </div>
-
-                {billGstEnabled && totalGst > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black text-[#374151]">GST Amount</span>
-                    <span className="text-[12px] font-black text-[#111111]">{formatCurrency(totalGst)}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <label htmlFor="pos-shipping-input" className="text-[11px] font-black text-[#374151]">Delivery</label>
-                  <input
-                    id="pos-shipping-input"
-                    name="shippingFee"
-                    type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                    value={shipping}
-                    onChange={e => setShipping(e.target.value)}
-                    className="w-20 h-8 px-2 bg-white border border-gray-200 rounded-lg text-[12px] font-black text-[#111111] text-right focus:outline-none focus:border-[#111111]"
-                  />
-                </div>
-
-                <div className="h-px bg-gray-200"></div>
-
-                {/* Grand Total */}
-                <div className="flex items-center justify-between pt-0.5">
-                  <span className="text-[12px] font-black text-[#111111] uppercase tracking-wider">Grand Total</span>
-                  <span className="text-[22px] font-black text-[#111111] tracking-tight font-headline">{formatCurrency(total)}</span>
-                </div>
+              <div className="flex items-center justify-between text-[15px] text-[#111111]">
+                <label htmlFor="pos-shipping-input">Delivery</label>
+                <input
+                  id="pos-shipping-input"
+                  name="shippingFee"
+                  type="number"
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  value={shipping}
+                  onChange={e => setShipping(e.target.value)}
+                  className="h-10 w-24 rounded-xl border border-gray-200 px-3 text-right text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
+                />
               </div>
+            </div>
 
-              {/* Payment Mode Selector */}
-              <div>
-                <label className="block text-[10px] font-black text-[#374151] tracking-wider uppercase mb-1">Payment Mode</label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {(['cash', 'qr', 'card', 'split'] as const).map(mode => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setPaymentType(mode)}
-                      className={`py-2 rounded-xl text-[11px] font-black uppercase tracking-wide border-2 transition-all cursor-pointer ${
-                        paymentType === mode
-                          ? 'bg-primary text-primary-100 border-[#111111] shadow-sm'
-                          : 'bg-white text-[#374151] border-gray-200 hover:border-[#111111]/40'
-                      }`}
-                    >
-                      {mode === 'qr' ? 'QR' : mode === 'card' ? 'Card' : mode === 'split' ? 'Split' : 'Cash'}
-                    </button>
-                  ))}
+            {/* Non-GST bill / GST invoice */}
+            <div className="grid grid-cols-2 gap-1.5 rounded-full border border-gray-200 p-1.5" role="tablist" aria-label="Bill type">
+              <button type="button" role="tab" aria-selected={!billGstEnabled} onClick={() => setBillGstEnabled(false)} className={`h-10 rounded-full text-[13px] font-black uppercase tracking-wide transition-colors ${!billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>Non-GST Bill</button>
+              <button type="button" role="tab" aria-selected={billGstEnabled} onClick={() => setBillGstEnabled(true)} className={`h-10 rounded-full text-[13px] font-black uppercase tracking-wide transition-colors ${billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>GST Invoice</button>
+            </div>
+            {billGstEnabled && (
+              <div className="flex gap-2.5">
+                <div className="relative shrink-0">
+                  <select
+                    id="pos-gst-type"
+                    name="gstType"
+                    aria-label="GST type"
+                    value={gstType}
+                    onChange={e => setGstType(e.target.value as 'flat' | 'percent')}
+                    className="h-11 appearance-none rounded-xl border border-gray-200 bg-white pl-4 pr-9 text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
+                  >
+                    <option value="percent">%</option>
+                    <option value="flat">₹</option>
+                  </select>
+                  <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#111111]" />
                 </div>
+                <input
+                  id="pos-gst-input"
+                  name="gstInput"
+                  type="number"
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  value={gstInput}
+                  onChange={e => setGstInput(e.target.value)}
+                  placeholder={gstType === 'percent' ? 'GST % e.g. 5' : 'GST amount'}
+                  className={`${posInput} text-right !font-black`}
+                />
               </div>
+            )}
 
-              {ordermode !== 'online' && paymentType === 'split' && (
-              <div>
-                <label className="block text-[10px] font-black text-[#374151] tracking-wider uppercase mb-1">Split Payment — Cash / QR</label>
+            {/* Financial option */}
+            <div>
+              <p className="mb-2.5 text-[11.5px] font-black uppercase tracking-[0.14em] text-[#111111]">Financial Option</p>
+              <div className="grid grid-cols-4 gap-2">
+                {(['cash', 'qr', 'card', 'split'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setPaymentType(mode)}
+                    className={`h-11 rounded-xl border text-[13px] font-black uppercase tracking-wide transition-colors ${
+                      paymentType === mode ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#111111] hover:bg-gray-50'
+                    }`}
+                  >
+                    {mode === 'qr' ? 'GPay' : mode === 'card' ? 'Card' : mode === 'split' ? 'Split' : 'Cash'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Grand total */}
+            <div className="flex items-center justify-between border-t border-gray-200 pt-5">
+              <span className="text-[19px] font-black uppercase tracking-wide text-[#111111]">Grand Total</span>
+              <span className="text-[28px] font-black tracking-tight text-primary">{formatCurrency(total)}</span>
+            </div>
+
+            {ordermode !== 'online' && paymentType === 'split' && (
+              <div className="rounded-[18px] border border-gray-200 p-5">
+                <p className="mb-2 text-[11.5px] font-black uppercase tracking-[0.14em] text-[#111111]">Split Payment — Cash / GPay</p>
                 <SplitPaymentInputs idPrefix="pos-split" total={total} value={splitForm} onChange={setSplitForm} />
               </div>
-              )}
+            )}
 
-              {/* Amount Received (shown for single payment modes) */}
-              {ordermode !== 'online' && paymentType !== 'split' && (
-              <div>
-                <div className="border border-[#F3F4F6] rounded-xl p-2.5 bg-white focus-within:border-[#111111]">
-                  <label htmlFor="pos-cash-received" className="block text-[10px] font-black text-[#374151] tracking-wider uppercase mb-0.5">
-                    {paymentType === 'qr' ? 'QR' : paymentType === 'card' ? 'Card' : 'Cash'} — Amount Received (₹)
-                  </label>
-                  <input
-                    id="pos-cash-received"
-                    name="cashReceived"
-                    type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                    value={cashReceived}
-                    onChange={e => setCashReceived(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full h-9 px-3 bg-[#F9FAFB] border border-gray-200 rounded-xl text-[13px] font-black text-[#111111] focus:outline-none focus:border-[#111111] focus:bg-white"
-                  />
-                  {cashReceivedNum > 0 && (
-                    <div className="mt-2 flex justify-between items-center bg-[#F9FAFB] px-3 py-1.5 rounded-lg border border-[#F3F4F6]">
-                      <span className="text-[10px] font-bold text-[#111111]">Return Balance:</span>
-                      <span className="text-[12px] font-black text-[#111111]">{formatCurrency(balanceToReturn)}</span>
-                    </div>
-                  )}
-                </div>
+            {ordermode !== 'online' && paymentType !== 'split' && (
+              <div className="rounded-[18px] border border-gray-200 p-5">
+                <p className="text-[11.5px] font-black uppercase tracking-[0.14em] text-[#111111]">
+                  {paymentType === 'qr' ? 'GPay' : paymentType === 'card' ? 'Card' : 'Cash'} Payment
+                </p>
+                <label htmlFor="pos-cash-received" className="mb-3 block text-[13px] font-black text-[#111111]">Amount Received (₹)</label>
+                <input
+                  id="pos-cash-received"
+                  name="cashReceived"
+                  type="number"
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  value={cashReceived}
+                  onChange={e => setCashReceived(e.target.value)}
+                  placeholder="0.00"
+                  className="h-14 w-full rounded-xl border border-gray-200 px-4 text-[20px] font-black text-[#111111] placeholder:text-[#111111] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+                />
+                {cashReceivedNum > 0 && (
+                  <div className="mt-3 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-2.5">
+                    <span className="text-[13px] font-bold text-[#111111]">Return Balance</span>
+                    <span className="text-[16px] font-black text-[#111111]">{formatCurrency(balanceToReturn)}</span>
+                  </div>
+                )}
               </div>
-              )}
+            )}
 
-              {error && (
-                <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] font-bold">
-                  {error}
-                </div>
-              )}
-            </div>
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] font-bold text-red-600">{error}</div>
+            )}
 
-            {/* Action Buttons Fixed Footer */}
-            <div className="shrink-0 border-t border-[#F3F4F6] bg-white p-3.5 shadow-soft">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={openDepositOrder}
-                  disabled={saving || items.length === 0}
-                  className="min-h-[44px] rounded-xl border-2 border-[#111111] bg-white px-3 py-3 text-[12px] font-black uppercase tracking-wide text-[#111111] transition-all hover:bg-[#F9FAFB] hover:border-primary-hover disabled:opacity-40 cursor-pointer shadow-xs"
-                >
-                  Save as Deposit Order
-                </button>
-                <button
-                  type="button"
-                  onClick={generateBill}
-                  disabled={saving}
-                  className="min-h-[44px] rounded-xl bg-primary hover:bg-primary-hover border border-primary-soft/50 px-3 py-3 text-[13px] font-black uppercase tracking-wider text-primary-100 transition-all shadow-md active:scale-[0.98] disabled:opacity-50 cursor-pointer font-headline"
-                >
-                  {saving ? 'Processing...' : 'Complete Sale'}
-                </button>
-              </div>
-              <p className="mt-2 text-center text-[10px] font-bold text-[#6B7280]">Deposit orders do not count as revenue until the remaining payment is received.</p>
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={generateBill}
+                disabled={saving}
+                className="inline-flex h-[54px] w-full items-center justify-center gap-3 rounded-xl bg-primary text-[15px] font-black uppercase tracking-[0.16em] text-primary-ink shadow-[0_12px_24px_-10px_rgb(var(--primary)/0.7)] transition hover:bg-primary-hover active:scale-[0.99] disabled:opacity-50"
+              >
+                <Check size={19} strokeWidth={2.5} />
+                {saving ? 'Processing...' : 'Complete Sale'}
+              </button>
+              <button
+                type="button"
+                onClick={openDepositOrder}
+                disabled={saving || items.length === 0}
+                className="inline-flex h-[54px] w-full items-center justify-center gap-3 rounded-xl border-2 border-amber-500 bg-white text-[14px] font-black uppercase tracking-[0.16em] text-amber-600 transition hover:bg-amber-50 disabled:opacity-40"
+              >
+                <Clock size={19} strokeWidth={2} />
+                Save as Advance Order
+              </button>
+              <p className="text-center text-[11.5px] font-medium text-gray-500">Advance orders count as revenue only when the balance is collected.</p>
             </div>
           </div>
-        </div>
-
+        </aside>
       </div>
 
       {depositOpen && (
@@ -1780,13 +1742,21 @@ export default function Pos(props: PosProps = {}) {
       {catalogOpen && (
         <CatalogModal
           isOpen={catalogOpen}
-          onClose={() => setCatalogOpen(false)}
+          serviceOnly={catalogServiceOnly}
+          onClose={() => { setCatalogOpen(false); setCatalogServiceOnly(false) }}
           onAdd={(p) => {
             void addItem(p)
             setCatalogOpen(false)
+            setCatalogServiceOnly(false)
           }}
         />
       )}
+
+      <AddProductModal
+        isOpen={addToCatalogOpen}
+        onClose={() => setAddToCatalogOpen(false)}
+        onSuccess={() => { setAddToCatalogOpen(false); void fetchProducts(true) }}
+      />
 
       {/* Variant Picker Modal for Multi-Variant Products */}
       {variantPickerProduct && (

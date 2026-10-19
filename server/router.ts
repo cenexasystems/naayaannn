@@ -136,7 +136,7 @@ export async function route(req: Req, res: ServerResponse, routeName?: string) {
       case 'auth': {
         const role = checkCredentials(String(body.id || ''), String(body.password || ''))
         if (!role) return send(res, 401, { message: 'Invalid Admin or Staff credentials', code: '401' })
-        return send(res, 200, { role, token: createToken(role, String(body.id).trim()) })
+        return send(res, 200, { role, token: createToken(role, String(body.id || role).trim()) })
       }
       case 'db': {
         const dbReq = body as unknown as DbRequest

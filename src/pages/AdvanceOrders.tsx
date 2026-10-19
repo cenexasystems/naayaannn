@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { CalendarDays, CheckCircle2, Clock3, Download, Eye, FileText, MessageCircle, PackageCheck, Printer, RefreshCw, Search, X, Trash2 } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock3, Download, Eye, FileText, MessageCircle, PackageCheck, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Check } from 'lucide-react'
 import { formatCurrency } from '../lib/retail'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
@@ -25,7 +25,7 @@ const RMIcon = ({ size = 20, className = '' }: { size?: number; className?: stri
   </svg>
 )
 
-type DateFilter = 'all' | 'today' | 'week' | 'month'
+type DateFilter = 'all' | 'today' | 'week' | 'month' | 'year' | 'custom'
 type StatusFilter = 'all' | 'pending' | 'ready' | 'completed' | 'cancelled'
 
 const STATUS_LABELS: Record<AdvanceStatus, string> = {
@@ -58,6 +58,8 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [dateFilter, setDateFilter] = useState<DateFilter>('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [selected, setSelected] = useState<AdvanceOrder | null>(null)
   const [timeline, setTimeline] = useState<AdvanceTimeline[]>([])
   const [payments, setPayments] = useState<AdvancePayment[]>([])
@@ -152,9 +154,15 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
       if (dateFilter === 'today' && dateKey(created) !== dateKey(now)) return false
       if (dateFilter === 'week' && created < new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)) return false
       if (dateFilter === 'month' && (created.getMonth() !== now.getMonth() || created.getFullYear() !== now.getFullYear())) return false
+      if (dateFilter === 'year' && created.getFullYear() !== now.getFullYear()) return false
+      if (dateFilter === 'custom') {
+        const key = dateKey(created)
+        if (dateFrom && key < dateFrom) return false
+        if (dateTo && key > dateTo) return false
+      }
     }
     return true
-  }), [orders, search, statusFilter, dateFilter])
+  }), [orders, search, statusFilter, dateFilter, dateFrom, dateTo])
 
   const formTotals = useMemo(() => computeAdvanceTotals({ subtotal: Number(form.totalAmount) || 0, deliveryCharge: Number(form.deliveryCharge) || 0, discount: Number(form.discount) || 0, gstRate: form.gstEnabled ? Number(form.gstRate) || 0 : 0 }), [form.totalAmount, form.deliveryCharge, form.discount, form.gstEnabled, form.gstRate])
 
@@ -269,147 +277,177 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   }
 
   const cards = [
-    ['Total Deposits', analytics.total, FileText, 'text-[#111111] bg-[#F9FAFB] border border-[#E5E7EB]'], ['Pending Deposit Orders', analytics.pending, Clock3, 'text-amber-700 bg-amber-50 border border-amber-200'],
-    ['Total Deposit Amount', formatCurrency(analytics.deposits), RMIcon, 'text-primary-hover bg-amber-50 border border-amber-200'], ['Outstanding Balance', formatCurrency(analytics.outstanding), RMIcon, 'text-red-700 bg-red-50 border border-red-200'],
-    ['Ready For Collection', analytics.ready, PackageCheck, 'text-gray-700 bg-gray-50 border border-gray-200'], ['Completed Deposit Orders', analytics.completed, CheckCircle2, 'text-emerald-700 bg-emerald-50 border border-emerald-200'],
-  ] as const
+    { label: 'Outstanding Balance', value: formatCurrency(analytics.outstanding), icon: <IndianRupee size={22} strokeWidth={1.75} />, tile: 'bg-red-100 text-[#DC2626]' },
+    { label: 'Ready for Collection', value: String(analytics.ready), icon: <Box size={22} strokeWidth={1.75} />, tile: 'bg-blue-100 text-blue-600' },
+    { label: 'Completed Deposits', value: String(analytics.completed), icon: <Check size={22} strokeWidth={2} />, tile: 'bg-emerald-100 text-emerald-600' },
+  ]
+  const periods: Array<[DateFilter, string]> = [['all', 'All Time'], ['today', 'Today'], ['week', 'This Week'], ['month', 'This Month'], ['year', 'This Year']]
+  const statusPill = (status: AdvanceStatus) => ({
+    pending_deposit: 'border-amber-200 bg-amber-50 text-amber-700',
+    waiting_final_payment: 'border-amber-200 bg-amber-50 text-amber-700',
+    ready_for_delivery: 'border-blue-200 bg-blue-50 text-blue-700',
+    completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    cancelled: 'border-red-200 bg-red-50 text-red-700',
+  })[status]
+  const iconBtn = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors cursor-pointer'
 
-  return <div className="space-y-5">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.18em] text-primary-hover">Separate from sales</p><h2 className="text-2xl font-black text-[#111111]">Advance Orders</h2><p className="mt-1 text-sm text-gray-500">Deposits never count as revenue. Full order value is recognized only after final payment.</p></div><div className="flex gap-2"><button onClick={() => void load()} className="rounded-xl border border-gray-200 bg-white p-3 text-gray-600 hover:text-[#111111] transition-colors cursor-pointer" title="Refresh"><RefreshCw size={18}/></button></div></div>
+  return <div className="space-y-7">
+    <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+      <div className="max-w-xl">
+        <h2 className="text-[32px] sm:text-[36px] font-black leading-tight tracking-tight text-[#111111]">Advance Orders</h2>
+        <p className="mt-1 text-[14.5px] font-medium text-[#111111]">Partial-payment holds — revenue is recognized only when the balance is collected.</p>
+      </div>
+      <div className="flex flex-col gap-3 xl:items-end">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+            <span className="px-3 text-[11px] font-black uppercase tracking-widest text-[#111111]">Period:</span>
+            {periods.map(([value, text]) => (
+              <button key={value} type="button" onClick={() => { setDateFilter(value); setDateFrom(''); setDateTo('') }}
+                className={`rounded-xl px-4 py-2 text-[13px] font-black uppercase tracking-wide transition-colors ${dateFilter === value ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>
+                {text}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => void load()} title="Refresh" aria-label="Refresh" className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 hover:text-[#111111]"><RefreshCw size={18} /></button>
+        <div className="inline-flex flex-wrap items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+          <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">From:</span>
+            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setDateFilter('custom') }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
+          <label className="flex items-center gap-2"><span className="text-[11px] font-black uppercase tracking-widest text-[#111111]">To:</span>
+            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setDateFilter('custom') }} className="bg-transparent text-[15px] font-black text-[#111111] outline-none" /></label>
+        </div>
+        </div>
+      </div>
+    </div>
+
     {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
     {notice && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{cards.map(([label, value, Icon, color]) => <div key={label} className="rounded-2xl border border-[#F3F4F6] bg-white p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-[11px] font-black uppercase tracking-wide text-gray-500">{label}</p><p className="mt-2 text-2xl font-black text-gray-900">{value}</p></div><div className={`rounded-xl p-3 ${color}`}><Icon size={21}/></div></div></div>)}</div>
-    <div className="rounded-2xl border border-[#F3F4F6] bg-white p-4 shadow-sm"><div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]"><label className="relative"><Search className="absolute left-3 top-3 text-[#9CA3AF]" size={17}/><input className={`${inputClass} pl-10`} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search Deposit ID, customer, phone, product or status"/></label><div className="flex flex-wrap gap-2">{(['all','pending','ready','completed','cancelled'] as StatusFilter[]).map(value => <button key={value} onClick={() => setStatusFilter(value)} className={`rounded-lg px-3 py-2 text-xs font-black capitalize transition-all cursor-pointer ${statusFilter === value ? 'bg-primary text-primary-100 shadow-xs' : 'bg-slate-100 text-gray-600 hover:bg-slate-200'}`}>{value}</button>)}</div><select className={inputClass} value={dateFilter} onChange={e => setDateFilter(e.target.value as DateFilter)}><option value="all">All Dates</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option></select></div></div>
-    <div className="overflow-hidden rounded-2xl border border-[#F3F4F6] bg-white shadow-sm">
+
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      {cards.map(card => (
+        <div key={card.label} className="flex items-center justify-between rounded-[20px] border border-gray-200 bg-white px-6 py-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+          <div>
+            <p className="text-[13.5px] font-black uppercase tracking-wide text-[#111111]">{card.label}</p>
+            <p className="mt-2 text-[26px] font-black text-[#111111]">{card.value}</p>
+          </div>
+          <span className={`flex h-[52px] w-[52px] items-center justify-center rounded-xl ${card.tile}`}>{card.icon}</span>
+        </div>
+      ))}
+    </div>
+
+    <div className="flex flex-col gap-3 rounded-[20px] border border-gray-200 bg-white p-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] lg:flex-row lg:items-center">
+      <label className="relative flex-1">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#111111]" size={19} strokeWidth={1.75} />
+        <input className="h-12 w-full rounded-xl border border-gray-200 pl-12 pr-4 text-[15px] font-medium text-[#111111] placeholder:text-gray-500 focus:border-primary focus:outline-none" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by ID, customer, phone, product or status" />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        {(['all', 'pending', 'ready', 'completed', 'cancelled'] as StatusFilter[]).map(value => (
+          <button key={value} type="button" onClick={() => setStatusFilter(value)}
+            className={`h-11 rounded-xl px-4 text-[13px] font-black uppercase tracking-wide transition-colors ${statusFilter === value ? 'bg-primary text-primary-ink' : 'bg-gray-100 text-[#111111] hover:bg-gray-200'}`}>
+            {value}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div className="overflow-hidden rounded-[20px] border border-gray-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 border-b border-gray-200 text-[10px] font-black uppercase tracking-wider text-gray-600">
+        <table className="w-full min-w-[1100px] text-left">
+          <thead className="border-b border-gray-200 bg-gray-50">
             <tr>
-              {['Deposit ID / Created','Customer','Product','Total / Deposit / Balance','Delivery','Status','Actions'].map(h => (
-                <th key={h} className="px-4 py-3.5 whitespace-nowrap">{h}</th>
+              {['Deposit ID', 'Customer', 'Product', 'Total / Paid / Balance', 'Delivery', 'Status'].map(h => (
+                <th key={h} className="whitespace-nowrap px-5 py-5 text-[13px] font-black uppercase tracking-wide text-[#111111]">{h}</th>
               ))}
+              <th className="whitespace-nowrap px-5 py-5 text-right text-[13px] font-black uppercase tracking-wide text-[#111111]">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-500">Loading advance orders...</td></tr>
+              <tr><td colSpan={7} className="px-5 py-14 text-center text-[14px] text-gray-500">Loading advance orders...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-500">No advance orders match these filters.</td></tr>
+              <tr><td colSpan={7} className="px-5 py-14 text-center text-[14px] text-gray-500">No advance orders match these filters.</td></tr>
             ) : (
-              filtered.map(order => (
-                <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3.5 align-middle whitespace-nowrap">
-                    <p className="font-black text-[#111111]">{order.deposit_id}</p>
-                    <p className="text-[11px] text-gray-500">
-                      {new Date(order.created_at).toLocaleDateString('en-IN')} • {new Date(order.created_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}
-                    </p>
+              filtered.map(order => {
+                const finalised = order.status === 'completed' || order.status === 'cancelled' || !!order.invoice_number || !!order.completed_order_id
+                const firstProduct = productRows(order)[0]
+                return (
+                <tr key={order.id} className="border-b border-gray-100 last:border-0 even:bg-gray-50/60">
+                  <td className="whitespace-nowrap px-5 py-5 align-middle">
+                    <p className="font-mono text-[13px] font-bold text-[#111111]">{order.deposit_id}</p>
+                    <p className="text-[11.5px] font-bold text-gray-600">{new Date(order.created_at).toLocaleDateString('en-IN')}</p>
                   </td>
-                  <td className="px-4 py-3.5 align-middle whitespace-nowrap">
-                    <p className="font-bold text-gray-900">{order.customer_name}</p>
-                    <p className="text-xs text-gray-500">{formatPhoneDisplay(order.phone)}</p>
+                  <td className="whitespace-nowrap px-5 py-5 align-middle">
+                    <p className="text-[15px] font-black text-[#111111]">{order.customer_name}</p>
+                    <p className="text-[12.5px] text-gray-600">{formatPhoneDisplay(order.phone)}</p>
                   </td>
-                  <td className="max-w-[180px] px-4 py-3.5 align-middle">
-                    <p className="truncate font-semibold text-gray-900">{order.product_name}</p>
-                    <p className="truncate text-xs text-gray-500">{order.category || 'Uncategorised'}</p>
+                  <td className="max-w-[240px] px-5 py-5 align-middle">
+                    <p className="truncate text-[14px] font-black text-[#111111]">{Number(firstProduct?.quantity || 1)}× {order.product_name}</p>
+                    {order.category && <p className="truncate text-[12px] text-gray-500">{order.category}</p>}
                   </td>
-                  <td className="px-4 py-3.5 text-xs align-middle whitespace-nowrap">
-                    <p className="text-gray-700">Total: <b>{formatCurrency(order.total_amount)}</b></p>
-                    <p className="text-[#111111]">Paid: <b>{formatCurrency(order.deposit_amount)}</b></p>
-                    <p className="text-red-600 font-bold">Balance: <b>{formatCurrency(order.remaining_balance)}</b></p>
+                  <td className="whitespace-nowrap px-5 py-5 align-middle text-[13.5px] font-black">
+                    <p className="text-[#111111]">Total: {formatCurrency(order.total_amount)}</p>
+                    <p className="text-emerald-600">Paid: {formatCurrency(order.deposit_amount)}</p>
+                    <p className="text-[#DC2626]">Balance: {formatCurrency(order.remaining_balance)}</p>
                   </td>
-                  <td className="px-4 py-3.5 align-middle whitespace-nowrap">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
-                      <CalendarDays size={14} className="text-gray-400 shrink-0" />
-                      <span>{new Date(`${order.expected_delivery_date}T00:00:00`).toLocaleDateString('en-IN')}</span>
-                    </div>
+                  <td className="whitespace-nowrap px-5 py-5 align-middle text-[14px] font-black text-[#111111]">
+                    {order.expected_delivery_date ? new Date(`${order.expected_delivery_date}T00:00:00`).toLocaleDateString('en-IN') : '—'}
                   </td>
-                  <td className="px-4 py-3.5 align-middle whitespace-nowrap">
-                    <select
-                      value={order.status}
-                      disabled={order.status === 'completed' || order.status === 'cancelled' || !!order.invoice_number || !!order.completed_order_id}
-                      onChange={e => void changeStatus(order, e.target.value as AdvanceStatus)}
-                      className={`rounded-xl border px-2.5 py-1.5 text-xs font-black outline-none shadow-xs transition-colors cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed ${STATUS_STYLES[order.status]}`}
-                    >
-                      <option value="pending_deposit">Pending Deposit</option>
-                      <option value="waiting_final_payment">Waiting for Final Payment</option>
-                      <option value="completed">Completed (receive payment)</option>
-                      <option value="ready_for_delivery">Ready to Collect</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
+                  <td className="whitespace-nowrap px-5 py-5 align-middle">
+                    {finalised ? (
+                      <span className={`inline-block rounded-md border px-3 py-1.5 text-[11.5px] font-black uppercase tracking-widest ${statusPill(order.status)}`}>{STATUS_LABELS[order.status]}</span>
+                    ) : (
+                      <select
+                        value={order.status}
+                        aria-label={`Status of ${order.deposit_id}`}
+                        onChange={e => void changeStatus(order, e.target.value as AdvanceStatus)}
+                        className={`rounded-md border px-2.5 py-1.5 text-[11.5px] font-black uppercase tracking-wide outline-none cursor-pointer ${statusPill(order.status)}`}
+                      >
+                        <option value="pending_deposit">Pending Deposit</option>
+                        <option value="waiting_final_payment">Waiting for Final Payment</option>
+                        <option value="ready_for_delivery">Ready to Collect</option>
+                        <option value="completed">Completed (receive payment)</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    )}
                   </td>
-                  <td className="px-4 py-3.5 align-middle whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      {/* Receive Balance Button (strictly when no invoice exists, not completed, not cancelled, and pending/ready) */}
-                      {!order.invoice_number &&
-                        !order.completed_order_id &&
-                        order.status !== 'completed' &&
-                        order.status !== 'cancelled' &&
-                        ['pending_deposit', 'waiting_final_payment', 'ready_for_delivery'].includes(order.status) && (
-                        <button
-                          type="button"
-                          onClick={() => setPaymentOrder(order)}
-                          className="flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 text-xs font-black shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap"
-                          title="Receive Remaining Balance"
-                        >
-                          <span>Receive Balance</span>
+                  <td className="whitespace-nowrap px-5 py-5 align-middle">
+                    <div className="flex items-center justify-end gap-2.5">
+                      {!finalised && ['pending_deposit', 'waiting_final_payment', 'ready_for_delivery'].includes(order.status) && (
+                        <button type="button" onClick={() => setPaymentOrder(order)} title="Receive Remaining Balance"
+                          className="h-11 rounded-xl bg-emerald-600 px-3.5 text-[12px] font-black uppercase tracking-wide text-white hover:bg-emerald-700">
+                          Receive Balance
                         </button>
                       )}
-
-                      {/* View Details Icon */}
-                      <button
-                        type="button"
-                        onClick={() => void openDetails(order)}
-                        className="w-8 h-8 rounded-lg bg-[#F9FAFB] hover:bg-gray-100 text-[#111111] flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                        title="View Details"
-                      >
-                        <Eye size={15}/>
+                      <button type="button" onClick={() => order.status === 'completed' ? whatsappInvoice(order) : whatsappDepositReceipt(order)}
+                        className={`${iconBtn} bg-emerald-50 text-emerald-600 hover:bg-emerald-100`}
+                        title={order.status === 'completed' ? 'Share Final Invoice via WhatsApp' : 'Share Advance Receipt via WhatsApp'} aria-label="Share on WhatsApp">
+                        <MessageCircle size={19} strokeWidth={1.75} />
                       </button>
-
-                      {/* Delete Icon (admin only) */}
+                      <button type="button" onClick={() => void downloadReceipt(order)}
+                        className={`${iconBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`}
+                        title={order.status === 'completed' ? 'Download PDF Invoice' : 'Download PDF Receipt'} aria-label="Download PDF">
+                        <FileText size={19} strokeWidth={1.75} />
+                      </button>
+                      <button type="button" onClick={() => void (order.status === 'completed' ? printFinal(order) : printReceipt(order))}
+                        className={`${iconBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`}
+                        title={order.status === 'completed' ? 'Print Final Receipt' : 'Print Advance Receipt'} aria-label="Print">
+                        <Printer size={19} strokeWidth={1.75} />
+                      </button>
+                      <button type="button" onClick={() => void openDetails(order)}
+                        className={`${iconBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`} title="View Details" aria-label="View details">
+                        <Eye size={19} strokeWidth={1.75} />
+                      </button>
                       {role !== 'staff' && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteOrder(order.id, order.customer_name)}
-                          className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                          title="Delete Order"
-                        >
-                          <Trash2 size={15}/>
+                        <button type="button" onClick={() => void handleDeleteOrder(order.id, order.customer_name)}
+                          className={`${iconBtn} bg-red-50 text-[#DC2626] hover:bg-red-100`} title="Delete Order" aria-label="Delete order">
+                          <Trash2 size={19} strokeWidth={1.75} />
                         </button>
                       )}
-
-                      {/* Print Receipt / Invoice */}
-                      <button
-                        type="button"
-                        onClick={() => void (order.status === 'completed' ? printFinal(order) : printReceipt(order))}
-                        className="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 text-primary-hover flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                        title={order.status === 'completed' ? "Print Final Receipt" : "Print Advance Receipt"}
-                      >
-                        <Printer size={15}/>
-                      </button>
-
-                      {/* Download PDF Receipt / Invoice */}
-                      <button
-                        type="button"
-                        onClick={() => void downloadReceipt(order)}
-                        className="w-8 h-8 rounded-lg bg-[#F9FAFB] hover:bg-gray-100 text-[#111111] flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                        title={order.status === 'completed' ? "Download PDF Invoice" : "Download PDF Receipt"}
-                      >
-                        <Download size={15}/>
-                      </button>
-
-                      {/* WhatsApp Share */}
-                      <button
-                        type="button"
-                        onClick={() => order.status === 'completed' ? whatsappInvoice(order) : whatsappDepositReceipt(order)}
-                        className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                        title={order.status === 'completed' ? "Share Final Invoice via WhatsApp" : "Share Advance Receipt via WhatsApp"}
-                      >
-                        <MessageCircle size={15}/>
-                      </button>
                     </div>
                   </td>
                 </tr>
-              ))
+              )})
             )}
           </tbody>
         </table>

@@ -35,4 +35,4 @@ fix*.cjs
 gen_logo.cjs
 safe_fix.cjs
 test-*.js
-supabase/.temp/
+neon/.temp/

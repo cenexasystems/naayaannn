@@ -51,7 +51,11 @@ const safeEqual = (a: string, b: string) => {
   return timingSafeEqual(x, y)
 }
 
-/** Checks portal credentials against server-side env (VITE_* names accepted for older deployments). */
+/**
+ * Checks portal credentials against server-side env (VITE_* names accepted for older deployments).
+ * The login screen sends only a passcode: the admin passcode signs in as admin, the staff
+ * passcode as staff. An ID, when sent, must also match.
+ */
 export function checkCredentials(id: string, password: string): Role | null {
   const adminId = env('ADMIN_ID', 'VITE_ADMIN_ID', 'VITE_PORTAL_ID') || 'admin'
   const adminPass = env('ADMIN_PASSWORD', 'VITE_ADMIN_PASSWORD', 'VITE_PORTAL_PASSWORD') || 'admin123'
@@ -59,7 +63,9 @@ export function checkCredentials(id: string, password: string): Role | null {
   const staffPass = env('STAFF_PASSWORD', 'VITE_STAFF_PASSWORD') || 'staff123'
   const i = id.trim()
   const p = password.trim()
-  if (safeEqual(i, adminId) && safeEqual(p, adminPass)) return 'admin'
-  if (safeEqual(i, staffId) && safeEqual(p, staffPass)) return 'staff'
+  if (!p) return null
+  const idOk = (expected: string) => !i || safeEqual(i, expected)
+  if (safeEqual(p, adminPass) && idOk(adminId)) return 'admin'
+  if (safeEqual(p, staffPass) && idOk(staffId)) return 'staff'
   return null
 }

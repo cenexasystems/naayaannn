@@ -76,8 +76,7 @@ Never give a database or server variable a `VITE_` prefix.
 - **Theme:** grey (accent `#3F3F46`)
 
 Phone numbers, email, Instagram, logo, tagline and the accent colour are edited by the admin in
-**Dashboard → Settings**. They are saved in Supabase (`store_settings`, needs migration
-`20261019_0030_shop_settings.sql`) and cached on each device. Defaults live in `src/lib/brand.ts`.
+**Dashboard → Settings**. They are saved in Supabase (`store_settings`, see `neon/migrations/`) and cached on each device. Defaults live in `src/lib/brand.ts`.
 
 ## Logo
 

@@ -1,8 +1,8 @@
 /**
  * Applies the database schema to Neon, in order:
- *   1. db/neon/0xx_*.sql        (Supabase compatibility layer)
- *   2. supabase/migrations/*.sql (the project's original migrations, unchanged)
- *   3. db/neon/1xx_*.sql        (Neon runtime objects used by the API)
+ *   1. neon/0xx_*.sql         (compatibility layer for objects the old migrations reference)
+ *   2. neon/migrations/*.sql  (the project's migrations, in filename order)
+ *   3. neon/1xx_*.sql         (runtime objects used by the API: file storage, change counters)
  * Applied files are recorded in public.schema_migrations and skipped next time.
  *
  * Uses DATABASE_URL_UNPOOLED (direct connection) when set, else DATABASE_URL.
@@ -27,12 +27,12 @@ if (!url) {
 const sqlFiles = (dir) =>
   fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.sql')).sort() : []
 
-const neonDir = path.join(ROOT, 'db', 'neon')
-const supaDir = path.join(ROOT, 'supabase', 'migrations')
+const neonDir = path.join(ROOT, 'neon')
+const migrationsDir = path.join(neonDir, 'migrations')
 const neonFiles = sqlFiles(neonDir)
 const plan = [
   ...neonFiles.filter((f) => f.startsWith('0')).map((f) => ({ key: `neon/${f}`, file: path.join(neonDir, f) })),
-  ...sqlFiles(supaDir).map((f) => ({ key: `supabase/${f}`, file: path.join(supaDir, f) })),
+  ...sqlFiles(migrationsDir).map((f) => ({ key: `migrations/${f}`, file: path.join(migrationsDir, f) })),
   ...neonFiles.filter((f) => !f.startsWith('0')).map((f) => ({ key: `neon/${f}`, file: path.join(neonDir, f) })),
 ]
 
@@ -43,6 +43,11 @@ try {
     key TEXT PRIMARY KEY,
     applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`)
+  // Records from before the folder rename (supabase/migrations → neon/migrations)
+  await client.query(`UPDATE public.schema_migrations SET key = 'migrations/' || substr(key, 10) WHERE key LIKE 'supabase/%'
+    AND NOT EXISTS (SELECT 1 FROM public.schema_migrations m2 WHERE m2.key = 'migrations/' || substr(public.schema_migrations.key, 10))`)
+  await client.query(`UPDATE public.schema_migrations SET key = 'neon/000_compat.sql' WHERE key = 'neon/000_supabase_compat.sql'`)
+  await client.query(`UPDATE public.schema_migrations SET key = 'neon/100_runtime.sql' WHERE key = 'neon/100_neon_runtime.sql'`)
   const done = new Set((await client.query('SELECT key FROM public.schema_migrations')).rows.map((r) => r.key))
   const pending = plan.filter((m) => !done.has(m.key))
 

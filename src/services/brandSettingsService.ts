@@ -25,6 +25,10 @@ const fromRow = (row: StoreSettingsRow): Partial<BrandSettings> => ({
   instagram: str(row.instagram),
   logo: str(row.logo_data),
   accentColor: str(row.accent_color),
+  city: str(row.city),
+  businessHours: str(row.business_hours),
+  catalogueHeadline: str(row.catalogue_headline),
+  gstin: str(row.gstin),
 })
 
 const toRow = (s: BrandSettings) => ({
@@ -41,6 +45,10 @@ const toRow = (s: BrandSettings) => ({
   instagram: s.instagram,
   logo_data: s.logo,
   accent_color: s.accentColor,
+  city: s.city,
+  business_hours: s.businessHours,
+  catalogue_headline: s.catalogueHeadline,
+  gstin: s.gstin,
   updated_at: new Date().toISOString(),
 })
 
@@ -96,6 +104,6 @@ export async function saveBrandSettings(settings: BrandSettings): Promise<SaveBr
     savedToServer: false,
     error: fallback.error
       ? fallback.error.message
-      : 'Database migration 20261019_0030_shop_settings.sql has not been applied, so some details were saved on this device only.',
+      : 'Database migration neon/migrations/20261019_0030_shop_settings.sql has not been applied, so some details were saved on this device only.',
   }
 }
