@@ -1,11 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { Download, X } from 'lucide-react'
 import { BRAND_EN, BRAND_ICON } from '../../lib/brand'
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
+import { clearInstallPrompt, getInstallPrompt, subscribeInstallPrompt } from '../../lib/installPrompt'
 
 const DISMISS_KEY = 'naayan_install_prompt_dismissed_at'
 const DISMISS_DAYS = 7
@@ -19,53 +15,41 @@ const recentlyDismissed = () => {
   }
 }
 
-/** "Install app" card shown when the browser offers PWA installation. */
+/** "Install app" card, shown on the login page when the browser offers PWA installation. */
 export function InstallAppPrompt() {
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
-
-  useEffect(() => {
-    const onPrompt = (e: Event) => {
-      e.preventDefault()
-      if (!recentlyDismissed()) setDeferred(e as BeforeInstallPromptEvent)
-    }
-    const onInstalled = () => setDeferred(null)
-    window.addEventListener('beforeinstallprompt', onPrompt)
-    window.addEventListener('appinstalled', onInstalled)
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onPrompt)
-      window.removeEventListener('appinstalled', onInstalled)
-    }
-  }, [])
+  const offer = useSyncExternalStore(subscribeInstallPrompt, getInstallPrompt, () => null)
+  const [dismissed, setDismissed] = useState(recentlyDismissed)
+  const deferred = dismissed ? null : offer
 
   if (!deferred) return null
 
   const install = async () => {
     await deferred.prompt()
     await deferred.userChoice.catch(() => null)
-    setDeferred(null)
+    clearInstallPrompt()
   }
 
   const dismiss = () => {
     try { localStorage.setItem(DISMISS_KEY, String(Date.now())) } catch { /* ignore */ }
-    setDeferred(null)
+    setDismissed(true)
   }
 
   return (
-    <div className="fixed bottom-4 right-4 left-4 sm:left-auto z-[60] sm:w-[440px] print:hidden">
-      <div className="relative flex items-center gap-3.5 rounded-[22px] border border-primary/40 bg-[#111111] p-3.5 pr-4 text-white shadow-[0_20px_45px_-12px_rgba(0,0,0,0.55)]">
-        <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-xl bg-primary p-1 ring-1 ring-white/10">
+    <div className="fixed bottom-4 right-4 left-4 sm:left-auto z-[60] sm:w-[360px] print:hidden">
+      <div className="relative flex items-center gap-3 rounded-[18px] border border-primary/40 bg-[#111111] p-2.5 pr-3 text-white shadow-[0_20px_45px_-12px_rgba(0,0,0,0.55)]">
+        <div className="h-[42px] w-[42px] shrink-0 overflow-hidden rounded-lg bg-primary p-1 ring-1 ring-white/10">
           <img src={BRAND_ICON} alt="" className="h-full w-full object-contain rounded-lg" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-black uppercase tracking-tight">Install {BRAND_EN}</p>
-          <p className="truncate text-[12.5px] font-semibold text-white/75">Add app for fast offline access</p>
+          <p className="truncate text-[12.5px] font-black uppercase tracking-tight">Install {BRAND_EN}</p>
+          <p className="truncate text-[11px] font-semibold text-white/75">Add app for fast offline access</p>
         </div>
         <button
           type="button"
           onClick={() => void install()}
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-[12px] font-black uppercase tracking-wide text-primary-ink ring-1 ring-white/10 hover:bg-primary-hover"
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-[11px] font-black uppercase tracking-wide text-primary-ink ring-1 ring-white/10 hover:bg-primary-hover"
         >
-          <Download size={16} /> Install
+          <Download size={14} /> Install
         </button>
         <button
           type="button"

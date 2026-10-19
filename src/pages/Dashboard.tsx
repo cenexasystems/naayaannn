@@ -4,7 +4,7 @@ import {
   Box, AlertCircle, ArrowUp, ArrowDown, Power, Download, TrendingUp, TrendingDown,
   Package, Search, RefreshCw, ShieldCheck, ShieldOff, Trophy,
   MessageCircle, ChevronDown, Eye, FileText, Printer, MoreVertical, X, Layers, Receipt,
-  SlidersHorizontal, Tag, Ticket, Percent, CheckCircle2, Info, Sparkles, Banknote, QrCode, CreditCard, Gift, Settings as SettingsIcon, LogOut,
+  SlidersHorizontal, Tag, Ticket, Percent, CheckCircle2, Info, Sparkles, Banknote, QrCode, CreditCard, Gift, Settings as SettingsIcon, LogOut, Clock, History, Boxes, ChartNoAxesColumn, Wallet, TicketPercent, Settings2,
 } from 'lucide-react'
 import { paymentBreakdown, formatPaymentLabel } from '../lib/payments'
 
@@ -60,6 +60,7 @@ import { BirthdaysView } from '../components/birthdays/BirthdaysView'
 import { ShopSettingsView } from '../components/settings/ShopSettingsView'
 import { expenseService, type ExpenseRecord } from '../services/expenseService'
 import { useNavigationStore } from '../store/navigationStore'
+import { useAlarmStore } from '../store/alarmStore'
 import { useHardwareBarcodeScanner } from '../hooks/useHardwareBarcodeScanner'
 import { BarcodeRedirectDialog } from '../components/pos/BarcodeRedirectDialog'
 import { exportAnalyticsToCSV, exportAnalyticsToPDF } from '../services/analyticsExport'
@@ -115,6 +116,10 @@ const parseOrderItems = (items: unknown): Record<string, unknown>[] => {
 }
 
 // When o.total is 0 (legacy orders saved with bug), compute it from the items JSON
+/** A bill is a GST invoice when GST was charged on it. */
+const isGstBill = (o: { total_gst?: unknown; gst_amount?: unknown }) =>
+  toNumber(o.total_gst, 0) > 0 || toNumber(o.gst_amount, 0) > 0
+
 const getOrderTotal = (order: { total: unknown; items: unknown; shipping?: unknown; delivery_charge?: unknown; total_gst?: unknown; discount_amount?: unknown; manual_discount_amount?: unknown }): number => {
   const stored = toNumber(order.total, 0)
   if (stored > 0) return stored
@@ -197,6 +202,7 @@ export default function Dashboard() {
   const location = useLocation()
   const navigate = useNavigate()
   const role = useAdminAuthStore(state => state.role)
+  const lowStockCount = useAlarmStore(state => state.lowStockItems.length)
   const [tab, setTab] = useState<TabKey>(() => {
     const params = new URLSearchParams(location.search)
     const tabParam = params.get('tab') as TabKey | null
@@ -312,6 +318,7 @@ export default function Dashboard() {
 
   // Analytics global date filter
   const [analyticsDatePreset, setAnalyticsDatePreset] = useState<'all' | 'today' | 'week' | 'month' | 'year' | 'custom'>('all')
+  const [gstScope, setGstScope] = useState<'all' | 'gst' | 'non_gst'>('all')
   const [analyticsDateFrom, setAnalyticsDateFrom] = useState('')
   const [analyticsDateTo, setAnalyticsDateTo] = useState('')
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([])
@@ -437,8 +444,22 @@ export default function Dashboard() {
 
   // Analytics (date-aware)
   const analytics = useMemo(() => {
+    // GST scope: All bills, GST invoices only, or non-GST bills only
+    const scopedOrders = gstScope === 'all' ? orders : orders.filter(o => (gstScope === 'gst') === isGstBill(o))
+
+    // GST vs non-GST split for the selected period (always across all bills)
+    const splitSource = orders.filter(o =>
+      (!analyticsDateFrom || toLocalDateKey(o.created_at) >= analyticsDateFrom) &&
+      (!analyticsDateTo || toLocalDateKey(o.created_at) <= analyticsDateTo) &&
+      normalizeStatus(o.status) !== 'cancelled' && isCompletedStatus(o.status) &&
+      normalizeOrderType(o.order_type) !== 'online_request')
+    const gstBills = splitSource.filter(isGstBill)
+    const nonGstBills = splitSource.filter(o => !isGstBill(o))
+    const gstRevenue = gstBills.reduce((sum, o) => sum + getOrderTotal(o), 0)
+    const nonGstRevenue = nonGstBills.reduce((sum, o) => sum + getOrderTotal(o), 0)
+
     // Apply global date filter
-    let dated = orders
+    let dated = scopedOrders
     if (analyticsDateFrom) dated = dated.filter(o => toLocalDateKey(o.created_at) >= analyticsDateFrom)
     if (analyticsDateTo)   dated = dated.filter(o => toLocalDateKey(o.created_at) <= analyticsDateTo)
 
@@ -454,7 +475,7 @@ export default function Dashboard() {
     const billableCompleted = completedOrders.filter(o => normalizeOrderType(o.order_type) !== 'online_request')
     // The trend charts are fixed calendar views. The period selector filters
     // KPIs/tables, but must not change the year/week bars underneath them.
-    const allBillableCompleted = orders
+    const allBillableCompleted = scopedOrders
       .filter(o => normalizeStatus(o.status) !== 'cancelled')
       .filter(o => isCompletedStatus(o.status))
       .filter(o => normalizeOrderType(o.order_type) !== 'online_request')
@@ -491,7 +512,7 @@ export default function Dashboard() {
 
     const todayKey  = toLocalDateKey(new Date())
     const monthKey  = todayKey.slice(0, 7)
-    const todaySales   = orders.filter(o => isCompletedStatus(o.status) && o.order_type !== 'whatsapp_request' && toLocalDateKey(o.created_at) === todayKey).reduce((s, o) => s + getOrderTotal(o), 0)
+    const todaySales   = scopedOrders.filter(o => isCompletedStatus(o.status) && o.order_type !== 'whatsapp_request' && toLocalDateKey(o.created_at) === todayKey).reduce((s, o) => s + getOrderTotal(o), 0)
 
     // Today-specific analytics (for TODAY'S SALES tab)
     const todayOrders = billableCompleted.filter(o => toLocalDateKey(o.created_at) === todayKey)
@@ -846,8 +867,13 @@ export default function Dashboard() {
       totalExpenses,
       netProfit,
       isProfitable,
+      gstRevenue,
+      nonGstRevenue,
+      gstBillCount: gstBills.length,
+      nonGstBillCount: nonGstBills.length,
+      netEarnings: gstRevenue + nonGstRevenue - totalExpenses,
     }
-  }, [orders, orderItems, products, variantsMap, coupons, expenses, analyticsDateFrom, analyticsDateTo])
+  }, [orders, orderItems, products, variantsMap, coupons, expenses, analyticsDateFrom, analyticsDateTo, gstScope])
 
   // Lifetime usage per coupon: the larger of the stored counter and orders that carry the code
   // (advance-order completion does not bump coupons.usage_count).
@@ -1847,25 +1873,25 @@ export default function Dashboard() {
     </div>
   )
 
-  const navItems: Array<{ id: TabKey; icon: React.ReactNode; label: string }> = role === 'staff'
+  const navItems: Array<{ id: TabKey; icon: React.ReactNode; label: string; badge?: number }> = role === 'staff'
     ? [
-        { id: 'billing',        icon: <ShoppingCart size={18} />, label: 'Billing Panel' },
-        { id: 'inventory',      icon: <Layers size={18} />,       label: 'Inventory' },
-        { id: 'advance_orders', icon: <FileText size={18} />,     label: 'Advance Orders' },
-        { id: 'birthdays',      icon: <Gift size={18} />,         label: 'Birthdays' },
-        { id: 'expenses',       icon: <Receipt size={18} />,      label: 'Expenses' },
-        { id: 'history',        icon: <List size={18} />,         label: 'Order History' },
+        { id: 'billing',        icon: <Receipt size={21} strokeWidth={1.75} />,           label: 'Billing Panel' },
+        { id: 'advance_orders', icon: <Clock size={21} strokeWidth={1.75} />,             label: 'Advance Orders' },
+        { id: 'history',        icon: <History size={21} strokeWidth={1.75} />,           label: 'Order History' },
+        { id: 'inventory',      icon: <Boxes size={21} strokeWidth={1.75} />,             label: 'Inventory', badge: lowStockCount },
+        { id: 'expenses',       icon: <Wallet size={21} strokeWidth={1.75} />,            label: 'Expense Tracker' },
+        { id: 'birthdays',      icon: <Gift size={21} strokeWidth={1.75} />,              label: 'Birthdays' },
       ]
     : [
-        { id: 'billing',        icon: <ShoppingCart size={18} />, label: 'Billing Panel' },
-        { id: 'inventory',      icon: <Layers size={18} />,       label: 'Inventory & Barcodes' },
-        { id: 'advance_orders', icon: <FileText size={18} />,     label: 'Advance Orders' },
-        { id: 'birthdays',      icon: <Gift size={18} />,         label: 'Birthdays' },
-        { id: 'expenses',       icon: <Receipt size={18} />,      label: 'Expenses' },
-        { id: 'history',        icon: <List size={18} />,         label: 'Order History' },
-        { id: 'pos_analytics',  icon: <BarChart2 size={18} />,    label: 'Analytics Dashboard' },
-        { id: 'coupons',        icon: <Box size={18} />,          label: 'Coupons' },
-        { id: 'settings',       icon: <SettingsIcon size={18} />, label: 'Settings' },
+        { id: 'billing',        icon: <Receipt size={21} strokeWidth={1.75} />,           label: 'Billing Panel' },
+        { id: 'advance_orders', icon: <Clock size={21} strokeWidth={1.75} />,             label: 'Advance Orders' },
+        { id: 'history',        icon: <History size={21} strokeWidth={1.75} />,           label: 'Order History' },
+        { id: 'inventory',      icon: <Boxes size={21} strokeWidth={1.75} />,             label: 'Inventory', badge: lowStockCount },
+        { id: 'pos_analytics',  icon: <ChartNoAxesColumn size={21} strokeWidth={1.75} />, label: 'Analytics Dashboard' },
+        { id: 'expenses',       icon: <Wallet size={21} strokeWidth={1.75} />,            label: 'Expense Tracker' },
+        { id: 'birthdays',      icon: <Gift size={21} strokeWidth={1.75} />,              label: 'Birthdays' },
+        { id: 'coupons',        icon: <TicketPercent size={21} strokeWidth={1.75} />,     label: 'Coupons' },
+        { id: 'settings',       icon: <Settings2 size={21} strokeWidth={1.75} />,         label: 'Settings' },
       ]
 
   return (
@@ -1897,11 +1923,11 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => setSidebarCollapsed((state) => !state)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-white/80 hover:bg-white/20 hover:text-white transition-colors shrink-0 cursor-pointer"
+            className={`flex items-center justify-center rounded-lg text-white/90 hover:bg-white/10 hover:text-white transition-colors shrink-0 cursor-pointer ${sidebarCollapsed ? 'h-7 w-7 bg-white/10' : 'h-9 w-9'}`}
             aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <ChevronDown size={14} className={`transition-transform duration-300 ${sidebarCollapsed ? '-rotate-90' : 'rotate-90'}`} />
+            {sidebarCollapsed ? <ChevronDown size={16} className="-rotate-90" /> : <X size={22} strokeWidth={1.75} />}
           </button>
         </div>
         {/* Mobile mini-header */}
@@ -1956,6 +1982,11 @@ export default function Dashboard() {
               <span className={`hidden lg:block truncate text-left transition-all duration-200 ${sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100 flex-1'}`}>
                 {item.label}
               </span>
+              {!!item.badge && !sidebarCollapsed && (
+                <span className="hidden lg:flex h-[26px] min-w-[26px] shrink-0 items-center justify-center rounded-full bg-[#DC2626] px-1.5 text-[12px] font-black text-white ring-2 ring-white/90">
+                  {item.badge > 99 ? '99+' : item.badge}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -1976,7 +2007,7 @@ export default function Dashboard() {
               'rounded-xl border border-white/20 bg-white/5 font-black uppercase tracking-wide text-[13px] transition-all text-white hover:bg-white/15 overflow-hidden cursor-pointer',
             ].join(' ')}
           >
-            <span className="shrink-0"><LogOut size={19} /></span>
+            <span className="shrink-0"><LogOut size={21} strokeWidth={1.75} /></span>
             <span className={`truncate text-left transition-all duration-200 ${sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100 flex-1'}`}>Log out</span>
           </button>
         </div>
@@ -1988,9 +2019,6 @@ export default function Dashboard() {
         <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6 lg:px-12 lg:pb-8 bg-white">
         <header className="hidden lg:flex items-center justify-between gap-4 py-7 mb-8 border-b border-gray-200 print:hidden">
           <h2 className="text-[22px] font-black text-[#111111] tracking-tight">{BRAND_EN}</h2>
-          <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3.5 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#374151]">
-            <span className="h-2 w-2 rounded-full bg-[#10B981]" /> {role === 'admin' ? 'Admin' : 'Staff'}
-          </span>
         </header>
         <div className="lg:hidden h-4" />
 
@@ -2550,8 +2578,36 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-[24px] font-black text-[#111111] tracking-tight">POS Analytics</h2>
-                <p className="text-[13px] text-[#6B7280]">Real time store & channel intelligence</p>
+                <h2 className="text-[30px] sm:text-[34px] font-black text-[#111111] tracking-tight leading-tight">
+                  {gstScope === 'gst' ? 'GST Revenue' : gstScope === 'non_gst' ? 'Non-GST Revenue' : 'Revenue Analytics'}
+                </h2>
+                <p className="mt-1 text-[14px] font-medium text-[#374151]">
+                  {gstScope === 'gst'
+                    ? 'GST invoices only — taxable sales dashboard'
+                    : gstScope === 'non_gst'
+                      ? 'Non-GST bills only — retail sales dashboard'
+                      : 'All bills — full store & channel insights'}
+                </p>
+                <div className="mt-4 inline-flex items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1.5 max-w-full overflow-x-auto hide-scrollbar" role="tablist" aria-label="Bill type">
+                  {([
+                    { id: 'all' as const, label: 'All Bills' },
+                    { id: 'gst' as const, label: 'GST Invoices' },
+                    { id: 'non_gst' as const, label: 'Non-GST Bills' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={gstScope === opt.id}
+                      onClick={() => setGstScope(opt.id)}
+                      className={`whitespace-nowrap rounded-xl px-4 sm:px-5 py-2 text-[12px] sm:text-[13px] font-black uppercase tracking-wide transition-colors cursor-pointer ${
+                        gstScope === opt.id ? 'bg-primary text-primary-ink shadow-sm' : 'text-[#111111] hover:bg-gray-100'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Export Actions */}
@@ -2661,6 +2717,58 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+
+            {/* GST / non-GST summary (All Bills view) */}
+            {posAnalyticsTab === 'revenue' && gstScope === 'all' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+                  <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-emerald-600 to-[#0B3B2E] p-6 text-white shadow-md">
+                    <div className="flex items-start justify-between">
+                      <p className="text-[13px] font-black uppercase tracking-wide text-white/90">{analytics.netEarnings >= 0 ? 'Net Earnings' : 'Net Loss'}</p>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15"><Wallet size={18} /></span>
+                    </div>
+                    <p className="mt-6 text-[30px] font-black leading-none">{formatCurrency(Math.abs(analytics.netEarnings))}</p>
+                    <p className="mt-3 text-[11px] font-black text-white/85">GST + Non-GST − Expenses</p>
+                  </div>
+                  <div className="rounded-[20px] border border-primary-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <p className="text-[13px] font-black uppercase tracking-wide text-[#111111]">GST Sales</p>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary"><RMIcon size={18} /></span>
+                    </div>
+                    <p className="mt-6 text-[30px] font-black leading-none text-primary">{formatCurrency(analytics.gstRevenue)}</p>
+                    <p className="mt-3 text-[11px] font-semibold text-[#374151]">{analytics.gstBillCount} GST invoice{analytics.gstBillCount === 1 ? '' : 's'}</p>
+                  </div>
+                  <div className="rounded-[20px] border border-emerald-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <p className="text-[13px] font-black uppercase tracking-wide text-[#111111]">Non-GST Sales</p>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-600"><TrendingUp size={18} /></span>
+                    </div>
+                    <p className="mt-6 text-[30px] font-black leading-none text-emerald-600">+ {formatCurrency(analytics.nonGstRevenue)}</p>
+                    <p className="mt-3 text-[11px] font-semibold text-[#374151]">{analytics.nonGstBillCount} retail bill{analytics.nonGstBillCount === 1 ? '' : 's'}</p>
+                  </div>
+                  <div className="rounded-[20px] border border-rose-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <p className="text-[13px] font-black uppercase tracking-wide text-[#111111]">Total Expenses</p>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-50 text-rose-600"><TrendingDown size={18} /></span>
+                    </div>
+                    <p className="mt-6 text-[30px] font-black leading-none text-[#DC2626]">− {formatCurrency(analytics.totalExpenses)}</p>
+                    <button type="button" onClick={() => handleTabClick('expenses')} className="mt-3 text-[11px] font-black text-[#DC2626] underline underline-offset-2 cursor-pointer">
+                      Money out — Expense Tracker
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13.5px] font-medium text-[#4B5563]">
+                    <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11.5px] font-black uppercase tracking-wide text-indigo-700">Calculation Formula</span>
+                    <span>GST ({formatCurrency(analytics.gstRevenue)}) + Non-GST ({formatCurrency(analytics.nonGstRevenue)}) − Expenses ({formatCurrency(analytics.totalExpenses)})</span>
+                  </div>
+                  <p className="whitespace-nowrap text-[14px] font-bold text-[#374151]">
+                    = {analytics.netEarnings >= 0 ? 'Net Profit' : 'Net Loss'}:{' '}
+                    <span className={`font-mono font-black ${analytics.netEarnings >= 0 ? 'text-emerald-600' : 'text-[#DC2626]'}`}>{formatCurrency(Math.abs(analytics.netEarnings))}</span>
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Revenue sub-tab */}
             {posAnalyticsTab === 'revenue' && (
@@ -2781,7 +2889,7 @@ export default function Dashboard() {
                       color: 'text-gray-500',
                       bg: 'bg-gray-50',
                     },
-                  ].map((card, index) => (
+                  ].filter(card => !['Net Profit', 'Net Loss', 'Total Expenses'].includes(card.label)).map((card, index) => (
                     <div key={index} className="bg-white rounded-card border border-borderLight p-5 sm:p-5 shadow-soft flex flex-col justify-between hover:shadow-md transition-shadow">
                       <div>
                         <div className="flex items-start justify-between gap-2 mb-3">
@@ -3344,7 +3452,14 @@ export default function Dashboard() {
 
         {/* ── INVENTORY & BARCODES TAB ── */}
         {tab === 'inventory' && (
-          <div className="p-2 sm:p-4">
+          <div className="space-y-6">
+            <div>
+              <h2 className="flex items-center gap-3 text-[30px] sm:text-[34px] font-black leading-tight tracking-tight text-[#111111]">
+                <Boxes size={34} strokeWidth={1.75} className="text-primary" />
+                Inventory
+              </h2>
+              <p className="mt-1 text-[14px] font-medium text-[#374151]">Manage products and categories — add, edit and delete.</p>
+            </div>
             <InventoryTable />
           </div>
         )}

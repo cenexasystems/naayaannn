@@ -5,11 +5,12 @@ import { useAdminAuthStore } from '../store/store'
 import { BRAND_EN, BRAND_TAGLINE, BRAND_LOGO } from '../lib/brand'
 import { useLangStore } from '../store/langStore'
 import { alarmSound } from '../lib/alarmAudio'
+import { InstallAppPrompt } from '../components/common/InstallAppPrompt'
 
 const fieldWrap =
-  'flex items-center gap-3 rounded-2xl border border-gray-300 bg-white px-4 h-[60px] transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15'
+  'flex items-center gap-2.5 rounded-xl border border-gray-300 bg-white px-3.5 h-[46px] transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15'
 const fieldInput =
-  'min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-[#111111] outline-none placeholder:text-gray-300 placeholder:tracking-normal'
+  'min-w-0 flex-1 bg-transparent text-[14px] font-semibold text-[#111111] outline-none placeholder:text-gray-300 placeholder:tracking-normal'
 
 export default function AdminLogin() {
   const navigate = useNavigate()
@@ -45,22 +46,22 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] overflow-y-auto bg-gradient-to-br from-white via-[#FAFAFA] to-primary-50 px-4 py-8 font-sans flex flex-col items-center justify-center">
-      <div className="relative w-full max-w-[560px] overflow-hidden rounded-[40px] border border-gray-300 bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.18)]">
-        <div className="h-2 w-full bg-primary" />
-        <div className="px-6 pb-9 pt-9 sm:px-12">
+    <div className="relative min-h-[100dvh] overflow-y-auto bg-gradient-to-br from-white via-[#FAFAFA] to-primary-50 px-4 py-6 font-sans flex flex-col items-center justify-center">
+      <div className="relative w-full max-w-[420px] overflow-hidden rounded-[28px] border border-gray-300 bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.18)]">
+        <div className="h-1.5 w-full bg-primary" />
+        <div className="px-6 pb-6 pt-7 sm:px-9">
           {/* Brand */}
           <div className="flex flex-col items-center text-center">
-            <div className="relative mb-6">
-              <div className="absolute inset-0 -m-3 rounded-[32px] bg-primary/30 blur-xl" aria-hidden />
-              <div className="relative flex h-[118px] w-[118px] items-center justify-center overflow-hidden rounded-[28px] bg-primary p-2 shadow-lg">
-                <img src={BRAND_LOGO} alt={BRAND_EN} className="h-full w-full object-contain rounded-[22px]" />
+            <div className="relative mb-4">
+              <div className="absolute inset-0 -m-2 rounded-[24px] bg-primary/25 blur-lg" aria-hidden />
+              <div className="relative flex h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-[20px] bg-primary p-1.5 shadow-md">
+                <img src={BRAND_LOGO} alt={BRAND_EN} className="h-full w-full object-contain rounded-[16px]" />
               </div>
             </div>
-            <h1 className="font-serif text-[34px] sm:text-[38px] leading-tight text-primary" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+            <h1 className="font-serif text-[26px] sm:text-[28px] leading-tight text-primary" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
               {BRAND_EN}
             </h1>
-            <p className="mt-3 max-w-[440px] text-[13px] sm:text-[14px] font-bold uppercase leading-relaxed tracking-[0.22em] text-gray-500">
+            <p className="mt-2 max-w-[340px] text-[10.5px] sm:text-[11px] font-bold uppercase leading-relaxed tracking-[0.18em] text-gray-500">
               {BRAND_TAGLINE ? `POS Terminal • ${BRAND_TAGLINE}` : l('Retail POS Terminal • Billing • Inventory', 'சில்லறை POS • பில்லிங் • சரக்கு')}
             </p>
           </div>
@@ -72,13 +73,13 @@ export default function AdminLogin() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
             <div>
-              <label htmlFor="admin-portal-id" className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.2em] text-primary">
+              <label htmlFor="admin-portal-id" className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-[0.18em] text-primary">
                 {l('Portal ID', 'நுழைவு அடையாளம்')}
               </label>
               <div className={fieldWrap}>
-                <User size={19} className="shrink-0 text-primary" />
+                <User size={17} className="shrink-0 text-primary" />
                 <input
                   id="admin-portal-id"
                   name="portalId"
@@ -95,11 +96,11 @@ export default function AdminLogin() {
             </div>
 
             <div>
-              <label htmlFor="admin-portal-password" className="mb-2 ml-1 block text-[11px] font-black uppercase tracking-[0.2em] text-primary">
+              <label htmlFor="admin-portal-password" className="mb-1.5 ml-1 block text-[10px] font-black uppercase tracking-[0.18em] text-primary">
                 {l('Security Passcode', 'பாதுகாப்பு கடவுச்சொல்')}
               </label>
               <div className={fieldWrap}>
-                <Lock size={19} className="shrink-0 text-primary" />
+                <Lock size={17} className="shrink-0 text-primary" />
                 <input
                   id="admin-portal-password"
                   name="password"
@@ -115,7 +116,7 @@ export default function AdminLogin() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#111111] cursor-pointer"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#111111] cursor-pointer"
                   aria-label={showPassword ? l('Hide password', 'கடவுச்சொல்லை மறை') : l('Show password', 'கடவுச்சொல்லை காட்டு')}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -126,7 +127,7 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="!mt-8 flex h-[62px] w-full items-center justify-center gap-3 rounded-2xl bg-primary text-[15px] font-black uppercase tracking-[0.2em] text-primary-ink shadow-[0_14px_30px_-10px_rgb(var(--primary)/0.6)] transition-all hover:bg-primary-hover active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+              className="!mt-6 flex h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-black uppercase tracking-[0.18em] text-primary-ink shadow-[0_14px_30px_-10px_rgb(var(--primary)/0.6)] transition-all hover:bg-primary-hover active:scale-[0.99] disabled:opacity-60 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -136,21 +137,22 @@ export default function AdminLogin() {
               ) : (
                 <>
                   {l('Authenticate', 'உள்நுழை')}
-                  <ChevronRight size={19} />
+                  <ChevronRight size={17} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-8 flex justify-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-4 py-1.5 text-[10.5px] font-black uppercase tracking-[0.14em] text-primary">
+          <div className="mt-5 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-[9.5px] font-black uppercase tracking-[0.14em] text-primary">
               <span className="h-2 w-2 rounded-full bg-primary-soft" />
               System online • Encrypted
             </span>
           </div>
         </div>
       </div>
-      <p className="mt-8 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400">{BRAND_EN} Terminal v1.0</p>
+      <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{BRAND_EN} Terminal v1.0</p>
+      <InstallAppPrompt />
     </div>
   )
 }

@@ -5,7 +5,6 @@ import { useAuthStore, useProductStore, useVariantStore, useAdminAuthStore } fro
 import { BRAND_EN } from './lib/brand'
 import { clearLocalOrders } from './lib/ordersFallback'
 import { LowStockAlarmModal } from './components/dashboard/LowStockAlarmModal'
-import { InstallAppPrompt } from './components/common/InstallAppPrompt'
 import { ConfirmDeleteHost } from './components/common/ConfirmDeleteDialog'
 import { useLowStockMonitor } from './hooks/useLowStockMonitor'
 import { db, isDatabaseConfigured } from './lib/db'
@@ -222,7 +221,6 @@ function AppShell() {
       {/* Global Low Stock Sound & Visual Alarm for Admin and Staff Panels */}
       {hasStaffOrAdminAccess && <LowStockAlarmModal />}
       <ConfirmDeleteHost />
-      <InstallAppPrompt />
     </div>
   )
 }

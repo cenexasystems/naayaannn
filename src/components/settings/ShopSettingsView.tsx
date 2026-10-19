@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   Save, Store, User, Phone, Mail, MapPin, AtSign, Upload, Trash2, CheckCircle2, AlertCircle,
-  SlidersHorizontal, Palette, Image as ImageIcon, Package, Plus, Languages, Sparkles, MessageCircle,
+  Settings2, Palette, Image as ImageIcon, Package, Plus, Languages, Sparkles, MessageCircle,
 } from 'lucide-react'
 import {
   BRAND_SETTINGS, DEFAULT_ACCENT, DEFAULT_LOGO, applyAccentColor, isValidAccent, toE164, type BrandSettings,
@@ -186,7 +186,7 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
       {/* Header */}
       <div className={`${card} !py-5 flex items-center gap-4`}>
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-ink">
-          <SlidersHorizontal size={22} />
+          <Settings2 size={22} />
         </div>
         <div className="min-w-0">
           <h2 className="text-[18px] font-black uppercase tracking-tight text-[#111111]">Shop Settings</h2>

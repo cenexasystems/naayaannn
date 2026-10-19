@@ -4,8 +4,10 @@ import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { applyBrandToDocument, syncBrandSettingsFromServer } from './services/brandSettingsService'
+import { captureInstallPrompt } from './lib/installPrompt'
 
 applyBrandToDocument()
+captureInstallPrompt()
 void syncBrandSettingsFromServer().catch(() => {
   // Offline or Supabase unavailable: keep the settings cached on this device
 })

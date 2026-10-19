@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
+  Wallet,
   Download,
   Plus,
   Trash2,
@@ -228,8 +229,8 @@ export const ExpensesView: React.FC = () => {
       {/* Top Header & Tab Pills */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#111111] flex items-center gap-2">
-            <Receipt size={22} className="text-primary-hover" />
+          <h2 className="text-[30px] sm:text-[34px] font-black tracking-tight text-[#111111] flex items-center gap-3 leading-tight">
+            <Wallet size={34} strokeWidth={1.75} className="text-primary" />
             Expense Tracker
           </h2>
           <p className="text-xs text-gray-500 font-bold mt-0.5">
