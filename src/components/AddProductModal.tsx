@@ -275,7 +275,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
               </label>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-3">
             <label className="block">
               <span className={label}>Original price (₹) <span className="text-[#DC2626]">*</span></span>
               <input className={input} value={form.price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" placeholder="0.00" />
@@ -283,13 +283,13 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
             <label className="block">
               <span className={label}>Cost price (₹)</span>
               <input className={input} value={form.cost} onChange={set('cost')} inputMode="decimal" placeholder="0.00" />
+              <p className={help}>For your records only — never used in billing.</p>
             </label>
               <label className="block">
                 <span className={label}>Current stock{hasVariants ? ' (from variants)' : ''}</span>
                 <input className={`${input} disabled:bg-gray-100 disabled:text-gray-400`} value={hasVariants ? String(variants.reduce((n, v) => n + Math.max(0, parseInt(v.stock) || 0), 0)) : form.stock} onChange={set('stock')} disabled={hasVariants} inputMode="numeric" />
               </label>
           </div>
-          <p className={`${help} !-mt-2`}>Cost price is for your records only — it is never used in billing.</p>
 
           <OfferFields
             idPrefix="add-item-offer"
