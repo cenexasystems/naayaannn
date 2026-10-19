@@ -4,11 +4,13 @@ import { CalendarDays, CheckCircle2, Clock3, Download, Eye, FileText, MessageCir
 import { formatCurrency } from '../lib/retail'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
-import { invoicePdfFile } from '../lib/invoicePdf'
-import { printThermalReceipt } from '../lib/thermalPrint'
+import PrintSettingsModal from '../components/print/PrintSettingsModal'
+import { invoicePdfFromProps, printBill } from '../lib/billPrint'
+import { advanceDocumentProps } from '../lib/advanceInvoice'
+import type { InvoiceProps } from '../components/Invoice'
 import { buildAdvanceDepositWhatsAppMessage, buildProfessionalWhatsAppMessage, publicInvoiceUrl } from '../lib/whatsappMessage'
 import { formatPhoneDisplay, toWhatsAppUrl } from '../lib/phone'
-import { advanceReceiptPdf, downloadFile, paymentLines, printAdvanceReceipt } from '../lib/advanceReceipt'
+import { downloadFile, paymentLines } from '../lib/advanceReceipt'
 import { advanceBreakdown, advanceBreakdownRows, computeAdvanceTotals } from '../lib/advanceBreakdown'
 import { useAdminAuthStore, useProductStore } from '../store/store'
 import {
@@ -64,6 +66,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   const [timeline, setTimeline] = useState<AdvanceTimeline[]>([])
   const [payments, setPayments] = useState<AdvancePayment[]>([])
   const [paymentOrder, setPaymentOrder] = useState<AdvanceOrder | null>(null)
+  const [printProps, setPrintProps] = useState<InvoiceProps | null>(null)
   const [paymentForm, setPaymentForm] = useState({ method: 'cash' as AdvancePaymentMethod, remarks: '' })
   const [depositSplit, setDepositSplit] = useState<SplitInputValue>(emptySplitInput())
   const [finalSplit, setFinalSplit] = useState<SplitInputValue>(emptySplitInput())
@@ -235,17 +238,18 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
 
   const productRows = (order: AdvanceOrder) => order.products.length ? order.products : [{ name: order.product_name, quantity: 1, base_price: advanceBreakdown(order).subtotal, line_total: advanceBreakdown(order).subtotal, unit: 'piece', unit_type: 'unit' }]
   const paymentsFor = async (order: AdvanceOrder) => (await getAdvanceOrderHistory(order.id)).payments
-  const finalPaymentLabel = (order: AdvanceOrder) => order.final_payment_method ? formatPaymentLabel(order.final_payment_method, order.split_details) : 'Paid'
-  const invoiceFile = async (order: AdvanceOrder) => {
-    const b = advanceBreakdown(order)
-    return invoicePdfFile({ invoiceNo: order.invoice_number || order.deposit_id, date: order.completed_at || new Date().toISOString(), customerName: order.customer_name, phone: order.phone, address: order.address, items: productRows(order), subtotal: b.subtotal, shipping: b.deliveryCharge, manualDiscountAmount: b.discount, cgstAmount: b.cgst, sgstAmount: b.sgst, total: order.total_amount, paymentMode: finalPaymentLabel(order), paymentRows: paymentLines(order, await paymentsFor(order)) })
+  /** Advance receipt before the balance is paid, final invoice after — both in the shared invoice layout. */
+  const printDocument = async (order: AdvanceOrder) => {
+    try { setPrintProps(advanceDocumentProps(order, await paymentsFor(order))) }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to prepare the receipt') }
   }
-  const printFinal = async (order: AdvanceOrder) => {
-    const b = advanceBreakdown(order)
-    printThermalReceipt({ invoiceNo: order.invoice_number || order.deposit_id, date: order.completed_at || new Date().toISOString(), customerName: order.customer_name, phone: order.phone, items: productRows(order).map(item => ({ name: String(item.name || 'Product'), qty: Number(item.quantity || 1), unit: String(item.unit || 'piece'), price: Number(item.base_price || 0), line_total: Number(item.line_total || 0) })), subtotal: b.subtotal, shipping: b.deliveryCharge, manualDiscount: b.discount, cgst: b.cgst, sgst: b.sgst, total: order.total_amount, paymentRows: paymentLines(order, await paymentsFor(order)) })
+  const downloadReceipt = async (order: AdvanceOrder) => {
+    try {
+      const props = advanceDocumentProps(order, await paymentsFor(order))
+      const name = order.status === 'completed' ? `Invoice-${order.invoice_number || order.deposit_id}.pdf` : `Advance-Receipt-${order.deposit_id}.pdf`
+      downloadFile(await invoicePdfFromProps(props, name))
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to create the PDF') }
   }
-  const printReceipt = async (order: AdvanceOrder) => printAdvanceReceipt(order, await paymentsFor(order))
-  const downloadReceipt = async (order: AdvanceOrder) => downloadFile(order.status === 'completed' ? await invoiceFile(order) : advanceReceiptPdf(order, await paymentsFor(order)))
 
   const whatsappDepositReceipt = (order: AdvanceOrder) => {
     const message = buildAdvanceDepositWhatsAppMessage({
@@ -292,6 +296,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   const iconBtn = 'flex h-9 w-11 shrink-0 items-center justify-center rounded-xl transition-colors cursor-pointer'
 
   return <div className="space-y-6">
+    <PrintSettingsModal open={printProps !== null} onClose={() => setPrintProps(null)} onPrint={(settings) => { if (printProps) printBill(printProps, settings) }} />
     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
       <div className="max-w-xl">
         <h2 className="text-[28px] font-black leading-tight tracking-tight text-[#111111]">Advance Orders</h2>
@@ -429,7 +434,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
                         title={order.status === 'completed' ? 'Download PDF Invoice' : 'Download PDF Receipt'} aria-label="Download PDF">
                         <FileText size={19} strokeWidth={1.75} />
                       </button>
-                      <button type="button" onClick={() => void (order.status === 'completed' ? printFinal(order) : printReceipt(order))}
+                      <button type="button" onClick={() => void printDocument(order)}
                         className={`${iconBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`}
                         title={order.status === 'completed' ? 'Print Final Receipt' : 'Print Advance Receipt'} aria-label="Print">
                         <Printer size={19} strokeWidth={1.75} />
@@ -697,7 +702,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => void (selected.status === 'completed' ? printFinal(selected) : printReceipt(selected))}
+                onClick={() => void printDocument(selected)}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700 hover:bg-gray-100 cursor-pointer transition shadow-xs"
                 title={selected.status === 'completed' ? 'Print Final Receipt' : 'Print Advance Receipt'}
               >

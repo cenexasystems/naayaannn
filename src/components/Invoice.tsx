@@ -52,6 +52,13 @@ export interface InvoiceProps {
   /** Extra rows under the total, e.g. advance deposit / balance paid */
   paymentRows?: InvoicePaymentRow[]
   notes?: string
+  /** Overrides the "TAX INVOICE" / "INVOICE" heading, e.g. "ADVANCE RECEIPT" */
+  documentTitle?: string
+  /** Extra header lines under Date / Time, e.g. [['Order', 'ADV-001'], ['Delivery', '25 Oct 2026']] */
+  extraMeta?: Array<[string, string]>
+  /** Amount spelled out under "Amount in Words" (defaults to the total) */
+  wordsAmount?: number
+  wordsLabel?: string
   onPrintReceipt?: () => void
 }
 
@@ -119,9 +126,14 @@ export const Invoice: React.FC<InvoiceProps> = ({
   amountReceived,
   paymentRows = [],
   notes,
+  documentTitle,
+  extraMeta = [],
+  wordsAmount,
+  wordsLabel = 'Amount in Words',
 }) => {
   const accent = invoiceAccent()
-  const formattedInvoiceNo = formatInvoiceNo(invoiceNo)
+  // Advance deposits keep their own DEP-… number
+  const formattedInvoiceNo = /^DEP-/i.test(invoiceNo) ? invoiceNo : formatInvoiceNo(invoiceNo)
   const when = (() => { const d = new Date(date); return Number.isNaN(d.getTime()) ? new Date() : d })()
   const dateStr = when.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   const timeStr = when.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
@@ -189,10 +201,11 @@ export const Invoice: React.FC<InvoiceProps> = ({
           </div>
         </div>
         <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
-          <div style={{ fontSize: 19, fontWeight: 800, color: accent, letterSpacing: 0.4 }}>{isGst ? 'TAX INVOICE' : 'INVOICE'}</div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: accent, letterSpacing: 0.4 }}>{documentTitle || (isGst ? 'TAX INVOICE' : 'INVOICE')}</div>
           <div style={{ fontFamily: MONO, fontSize: 12, color: SOFT, marginTop: 2, marginBottom: 8 }}>#{formattedInvoiceNo}</div>
           {metaRow('Date', dateStr)}
           {metaRow('Time', timeStr.toLowerCase())}
+          {extraMeta.map(([name, value]) => <React.Fragment key={name}>{metaRow(name, value)}</React.Fragment>)}
           {metaRow('Payment', `${mode} • ${String(status || 'completed').toUpperCase()}`)}
           {metaRow('Channel', String(channel || 'offline').toUpperCase())}
         </div>
@@ -259,8 +272,8 @@ export const Invoice: React.FC<InvoiceProps> = ({
       {/* ── WORDS / TOTALS ────────────────────────────────────── */}
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 28, borderTop: `1px solid ${LINE}`, marginTop: 14, paddingTop: 16 }}>
         <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-          <div style={label}>Amount in Words</div>
-          <div style={{ fontSize: 13, fontWeight: 700, fontStyle: 'italic', marginTop: 5 }}>{amountInWords(total)}</div>
+          <div style={label}>{wordsLabel}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, fontStyle: 'italic', marginTop: 5 }}>{amountInWords(wordsAmount ?? total)}</div>
           <div style={{ fontSize: 12.5, color: MUTED, marginTop: 22 }}>
             {mode === 'SPLIT' ? 'Paid' : `${({ CASH: 'Cash', GPAY: 'GPay', CARD: 'Card', ONLINE: 'Online' } as Record<string, string>)[mode] || mode} Received`}:{' '}
             <span style={{ fontFamily: MONO, color: '#111111', fontWeight: 600 }}>{formatCurrency(received)}</span>

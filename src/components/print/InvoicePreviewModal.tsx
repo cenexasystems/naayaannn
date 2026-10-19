@@ -29,7 +29,7 @@ export default function InvoicePreviewModal({ invoice, onClose, fullPageUrl, act
         <div className="flex shrink-0 items-center justify-between gap-3 bg-[#1F1F1F] px-4 py-3.5 text-white sm:px-6">
           <h2 className="flex min-w-0 items-center gap-2.5 text-[12px] font-black uppercase tracking-[0.1em] sm:text-sm">
             <Printer size={17} className="shrink-0" />
-            <span className="truncate">Invoice Preview • #{formatInvoiceNo(invoice.invoiceNo)}</span>
+            <span className="truncate">Invoice Preview • #{/^DEP-/i.test(invoice.invoiceNo) ? invoice.invoiceNo : formatInvoiceNo(invoice.invoiceNo)}</span>
           </h2>
           <div className="flex shrink-0 items-center gap-2">
             {actions}

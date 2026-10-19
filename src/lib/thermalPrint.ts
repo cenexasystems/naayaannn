@@ -29,6 +29,14 @@ export interface ThermalReceiptData {
   total: number
   /** e.g. "Cash", "QR", "Split (Cash ₹100.00 + QR ₹50.00)" */
   paymentMode?: string
+  /** Heading override, e.g. "ADVANCE RECEIPT" */
+  title?: string
+  /** Extra lines under the date, e.g. [['Delivery:', '25 Oct 2026']] */
+  extraRows?: Array<[string, string]>
+  /** Amount spelled out at the bottom (defaults to the total) */
+  wordsAmount?: number
+  /** Small print above the thank-you line */
+  note?: string
   storeName?: string
   storePhone?: string
   storeAddress?: string
@@ -114,8 +122,10 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData, width: Thermal
 
   <div class="dash"></div>
   <table class="meta">
-    ${row(`<span class="b">${isGst ? 'TAX INVOICE' : 'INVOICE'}</span>`, `#${esc(formatInvoiceNo(data.invoiceNo))}`)}
+    <tr><td colspan="2" class="c b" style="padding-bottom:4px; font-size:${base + 1}px; letter-spacing:1px;">${esc(data.title || (isGst ? 'TAX INVOICE' : 'INVOICE'))}</td></tr>
+    ${row('No:', `<span class="b">#${esc(/^DEP-/i.test(data.invoiceNo) ? data.invoiceNo : formatInvoiceNo(data.invoiceNo))}</span>`)}
     ${row('Date:', esc(dateStr))}
+    ${(data.extraRows || []).map(([k, v]) => row(esc(k), esc(v))).join('')}
     ${data.customerName ? row('Customer:', `<span class="b">${esc(data.customerName)}</span>`) : ''}
     ${data.phone ? row('Phone:', esc(formatCustomerPhone(data.phone))) : ''}
   </table>
@@ -166,7 +176,8 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData, width: Thermal
 
   <div class="c b" style="font-size:${base - 1}px;">${esc(paymentText(data.paymentMode))}</div>
   <div class="dash"></div>
-  <div class="c" style="font-size:${base - 2.5}px; color:#333; text-transform:uppercase; letter-spacing:0.3px;">${esc(amountInWords(data.total))}</div>
+  <div class="c" style="font-size:${base - 2.5}px; color:#333; text-transform:uppercase; letter-spacing:0.3px;">${esc(amountInWords(data.wordsAmount ?? data.total))}</div>
+  ${data.note ? `<div class="c" style="margin-top:8px; font-size:${base - 2}px; font-weight:bold;">${esc(data.note)}</div>` : ''}
 
   <div class="c" style="margin-top:14px; font-style:italic; font-weight:bold;">Thank you for your business!</div>
   <div class="c b" style="margin-top:6px; font-size:${narrow ? 12 : 14}px; letter-spacing:3px;">— ${esc(name)} —</div>

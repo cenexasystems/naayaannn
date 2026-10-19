@@ -22,10 +22,10 @@ import AddProductModal from '../components/AddProductModal'
 import { invoicePdfFile, invoicePdfFileFromElement } from '../lib/invoicePdf'
 import { uploadInvoicePdf } from '../lib/storage'
 import { createOrderWithStock } from '../services/orderService'
-import { createAdvanceOrder, type AdvanceOrder, type AdvancePaymentMethod } from '../services/advanceOrderService'
+import { createAdvanceOrder, getAdvanceOrderHistory, type AdvanceOrder, type AdvancePaymentMethod } from '../services/advanceOrderService'
+import { advanceReceiptProps } from '../lib/advanceInvoice'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
-import { printAdvanceReceipt } from '../lib/advanceReceipt'
 import {
   buildStructuredOrderItem,
   calculateLineTotal,
@@ -178,6 +178,7 @@ export default function Pos(props: PosProps = {}) {
   const [invoice, setInvoice] = useState<InvoiceSnap | null>(null)
   const [billPrintOpen, setBillPrintOpen] = useState(false)
   const [billPreviewOpen, setBillPreviewOpen] = useState(false)
+  const [depositPrintProps, setDepositPrintProps] = useState<InvoiceProps | null>(null)
   const invoicePdfRef = useRef<HTMLDivElement>(null)
   const pdfSavedFor = useRef<string | null>(null)
   const [cashReceived, setCashReceived] = useState<string>('')
@@ -1724,6 +1725,7 @@ export default function Pos(props: PosProps = {}) {
         </div>
       )}
 
+      <PrintSettingsModal open={depositPrintProps !== null} onClose={() => setDepositPrintProps(null)} onPrint={(settings) => { if (depositPrintProps) printBill(depositPrintProps, settings) }} />
       {depositCreated && (
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/55 p-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl">
@@ -1731,7 +1733,7 @@ export default function Pos(props: PosProps = {}) {
             <p className="mt-4 text-[11px] font-black uppercase tracking-[.16em] text-gray-600">Deposit order saved</p>
             <h3 className="mt-1 text-2xl font-black text-[#111111]">{depositCreated.deposit_id}</h3>
             <p className="mt-2 text-sm text-[#6B7280]">Deposit {formatCurrency(depositCreated.deposit_amount)} · Balance {formatCurrency(depositCreated.remaining_balance)}</p>
-            <div className="mt-5 grid grid-cols-2 gap-2"><button onClick={() => printAdvanceReceipt(depositCreated)} className="rounded-xl border border-gray-200 py-3 text-sm font-black text-gray-700"><Printer size={16} className="mr-1 inline"/>Print Receipt</button><button onClick={() => { const msg = buildAdvanceDepositWhatsAppMessage({ customerName: depositCreated.customer_name, depositId: depositCreated.deposit_id, productName: depositCreated.product_name, totalAmount: depositCreated.total_amount, depositAmount: depositCreated.deposit_amount, remainingBalance: depositCreated.remaining_balance, expectedDeliveryDate: depositCreated.expected_delivery_date }); window.open(toWhatsAppUrl(depositCreated.phone, msg), '_blank', 'noopener,noreferrer') }} className="rounded-xl bg-[#25D366] py-3 text-sm font-black text-white"><MessageCircle size={16} className="mr-1 inline -mt-0.5"/>WhatsApp</button></div>
+            <div className="mt-5 grid grid-cols-2 gap-2"><button onClick={() => { const order = depositCreated; void getAdvanceOrderHistory(order.id).then(h => h.payments, () => []).then(payments => setDepositPrintProps(advanceReceiptProps(order, payments))) }} className="rounded-xl border border-gray-200 py-3 text-sm font-black text-gray-700"><Printer size={16} className="mr-1 inline"/>Print Receipt</button><button onClick={() => { const msg = buildAdvanceDepositWhatsAppMessage({ customerName: depositCreated.customer_name, depositId: depositCreated.deposit_id, productName: depositCreated.product_name, totalAmount: depositCreated.total_amount, depositAmount: depositCreated.deposit_amount, remainingBalance: depositCreated.remaining_balance, expectedDeliveryDate: depositCreated.expected_delivery_date }); window.open(toWhatsAppUrl(depositCreated.phone, msg), '_blank', 'noopener,noreferrer') }} className="rounded-xl bg-[#25D366] py-3 text-sm font-black text-white"><MessageCircle size={16} className="mr-1 inline -mt-0.5"/>WhatsApp</button></div>
             <button onClick={() => { setDepositCreated(null); searchRef.current?.focus() }} className="mt-3 w-full rounded-xl bg-primary py-3 text-sm font-black text-white">Start New Order</button>
           </div>
         </div>
