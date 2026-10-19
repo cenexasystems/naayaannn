@@ -20,9 +20,15 @@ const inputBase =
   'w-full h-10 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-[#111111] placeholder:text-gray-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition'
 const LOGO_MAX_PX = 512
 
+/** Grey shades, darkest first. All keep white text readable. */
+const GREY_SWATCHES = [
+  '#0A0A0A', '#18181B', '#1C1917', '#1E293B', '#262626', '#27272A', '#292524', '#334155',
+  '#374151', '#3F3F46', '#404040', '#44403C', '#475569', '#4B5563', '#52525B', '#57534E',
+  '#525252', '#64748B', '#6B7280', '#71717A',
+]
 const ACCENT_SWATCHES = [
-  '#3F3F46', '#31042F', '#7F1D3A', '#9F1239', '#B91C1C', '#C2410C', '#A16207', '#15803D', '#047857',
-  '#0F766E', '#0E7490', '#1D4ED8', '#4338CA', '#6D28D9', '#7E22CE', '#A21CAF', '#BE185D', '#475569', '#1C1917',
+  '#31042F', '#7F1D3A', '#9F1239', '#B91C1C', '#C2410C', '#A16207', '#15803D', '#047857',
+  '#0F766E', '#0E7490', '#1D4ED8', '#4338CA', '#6D28D9', '#7E22CE', '#A21CAF', '#BE185D',
 ]
 
 /** Reads an image file and returns it as a PNG data URL no larger than LOGO_MAX_PX. */
@@ -273,22 +279,28 @@ export const ShopSettingsView: React.FC<{ onOpenInventory?: () => void }> = ({ o
             <p className="text-[13px] font-medium text-[#4B5563] mb-5">
               One accent colour drives the whole app — POS, storefront, invoice headers and the installed app.
             </p>
-            <div className="flex flex-wrap gap-2.5 mb-5">
-              {ACCENT_SWATCHES.map((hex) => {
-                const active = form.accentColor.toUpperCase() === hex
-                return (
-                  <button
-                    key={hex}
-                    type="button"
-                    onClick={() => pickAccent(hex)}
-                    title={hex}
-                    aria-label={`Accent colour ${hex}`}
-                    className={`h-9 w-9 rounded-lg transition-transform hover:scale-110 ${active ? 'ring-2 ring-offset-2 ring-[#111111]' : ''}`}
-                    style={{ background: hex }}
-                  />
-                )
-              })}
-            </div>
+            {([['Greys', GREY_SWATCHES], ['Colours', ACCENT_SWATCHES]] as const).map(([group, swatches]) => (
+              <div key={group} className="mb-4">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">{group}</p>
+                <div className="flex flex-wrap gap-2.5">
+                  {swatches.map((hex) => {
+                    const active = form.accentColor.toUpperCase() === hex
+                    return (
+                      <button
+                        key={hex}
+                        type="button"
+                        onClick={() => pickAccent(hex)}
+                        title={hex}
+                        aria-label={`Accent colour ${hex}`}
+                        aria-pressed={active}
+                        className={`h-9 w-9 rounded-lg transition-transform hover:scale-110 ${active ? 'ring-2 ring-offset-2 ring-[#111111]' : ''}`}
+                        style={{ background: hex }}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
             <div className="flex flex-wrap items-center gap-3 mb-6">
               <label className="relative h-10 w-14 rounded-xl overflow-hidden cursor-pointer border border-gray-200" style={{ background: form.accentColor }}>
                 <input
