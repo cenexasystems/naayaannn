@@ -2769,7 +2769,7 @@ export default function Dashboard() {
                   {[
                     {
                       label: 'Total Revenue',
-                      helper: 'POS + manual sales combined',
+                      helper: 'Offline + online + manual sales',
                       value: formatCurrency(analytics.totalCompletedRevenue),
                       icon: <RMIcon size={16} />,
                       color: 'text-emerald-500',
@@ -2808,6 +2808,14 @@ export default function Dashboard() {
                       icon: <RMIcon size={16} />,
                       color: 'text-gray-500',
                       bg: 'bg-gray-50',
+                    },
+                    {
+                      label: 'Online Revenue',
+                      helper: 'Online orders billed',
+                      value: formatCurrency(analytics.onlinePosRevenue),
+                      icon: <RMIcon size={16} />,
+                      color: 'text-blue-500',
+                      bg: 'bg-blue-50',
                     },
                     {
                       label: 'Total Offline Bills',
