@@ -3,6 +3,7 @@ import { X, Search, ShoppingBag, Edit2, Trash2 } from 'lucide-react'
 import { useProductStore, type Product } from '../store/store'
 import { db } from '../lib/db'
 import { confirmDelete } from '../lib/confirmDelete'
+import { createPortal } from 'react-dom'
 
 interface CatalogModalProps {
   isOpen: boolean
@@ -135,7 +136,7 @@ export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalPro
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    createPortal(<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-5xl flex min-h-0 flex-col shadow-2xl overflow-hidden border border-[#F3F4F6]/40 max-h-[calc(100dvh-1rem)] sm:max-h-[85vh]">
 
         {editingProduct ? (
@@ -293,6 +294,6 @@ export default function CatalogModal({ isOpen, onClose, onAdd }: CatalogModalPro
         )}
 
       </div>
-    </div>
+    </div>, document.body)
   )
 }

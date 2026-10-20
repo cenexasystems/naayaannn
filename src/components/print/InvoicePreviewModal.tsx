@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { ExternalLink, Printer, X } from 'lucide-react'
 import { Invoice, type InvoiceProps } from '../Invoice'
 import { formatInvoiceNo } from '../../lib/retail'
@@ -21,12 +22,13 @@ export default function InvoicePreviewModal({ invoice, onClose, fullPageUrl, act
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  return (
+  // Drawn on <body> so it always sits above the app's own header and tab bar (important on phones)
+  return createPortal(
     <div
       className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 p-3 sm:p-6 print:hidden"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div role="dialog" aria-modal="true" aria-label={`Invoice ${number}`} className="flex max-h-full w-full max-w-[900px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label={`Invoice ${number}`} className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[900px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex shrink-0 items-center justify-between gap-3 bg-[#1F1F1F] px-4 py-3.5 text-white sm:px-6">
           <h2 className="flex min-w-0 items-center gap-2.5 text-[12px] font-black uppercase tracking-[0.1em] sm:text-sm">
             <Printer size={17} className="shrink-0" />
@@ -55,6 +57,7 @@ export default function InvoicePreviewModal({ invoice, onClose, fullPageUrl, act
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

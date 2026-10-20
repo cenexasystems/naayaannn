@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useConfirmDeleteStore, type ConfirmDeleteOptions, type ImpactTone } from '../../lib/confirmDelete'
 import { AlertTriangle, Trash2, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 
 const toneClass: Record<ImpactTone, string> = {
   default: 'text-[#111111]',
@@ -32,7 +33,7 @@ function ConfirmDeleteDialog({ options, close }: { options: ConfirmDeleteOptions
 
 
   return (
-    <div
+    createPortal(<div
       className="fixed inset-0 z-[400] flex items-center justify-center bg-black/55 backdrop-blur-[2px] p-4 print:hidden"
       onMouseDown={(e) => { if (e.target === e.currentTarget) close(false) }}
     >
@@ -121,6 +122,6 @@ function ConfirmDeleteDialog({ options, close }: { options: ConfirmDeleteOptions
           </button>
         </div>
       </div>
-    </div>
+    </div>, document.body)
   )
 }

@@ -4,6 +4,7 @@ import { useProductStore } from '../store/store'
 import { db } from '../lib/db'
 import OfferFields from './inventory/OfferFields'
 import { normalizeBarcode } from '../lib/barcode'
+import { createPortal } from 'react-dom'
 
 interface VariantRow { id: string; name: string; price: string; cost: string; stock: string; barcode: string }
 const newVariant = (): VariantRow => ({ id: `v_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', price: '', cost: '', stock: '0', barcode: '' })
@@ -219,7 +220,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
   }
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+    createPortal(<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <form
         onSubmit={handleSubmit}
         role="dialog"
@@ -361,6 +362,6 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
           </button>
         </div>
       </form>
-    </div>
+    </div>, document.body)
   )
 }

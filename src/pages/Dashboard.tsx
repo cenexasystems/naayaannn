@@ -78,6 +78,7 @@ import {
   Bar,
 } from 'recharts'
 import { db, isDatabaseConfigured } from '../lib/db'
+import { createPortal } from 'react-dom'
 import { confirmDelete } from '../lib/confirmDelete'
 
 type Category = { id: string | number; name_en: string; name_ta: string; is_active?: boolean; sort_order?: number }
@@ -4774,7 +4775,7 @@ export default function Dashboard() {
 
       {/* Edit Order Details Modal */}
       {editingOrder && (
-        <div
+        createPortal(<div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-3 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200"
           role="dialog"
           aria-modal="true"
@@ -4897,7 +4898,7 @@ export default function Dashboard() {
               </div>
             </form>
           </div>
-        </div>
+        </div>, document.body)
       )}
 
       {/* Global Barcode Navigation Dialog */}

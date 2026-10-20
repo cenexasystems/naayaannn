@@ -20,6 +20,7 @@ import { useProductStore, useVariantStore } from '../../store/store'
 import type { ProductVariant } from '../../services/variantService'
 import { db } from '../../lib/db'
 import { confirmDelete } from '../../lib/confirmDelete'
+import { createPortal } from 'react-dom'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -890,7 +891,7 @@ export default function ImageMappingTool() {
 
       {/* ── CONFI₹ UPLOAD MODAL ── */}
       {confirmUpload && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        createPortal(<div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmUpload(false)} />
           <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 space-y-4">
             <div className="flex items-start gap-3">
@@ -946,7 +947,7 @@ export default function ImageMappingTool() {
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       )}
     </div>
   )

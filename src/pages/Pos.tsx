@@ -39,6 +39,7 @@ import { useLangStore } from '../store/langStore'
 import { fetchVariantsByProduct, type ProductVariant } from '../services/variantService'
 import { BarcodeScannerInput, type ScannedItemPayload } from '../components/pos/BarcodeScannerInput'
 import { db, isDatabaseConfigured } from '../lib/db'
+import { createPortal } from 'react-dom'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type PosItem = Product & {
@@ -1716,7 +1717,7 @@ export default function Pos(props: PosProps = {}) {
       </div>
 
       {depositOpen && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-4">
+        createPortal(<div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-4">
           <form onSubmit={saveDepositOrder} className="max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
             <div className="mb-5 flex items-start justify-between gap-3">
               <div>
@@ -1742,12 +1743,12 @@ export default function Pos(props: PosProps = {}) {
             {error && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-600">{error}</div>}
             <div className="mt-5 flex gap-3"><button type="button" onClick={() => { setDepositOpen(false); setError('') }} className="flex-1 rounded-xl border py-3 text-sm font-black">Cancel</button><button disabled={saving} className="flex-[1.5] rounded-xl bg-gray-700 py-3 text-sm font-black text-white disabled:opacity-50">{saving ? 'Saving…' : 'Confirm Deposit Order'}</button></div>
           </form>
-        </div>
+        </div>, document.body)
       )}
 
       <PrintSettingsModal open={depositPrintProps !== null} onClose={() => setDepositPrintProps(null)} onPrint={(settings) => { if (depositPrintProps) printBill(depositPrintProps, settings) }} />
       {depositCreated && (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/55 p-4">
+        createPortal(<div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/55 p-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl">
             <div className="mx-auto flex h-10 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl">✓</div>
             <p className="mt-4 text-[11px] font-black uppercase tracking-[.16em] text-gray-600">Deposit order saved</p>
@@ -1756,7 +1757,7 @@ export default function Pos(props: PosProps = {}) {
             <div className="mt-5 grid grid-cols-2 gap-2"><button onClick={() => { const order = depositCreated; void getAdvanceOrderHistory(order.id).then(h => h.payments, () => []).then(payments => setDepositPrintProps(advanceReceiptProps(order, payments))) }} className="rounded-xl border border-gray-200 py-3 text-sm font-black text-gray-700"><Printer size={16} className="mr-1 inline"/>Print Receipt</button><button onClick={() => { const msg = buildAdvanceDepositWhatsAppMessage({ customerName: depositCreated.customer_name, depositId: depositCreated.deposit_id, productName: depositCreated.product_name, totalAmount: depositCreated.total_amount, depositAmount: depositCreated.deposit_amount, remainingBalance: depositCreated.remaining_balance, expectedDeliveryDate: depositCreated.expected_delivery_date }); window.open(toWhatsAppUrl(depositCreated.phone, msg), '_blank', 'noopener,noreferrer') }} className="rounded-xl bg-[#25D366] py-3 text-sm font-black text-white"><MessageCircle size={16} className="mr-1 inline -mt-0.5"/>WhatsApp</button></div>
             <button onClick={() => { setDepositCreated(null); searchRef.current?.focus() }} className="mt-3 w-full rounded-xl bg-primary py-3 text-sm font-black text-white">Start New Order</button>
           </div>
-        </div>
+        </div>, document.body)
       )}
 
       {catalogOpen && (
@@ -1778,7 +1779,7 @@ export default function Pos(props: PosProps = {}) {
 
       {/* Variant Picker Modal for Multi-Variant Products */}
       {variantPickerProduct && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
+        createPortal(<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl max-w-md w-full border border-[#F3F4F6] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
             <div className="p-4 border-b border-[#111111]/20 flex items-center justify-between bg-primary text-white">
               <div>
@@ -1863,12 +1864,12 @@ export default function Pos(props: PosProps = {}) {
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       )}
 
       {/* Price Edit & Inventory Confirmation Modal */}
       {priceEditModal.isOpen && priceEditModal.item && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        createPortal(<div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-amber-50/50 to-white">
               <div className="flex items-center gap-2.5">
@@ -1969,7 +1970,7 @@ export default function Pos(props: PosProps = {}) {
               </div>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       )}
     </div>
   )

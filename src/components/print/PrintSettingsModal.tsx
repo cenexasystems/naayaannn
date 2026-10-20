@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Printer, X } from 'lucide-react'
 import { loadPrintSettings, savePrintSettings, type PrintSettings } from '../../lib/printSettings'
 
@@ -41,7 +42,7 @@ function PrintSettingsDialog({ onClose, onPrint }: Omit<Props, 'open'>) {
   const heading = 'mb-3 text-[11px] font-black uppercase tracking-[0.12em] text-[#111111]'
   const thermal = settings.printer === 'thermal'
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[420] flex items-center justify-center bg-black/60 p-4 print:hidden"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
@@ -95,6 +96,7 @@ function PrintSettingsDialog({ onClose, onPrint }: Omit<Props, 'open'>) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
