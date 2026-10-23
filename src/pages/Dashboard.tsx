@@ -65,6 +65,7 @@ import { useNavigationStore } from '../store/navigationStore'
 import { useAlarmStore } from '../store/alarmStore'
 import { useHardwareBarcodeScanner } from '../hooks/useHardwareBarcodeScanner'
 import { BarcodeRedirectDialog } from '../components/pos/BarcodeRedirectDialog'
+import { YearTrendCard, OrderSourceCard, TopItemsCard, WeekTrendCard } from '../components/analytics/RevenueCharts'
 import { exportAnalyticsToCSV, exportAnalyticsToPDF } from '../services/analyticsExport'
 import { BRAND_EN, BRAND_ICON, BRAND_TAGLINE } from '../lib/brand'
 import {
@@ -2016,10 +2017,7 @@ export default function Dashboard() {
 
       {/* Main */}
       <main className="flex flex-1 min-h-0 flex-col overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-3 sm:px-8 lg:px-12 pt-3 pb-8 bg-white">
-        <header className="hidden lg:flex items-center justify-between gap-4 py-4 mb-6 border-b border-black/10 print:hidden">
-          <h1 className="text-lg font-black text-[#000000] tracking-tight">{BRAND_EN}</h1>
-        </header>
+        <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-3 sm:px-8 lg:px-12 pt-3 pb-2 bg-white">
         <div className="lg:hidden h-4" />
 
         {/* ΓöÇΓöÇ ANALYTICS TAB ΓöÇΓöÇ */}
@@ -2913,103 +2911,23 @@ export default function Dashboard() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="xl:col-span-2 bg-white rounded-card border border-borderLight p-6 shadow-soft">
-                    <div className="flex items-center justify-between gap-4 mb-4">
-                      <h3 className="text-[16px] font-bold text-[#111111]">Revenue Trend {analytics.chartYear}</h3>
-                      <span className="text-[12px] font-bold text-[#111111] bg-red-50 px-2.5 py-1 rounded-md">Avg {formatCurrency(analytics.monthlyRevenue || 0)}/mo</span>
-                    </div>
-                    <div className="h-[192px] w-full min-w-0 relative">
-                      <ResponsiveContainer width="100%" height={192} minWidth={0} minHeight={0}>
-                        <BarChart data={analytics.monthlyTrend}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                          <XAxis dataKey="month" tick={{ fill: '#6B7280', fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} interval={0} angle={-45} textAnchor="end" height={60} />
-                          <YAxis hide />
-                          <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => formatCurrency(toNumber(value as number | string, 0))} />
-                          <Bar dataKey="revenue" fill="#A1A1AA" radius={[4, 4, 0, 0]} barSize={12} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+                  <div className="xl:col-span-2">
+                    <YearTrendCard year={analytics.chartYear} months={analytics.monthlyTrend} />
                   </div>
                   <div className="space-y-6">
-                    <div className="bg-white rounded-card border border-borderLight p-6 shadow-soft">
-                      <h3 className="text-[16px] font-bold text-[#111111] mb-6">Order Source</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex justify-between text-[12px] font-bold mb-2">
-                            <span className="text-[#111111] uppercase">Offline</span>
-                            <span className="text-[#111111]">{analytics.completedOrders}</span>
-                          </div>
-                          <div className="w-full bg-[#F3F4F6] rounded-full h-2.5">
-                            <div className="bg-primary h-2.5 rounded-full" style={{ width: '100%' }}></div>
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-[12px] font-bold mb-2">
-                            <span className="text-[#6B7280] uppercase">Online</span>
-                            <span className="text-[#111111]">0</span>
-                          </div>
-                          <div className="w-full bg-[#F3F4F6] rounded-full h-2.5">
-                            <div className="bg-[#F3F4F6] h-2.5 rounded-full" style={{ width: '0%' }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-card border border-borderLight p-6 shadow-soft">
-                      <h3 className="text-[16px] font-bold text-[#111111] mb-4">Top Items by Revenue</h3>
-                      <div className="space-y-3">
-                        {analytics.topProducts.slice(0, 3).map((p, i) => (
-                          <div key={i} className="flex items-center justify-between gap-3 text-[13px]">
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <span className="font-bold text-[#6B7280] w-4 shrink-0">{i + 1}</span>
-                              <span className="font-bold text-[#111111] break-words whitespace-normal leading-snug min-w-0 flex-1">{p.name}</span>
-                            </div>
-                            <div className="flex items-center gap-4 shrink-0">
-                              <span className="font-bold text-[#111111]">{formatCurrency(p.revenue)}</span>
-                              <span className="text-[#6B7280] text-[11px] w-8 text-right">{Math.round(p.qty)} pcs</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <OrderSourceCard offline={analytics.offlineOrderCount} online={analytics.onlineBillCount} />
+                    <TopItemsCard title="Top Items by Revenue" items={analytics.topProducts} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="xl:col-span-2 bg-white rounded-card border border-borderLight p-6 shadow-soft">
-                    <div className="flex items-center justify-between gap-3 mb-6">
-                      <div>
-                        <h3 className="text-[16px] font-bold text-[#111111]">Revenue Trend This Week</h3>
-                        <p className="mt-1 text-[12px] text-[#6B7280]">Monday to Sunday sales view for the current week.</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-[#F9FAFB] px-3 py-1 text-[11px] font-bold text-primary-hover">
-                          Week {(() => { const now = new Date(); const start = new Date(now.getFullYear(), 0, 1); const diff = Math.floor((now.getTime() - start.getTime()) / 86400000); return Math.ceil((diff + start.getDay() + 1) / 7) })()} of {new Date().getFullYear()}
-                        </span>
-                        <span className="rounded-full bg-[#F9FAFB] px-3 py-1 text-[11px] font-bold text-primary-hover">
-                          Today: {formatCurrency(analytics.todaySales)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-[256px] w-full min-w-0 relative">
-                      <ResponsiveContainer width="100%" height={256} minWidth={0} minHeight={0}>
-                        <BarChart data={analytics.weeklySales}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                          <XAxis dataKey="day" tick={{ fill: '#6B7280', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                          <YAxis hide />
-                          <Tooltip
-                            cursor={{ fill: '#F9FAFB' }}
-                            formatter={(value) => formatCurrency(toNumber(value as number | string, 0))}
-                            labelFormatter={(_, payload) => {
-                              const point = payload?.[0]?.payload as { day?: string; date?: string } | undefined
-                              return point ? `${point.day || 'Day'} - ${point.date || ''}` : 'Weekly Revenue'
-                            }}
-                          />
-                          <Bar dataKey="revenue" fill="#111111" radius={[4, 4, 0, 0]} barSize={28} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
+                  <div className="xl:col-span-2">
+                    <WeekTrendCard
+                      weekLabel={`Week ${(() => { const now = new Date(); const start = new Date(now.getFullYear(), 0, 1); const diff = Math.floor((now.getTime() - start.getTime()) / 86400000); return Math.ceil((diff + start.getDay() + 1) / 7) })()} of ${new Date().getFullYear()}`}
+                      days={analytics.weeklySales}
+                      todayIndex={(new Date().getDay() + 6) % 7}
+                    />
                   </div>
 
                   <div className="bg-white rounded-card border border-borderLight p-6 shadow-soft">
@@ -4730,7 +4648,7 @@ export default function Dashboard() {
           <ShopSettingsView />
         )}
         {/* Footer: sits at the end of the scrolling content, visible only when scrolled to the bottom */}
-        <footer className="mt-10 border-t border-black/10 pt-10 pb-2 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-semibold uppercase tracking-wider text-[#000000] text-center print:hidden">
+        <footer className="mt-4 border-t border-black/10 pt-4 pb-1 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-semibold uppercase tracking-wider text-[#000000] text-center print:hidden">
           <span>© 2026 All rights reserved. {BRAND_EN}.</span>
           <span>Powered by <span className="font-black text-primary">Cenexa Systems</span> @2026</span>
           {BRAND_TAGLINE

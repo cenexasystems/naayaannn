@@ -1287,18 +1287,6 @@ export default function Pos(props: PosProps = {}) {
                   className={posInput}
                 />
               </div>
-              <div className="min-w-0 md:col-span-2">
-                <label htmlFor="pos-remarks" className={posLabel}>Remarks (Internal)</label>
-                <input
-                  id="pos-remarks"
-                  name="remarks"
-                  type="text"
-                  value={remarks}
-                  onChange={e => setRemarks(e.target.value)}
-                  placeholder="Optional remarks"
-                  className={posInput}
-                />
-              </div>
             </div>
           </section>
 
@@ -1342,7 +1330,7 @@ export default function Pos(props: PosProps = {}) {
                   <div className="hidden md:grid grid-cols-[minmax(0,1fr)_120px_130px_44px] items-center gap-4">
                     <div className="flex gap-2.5">
                       <button type="button" onClick={addCustomItem} className="h-9 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500 hover:border-gray-300">
-                        Type custom item name...
+                        Item name
                       </button>
                       <button type="button" onClick={() => setCatalogOpen(true)} className="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase tracking-wider text-[#111111] hover:bg-gray-100">
                         <List size={16} strokeWidth={1.75} /> Catalog
@@ -1353,7 +1341,7 @@ export default function Pos(props: PosProps = {}) {
                     <span className="flex h-9 w-11 items-center justify-center rounded-xl border border-gray-200 text-gray-300"><Trash2 size={17} strokeWidth={1.75} /></span>
                   </div>
                   <div className="md:hidden flex gap-2">
-                    <button type="button" onClick={addCustomItem} className="h-9 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500">Type custom item name...</button>
+                    <button type="button" onClick={addCustomItem} className="h-9 flex-1 rounded-xl border border-gray-200 px-4 text-left text-[14px] font-medium text-gray-500">Item name</button>
                     <button type="button" onClick={() => setCatalogOpen(true)} className="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-4 text-[10px] font-bold uppercase text-[#111111]"><List size={16} /> Catalog</button>
                   </div>
                 </div>
@@ -1370,7 +1358,7 @@ export default function Pos(props: PosProps = {}) {
                             type="text"
                             value={item.name}
                             onChange={e => updateItem(item.id, 'name', e.target.value)}
-                            placeholder="Type custom item name..."
+                            placeholder="Item name"
                             className={posInput}
                           />
                         ) : (
@@ -1406,7 +1394,7 @@ export default function Pos(props: PosProps = {}) {
                           type="text"
                           value={item.name}
                           onChange={e => updateItem(item.id, 'name', e.target.value)}
-                          placeholder="Type custom item name..."
+                          placeholder="Item name"
                           className={`${posInput} flex-1`}
                           autoFocus={!item.name}
                         />
