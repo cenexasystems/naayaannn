@@ -1684,7 +1684,7 @@ export default function Pos(props: PosProps = {}) {
                 type="button"
                 onClick={generateBill}
                 disabled={saving}
-                className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-primary text-[13px] font-black uppercase tracking-[0.16em] text-primary-ink shadow-[0_12px_24px_-10px_rgb(var(--primary)/0.7)] transition hover:bg-primary-hover active:scale-[0.99] disabled:opacity-50"
+                className="inline-flex h-9 w-full items-center justify-center gap-3 rounded-xl bg-primary text-[11px] font-black uppercase tracking-[0.16em] text-primary-ink shadow-[0_12px_24px_-10px_rgb(var(--primary)/0.7)] transition hover:bg-primary-hover active:scale-[0.99] disabled:opacity-50"
               >
                 <Check size={19} strokeWidth={2.5} />
                 {saving ? 'Processing...' : 'Complete Sale'}
@@ -1693,7 +1693,7 @@ export default function Pos(props: PosProps = {}) {
                 type="button"
                 onClick={openDepositOrder}
                 disabled={saving || items.length === 0}
-                className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl border-2 border-amber-500 bg-white text-[13px] font-black uppercase tracking-[0.16em] text-amber-600 transition hover:bg-amber-50 disabled:opacity-40"
+                className="inline-flex h-9 w-full items-center justify-center gap-3 rounded-xl border-2 border-amber-500 bg-white text-[11px] font-black uppercase tracking-[0.16em] text-amber-600 transition hover:bg-amber-50 disabled:opacity-40"
               >
                 <Clock size={19} strokeWidth={2} />
                 Save as Advance Order

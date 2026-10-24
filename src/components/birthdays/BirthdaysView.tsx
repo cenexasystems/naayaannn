@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Gift, Cake, Trash2, Plus, Pencil, Save, MessageCircle, Download } from 'lucide-react'
+import React, { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { ChevronLeft, ChevronRight, Gift, Cake, Trash2, Plus, Pencil, Save, MessageCircle, Download, UserPlus, X } from 'lucide-react'
 import {
   birthdayService, buildBirthdayMessage, birthdayInWindow, birthMonthDay, formatBirthDate, rangeToDates, toMonthDay,
   type BirthdayOffer, type BirthdayRange, type CustomerBirthday,
 } from '../../services/birthdayService'
-import { toWhatsAppUrl, formatPhoneDisplay } from '../../lib/phone'
+import { toWhatsAppUrl, formatPhoneDisplay, normalizePhone } from '../../lib/phone'
 import { downloadCsv } from '../../lib/exportCsv'
 import { confirmDelete } from '../../lib/confirmDelete'
 
@@ -88,11 +89,76 @@ const PeopleList: React.FC<{
   )
 }
 
+const AddCustomerModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ onClose, onSaved }) => {
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [birthDate, setBirthDate] = useState('')
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!name.trim()) return setError('Enter the customer name.')
+    const clean = normalizePhone(phone)
+    if (!clean) return setError('Enter a valid 10-digit mobile number.')
+    if (!birthDate) return setError('Pick the date of birth.')
+    setSaving(true)
+    setError('')
+    await birthdayService.save({ name, phone: clean, birthDate })
+    setSaving(false)
+    onSaved()
+  }
+
+  const label = 'mb-1.5 block text-[10px] font-black uppercase tracking-wider text-[#6B7280]'
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <form onSubmit={submit} role="dialog" aria-modal="true" aria-label="Add customer" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-black text-[#111111]">Add Customer</h3>
+            <p className="text-[12px] font-medium text-gray-500">Save a customer's birthday to send them offers.</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"><X size={20} /></button>
+        </div>
+        <div className="space-y-4">
+          <label className="block">
+            <span className={label}>Customer name *</span>
+            <input className={input} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Priya" autoFocus maxLength={80} />
+          </label>
+          <label className="block">
+            <span className={label}>Mobile number (WhatsApp) *</span>
+            <input className={input} value={phone} onChange={e => setPhone(e.target.value)} placeholder="Enter 10-digit number" inputMode="tel" maxLength={16} />
+          </label>
+          <label className="block">
+            <span className={label}>Date of birth *</span>
+            <input type="date" className={input} value={birthDate} max={new Date().toISOString().slice(0, 10)} onChange={e => setBirthDate(e.target.value)} />
+          </label>
+        </div>
+        {error && <p className="mt-4 rounded-xl bg-red-50 px-3 py-2.5 text-[12.5px] font-bold text-red-600">{error}</p>}
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="h-10 rounded-xl px-5 text-[12px] font-black uppercase tracking-wider text-gray-600 hover:bg-gray-100">Cancel</button>
+          <button type="submit" disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-[12px] font-black uppercase tracking-wider text-primary-ink hover:bg-primary-hover disabled:opacity-60">
+            <UserPlus size={15} /> {saving ? 'Saving…' : 'Save customer'}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
+  )
+}
+
 export const BirthdaysView: React.FC = () => {
   const [tab, setTab] = useState<'calendar' | 'customers'>('calendar')
   const [people, setPeople] = useState<CustomerBirthday[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [addOpen, setAddOpen] = useState(false)
 
   const today = new Date()
   const [month, setMonth] = useState(today.getMonth())
@@ -110,6 +176,8 @@ export const BirthdaysView: React.FC = () => {
     void birthdayService.list().then(list => { if (!cancelled) { setPeople(list); setLoading(false) } })
     return () => { cancelled = true }
   }, [])
+
+  const reloadPeople = () => { void birthdayService.list().then(setPeople) }
 
   const offer = offers.find(o => o.id === offerId) || offers[0]
   const applyRange = (r: BirthdayRange) => { const d = rangeToDates(r); setRange(r); setFrom(d.from); setTo(d.to) }
@@ -189,13 +257,18 @@ export const BirthdaysView: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="w-11 h-11 rounded-xl bg-primary-50 flex items-center justify-center text-primary-hover"><Cake size={22} /></div>
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="text-xl font-black text-[#111111]">Date of Birth</h2>
           <p className="text-[12px] font-medium text-gray-500">Customer birthdays &amp; one-tap offer sender</p>
         </div>
+        <button type="button" onClick={() => setAddOpen(true)}
+          className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-[11px] font-black uppercase tracking-wider text-primary-ink shadow-sm hover:bg-primary-hover">
+          <UserPlus size={16} /> Add Customer
+        </button>
       </div>
+      {addOpen && <AddCustomerModal onClose={() => setAddOpen(false)} onSaved={() => { setAddOpen(false); reloadPeople() }} />}
 
       <div className="flex gap-6 border-b border-gray-200">
         {(['calendar', 'customers'] as const).map(t => (
