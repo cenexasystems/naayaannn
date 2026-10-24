@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useCartStore, useFavStore, useAuthStore } from '../store/store'
 import { useLangStore } from '../store/langStore'
 import { CartDrawer, FavoritesDrawer } from './Drawers'
-import { BRAND_EN, BRAND_SUBTITLE, BRAND_WHATSAPP, BRAND_ICON } from '../lib/brand'
+import { BRAND_EN, BRAND_SUBTITLE, BRAND_TAGLINE, BRAND_WHATSAPP, BRAND_ICON } from '../lib/brand'
 
 export default function Navbar() {
   const [query, setQuery] = useState('')
@@ -50,6 +50,7 @@ export default function Navbar() {
             </div>
             <div className="flex min-w-0 flex-col leading-none">
               <p className="break-words text-[13px] sm:text-[14px] font-black leading-tight tracking-tight text-[#1F1F1F] md:text-[16px] font-headline">{BRAND_EN}</p>
+              {BRAND_TAGLINE && <p className="hidden text-[9px] font-bold uppercase tracking-[0.15em] text-primary-hover md:block">{BRAND_TAGLINE}</p>}
             </div>
           </Link>
 

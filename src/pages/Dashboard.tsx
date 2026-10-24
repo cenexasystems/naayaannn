@@ -67,7 +67,7 @@ import { useHardwareBarcodeScanner } from '../hooks/useHardwareBarcodeScanner'
 import { BarcodeRedirectDialog } from '../components/pos/BarcodeRedirectDialog'
 import { YearTrendCard, OrderSourceCard, TopItemsCard, WeekTrendCard } from '../components/analytics/RevenueCharts'
 import { exportAnalyticsToCSV, exportAnalyticsToPDF } from '../services/analyticsExport'
-import { BRAND_EN, BRAND_ICON } from '../lib/brand'
+import { BRAND_EN, BRAND_ICON, BRAND_TAGLINE } from '../lib/brand'
 import {
   ResponsiveContainer,
   XAxis,
@@ -1917,6 +1917,7 @@ export default function Dashboard() {
             {!sidebarCollapsed && (
               <div className="flex flex-col min-w-0">
                 <h1 className="text-sm leading-tight font-black tracking-tight text-white break-words">{BRAND_EN}</h1>
+                {BRAND_TAGLINE && <p className="mt-0.5 text-[9px] leading-snug font-bold tracking-wider text-white/80 break-words">{BRAND_TAGLINE}</p>}
               </div>
             )}
           </Link>
@@ -4650,6 +4651,9 @@ export default function Dashboard() {
         <footer className="mt-4 border-t border-black/10 pt-4 pb-1 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-semibold uppercase tracking-wider text-[#000000] text-center print:hidden">
           <span>© 2026 All rights reserved. {BRAND_EN}.</span>
           <span>Powered by <span className="font-black text-primary">Cenexa Systems</span> @2026</span>
+          {BRAND_TAGLINE
+            ? <span className="flex items-center gap-2 italic font-black tracking-[0.12em] text-[#9CA3AF]"><span className="h-1.5 w-1.5 rounded-full bg-primary" />{BRAND_TAGLINE}</span>
+            : <span className="hidden lg:block w-24" />}
         </footer>
         </div>
       </main>
