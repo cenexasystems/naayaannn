@@ -1563,17 +1563,17 @@ export default function Pos(props: PosProps = {}) {
 
             {/* Totals */}
             <div className="space-y-4 border-t border-gray-200 pt-5">
-              <div className="flex items-center justify-between text-[15px] text-[#111111]">
+              <div className="flex items-center justify-between text-sm text-[#111111]">
                 <span>Subtotal ({items.length} items)</span>
                 <span className="font-black">{formatCurrency(subtotal)}</span>
               </div>
               {billGstEnabled && totalGst > 0 && (
-                <div className="flex items-center justify-between text-[15px] text-[#111111]">
+                <div className="flex items-center justify-between text-sm text-[#111111]">
                   <span>GST Amount</span>
                   <span className="font-black">{formatCurrency(totalGst)}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between text-[15px] text-[#111111]">
+              <div className="flex items-center justify-between text-sm text-[#111111]">
                 <label htmlFor="pos-shipping-input">Delivery</label>
                 <input
                   id="pos-shipping-input"
@@ -1582,15 +1582,15 @@ export default function Pos(props: PosProps = {}) {
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   value={shipping}
                   onChange={e => setShipping(e.target.value)}
-                  className="h-11 w-28 rounded-xl border border-gray-200 px-3 text-right text-[15px] font-black text-[#111111] focus:border-primary focus:outline-none"
+                  className="h-10 w-24 rounded-xl border border-gray-200 px-3 text-right text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
                 />
               </div>
             </div>
 
             {/* Non-GST bill / GST invoice */}
             <div className="grid grid-cols-2 gap-1.5 rounded-full border border-gray-200 p-1.5" role="tablist" aria-label="Bill type">
-              <button type="button" role="tab" aria-selected={!billGstEnabled} onClick={() => setBillGstEnabled(false)} className={`h-11 rounded-full text-[11px] font-bold uppercase tracking-wider transition-colors ${!billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>Non-GST Bill</button>
-              <button type="button" role="tab" aria-selected={billGstEnabled} onClick={() => setBillGstEnabled(true)} className={`h-11 rounded-full text-[11px] font-bold uppercase tracking-wider transition-colors ${billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>GST Invoice</button>
+              <button type="button" role="tab" aria-selected={!billGstEnabled} onClick={() => setBillGstEnabled(false)} className={`h-10 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors ${!billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>Non-GST Bill</button>
+              <button type="button" role="tab" aria-selected={billGstEnabled} onClick={() => setBillGstEnabled(true)} className={`h-10 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors ${billGstEnabled ? 'bg-primary text-primary-ink' : 'text-[#111111] hover:bg-gray-50'}`}>GST Invoice</button>
             </div>
             {billGstEnabled && (
               <div className="flex gap-2.5">
@@ -1623,14 +1623,14 @@ export default function Pos(props: PosProps = {}) {
 
             {/* Financial option */}
             <div>
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#111111]">Financial Option</p>
+              <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]">Financial Option</p>
               <div className="grid grid-cols-4 gap-2">
                 {(['cash', 'qr', 'card', 'split'] as const).map(mode => (
                   <button
                     key={mode}
                     type="button"
                     onClick={() => setPaymentType(mode)}
-                    className={`h-11 rounded-xl border text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                    className={`h-9 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-colors ${
                       paymentType === mode ? 'border-primary bg-primary text-primary-ink' : 'border-gray-200 bg-white text-[#111111] hover:bg-gray-50'
                     }`}
                   >
@@ -1642,8 +1642,8 @@ export default function Pos(props: PosProps = {}) {
 
             {/* Grand total */}
             <div className="flex items-center justify-between border-t border-gray-200 pt-5">
-              <span className="text-lg font-black uppercase tracking-wide text-[#111111]">Grand Total</span>
-              <span className="text-2xl font-black tracking-tight text-primary">{formatCurrency(total)}</span>
+              <span className="text-base font-black tracking-tight uppercase tracking-wide text-[#111111]">Grand Total</span>
+              <span className="text-xl font-black tracking-tight text-primary">{formatCurrency(total)}</span>
             </div>
 
             {ordermode !== 'online' && paymentType === 'split' && (
@@ -1652,10 +1652,10 @@ export default function Pos(props: PosProps = {}) {
 
             {ordermode !== 'online' && paymentType !== 'split' && (
               <div className="rounded-xl border border-gray-200 p-5">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#111111]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]">
                   {paymentType === 'qr' ? 'QR / GPay' : paymentType === 'card' ? 'Card' : 'Cash'} Payment
                 </p>
-                <label htmlFor="pos-cash-received" className="mb-3 mt-1 block text-[14px] font-black text-[#111111]">Amount Received (₹)</label>
+                <label htmlFor="pos-cash-received" className="mb-3 block text-[13px] font-black text-[#111111]">Amount Received (₹)</label>
                 <input
                   id="pos-cash-received"
                   name="cashReceived"
@@ -1664,12 +1664,12 @@ export default function Pos(props: PosProps = {}) {
                   value={cashReceived}
                   onChange={e => setCashReceived(e.target.value)}
                   placeholder="0.00"
-                  className="h-12 w-full rounded-xl border border-gray-200 px-4 text-lg font-black text-[#111111] placeholder:text-[#111111] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
+                  className="h-10 w-full rounded-xl border border-gray-200 px-4 text-base font-black text-[#111111] placeholder:text-[#111111] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15"
                 />
                 {cashReceivedNum > 0 && (
                   <div className="mt-3 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-2.5">
-                    <span className="text-[14px] font-bold text-[#111111]">Return Balance</span>
-                    <span className="text-base font-black text-[#111111]">{formatCurrency(balanceToReturn)}</span>
+                    <span className="text-[13px] font-bold text-[#111111]">Return Balance</span>
+                    <span className="text-sm font-black text-[#111111]">{formatCurrency(balanceToReturn)}</span>
                   </div>
                 )}
               </div>
@@ -1698,7 +1698,7 @@ export default function Pos(props: PosProps = {}) {
                 <Clock size={19} strokeWidth={2} />
                 Save as Advance Order
               </button>
-              <p className="text-center text-[12.5px] font-medium text-gray-500">Advance orders count as revenue only when the balance is collected.</p>
+              <p className="text-center text-[11.5px] font-medium text-gray-500">Advance orders count as revenue only when the balance is collected.</p>
             </div>
           </div>
         </aside>
