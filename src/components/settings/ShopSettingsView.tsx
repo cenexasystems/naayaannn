@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   Save, Store, User, Phone, Mail, MapPin, AtSign, Upload, Trash2, CheckCircle2, AlertCircle,
-  Settings2, Palette, Image as ImageIcon, Languages, BellRing, Volume2, VolumeX, Sparkles, MessageCircle, Clock, Hash,
+  Settings2, Palette, Image as ImageIcon, Languages, BellRing, Volume2, VolumeX, MessageCircle, Clock, Hash,
 } from 'lucide-react'
 import {
   BRAND_SETTINGS, DEFAULT_ACCENT, DEFAULT_LOGO, applyAccentColor, isValidAccent, toE164, type BrandSettings,
@@ -318,10 +318,6 @@ export const ShopSettingsView: React.FC = () => {
               <span className={label}>Shop name</span>
               <IconInput icon={<Store size={17} />} value={form.name} onChange={set('name')} required maxLength={60} />
             </div>
-            <div className="sm:col-span-2">
-              <span className={label}>Tagline / sub-heading</span>
-              <IconInput icon={<Sparkles size={17} />} value={form.tagline} onChange={set('tagline')} maxLength={90} placeholder="e.g. Mens Wear • Womens Wear • Kids Wear" />
-            </div>
             <div>
               <span className={label}>Contact number</span>
               <IconInput icon={<Phone size={17} />} value={form.shopPhone} onChange={set('shopPhone')} inputMode="tel" placeholder="98765 43210" />
@@ -366,20 +362,6 @@ export const ShopSettingsView: React.FC = () => {
             <div>
               <span className={label}>Instagram ID</span>
               <IconInput icon={<AtSign size={17} />} value={form.instagram} onChange={set('instagram')} placeholder="naayan.official" />
-            </div>
-            <div className="sm:col-span-2">
-              <span className={label}>Catalogue headline</span>
-              <div className="relative">
-                <Sparkles size={17} className="pointer-events-none absolute left-4 top-4 text-gray-400" />
-                <textarea
-                  className={`${inputBase} h-auto min-h-[76px] pl-11 pr-4 py-3 resize-y`}
-                  value={form.catalogueHeadline}
-                  onChange={(e) => set('catalogueHeadline')(e.target.value)}
-                  rows={2}
-                  maxLength={240}
-                  placeholder="e.g. Mens Wear • Womens Wear • Kids Wear • Alterations"
-                />
-              </div>
             </div>
             <div>
               <span className={label}>GSTIN (on GST invoices)</span>

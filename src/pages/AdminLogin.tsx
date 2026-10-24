@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Lock, Eye, EyeOff, AlertCircle, ChevronRight } from 'lucide-react'
 import { useAdminAuthStore } from '../store/store'
-import { BRAND_EN, BRAND_TAGLINE, BRAND_LOGO } from '../lib/brand'
+import { BRAND_EN, BRAND_LOGO } from '../lib/brand'
 import { useLangStore } from '../store/langStore'
 import { alarmSound } from '../lib/alarmAudio'
 import { InstallAppPrompt } from '../components/common/InstallAppPrompt'
@@ -61,7 +61,7 @@ export default function AdminLogin() {
               {BRAND_EN}
             </h1>
             <p className="mt-2 max-w-[340px] text-[10.5px] sm:text-[11px] font-bold uppercase leading-relaxed tracking-[0.18em] text-gray-500">
-              {BRAND_TAGLINE ? `POS Terminal • ${BRAND_TAGLINE}` : l('Retail POS Terminal • Billing • Inventory', 'சில்லறை POS • பில்லிங் • சரக்கு')}
+              {l('Retail POS Terminal • Billing • Inventory', 'சில்லறை POS • பில்லிங் • சரக்கு')}
             </p>
           </div>
 
