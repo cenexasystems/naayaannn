@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Minus, Plus, X, Check, ShoppingCart } from 'lucide-react'
 import { useCartStore, useVariantStore, type Product } from '../store/store'
-import { formatCurrency, variantLineTotal } from '../lib/retail'
+import { formatCurrency, variantLineTotal, variantOfferPrice } from '../lib/retail'
 import { getProductImage, onImgError } from '../lib/productImages'
 import { useLangStore } from '../store/langStore'
 import type { ProductVariant } from '../services/variantService'
@@ -13,7 +13,7 @@ function variantToProduct(base: Product, v: ProductVariant): Product {
     id: v.id,
     name: `${base.name}${v.sizeLabel || v.variantName !== base.name ? ` - ${v.variantName}` : ''}`,
     price: v.price,
-    offerPrice: null,
+    offerPrice: variantOfferPrice(base.price, base.offerPrice, v.price),
     stock: v.stock,
     stockQuantity: v.stock,
     hasVariants: false,
@@ -92,7 +92,8 @@ export default function VariantSelectormodal({
 
   const variants = getVariants(String(product.id))
   const haGSTock = selected ? selected.stock > 0 : false
-  const totalPrice = selected ? variantLineTotal(selected.price, qty) : 0
+  const offerOf = (price: number) => variantOfferPrice(product.price, product.offerPrice, price)
+  const totalPrice = selected ? variantLineTotal(offerOf(selected.price) ?? selected.price, qty) : 0
 
   return (
     <AnimatePresence>
@@ -143,7 +144,7 @@ export default function VariantSelectormodal({
                 {selected && (
                   <div className="mt-0.5 flex items-baseline gap-1.5">
                     <span className="text-[15px] font-black text-[#111111] tabular-nums">
-                      {formatCurrency(selected.price)}
+                      {formatCurrency(offerOf(selected.price) ?? selected.price)}
                     </span>
                     {selected.sizeLabel && (
                       <span className="text-[11px] text-[#374151]">{selected.sizeLabel}</span>
@@ -235,7 +236,7 @@ export default function VariantSelectormodal({
                           isSelected ? 'text-[#111111]' : 'text-[#444]'
                         }`}
                       >
-                        {formatCurrency(v.price)}
+                        {formatCurrency(offerOf(v.price) ?? v.price)}
                       </span>
                     </button>
                   )

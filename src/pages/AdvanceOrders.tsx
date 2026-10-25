@@ -695,7 +695,6 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
                 ['Created By', selected.created_by_name || '-'],
                 ['Current Status', STATUS_LABELS[selected.status]],
                 ['Invoice Number', selected.invoice_number || 'Not generated'],
-                ['Reference No', selected.reference_number || '—'],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-xl bg-slate-50 p-3 border border-slate-200">
                   <p className="text-[10px] font-black uppercase text-gray-500">{k}</p>
@@ -726,12 +725,6 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
               </div>
             </div>
 
-            {selected.remarks && (
-              <div className="rounded-xl border border-gray-200 bg-[#F9FAFB] p-3.5">
-                <p className="text-[10px] font-black uppercase text-[#111111]">Remarks</p>
-                <p className="mt-1 text-sm text-gray-900 font-medium">{selected.remarks}</p>
-              </div>
-            )}
 
             {selected.description && (
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-3.5">

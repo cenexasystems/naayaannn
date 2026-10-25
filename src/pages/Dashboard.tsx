@@ -2417,12 +2417,6 @@ export default function Dashboard() {
                                       <div><span className="font-black text-[#374151]">{l('Name', 'பெயர்')}: </span><span className="font-bold text-[#111111]">{order.customer_name || '-'}</span></div>
                                       <div><span className="font-black text-[#374151]">{l('Phone', 'தொலைபேசி')}: </span><span className="font-bold text-[#111111]">{formatPhoneDisplay(order.phone) || '-'}</span></div>
                                       <div className="flex-1"><span className="font-black text-[#374151]">{l('Address', 'முகவரி')}: </span><span className="text-[#111111]">{order.address || '-'}</span></div>
-                                      {Boolean(order.remarks) && (
-                                        <div className="w-full mt-1 border-t border-gray-50 pt-2"><span className="font-black text-[#374151]">Remarks: </span><span className="font-bold text-[#111111]">{order.remarks}</span></div>
-                                      )}
-                                      {Boolean(order.reference_number) && (
-                                        <div className="w-full mt-1 border-t border-gray-50 pt-2"><span className="font-black text-[#374151]">Ref Number: </span><span className="font-bold text-[#111111]">{order.reference_number}</span></div>
-                                      )}
                                     </div>
 
                                     {/* Items table */}
@@ -3086,7 +3080,7 @@ export default function Dashboard() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                     <div>
                       <h3 className="text-sm font-bold text-[#111111]">All Products Analytics</h3>
-                      <p className="text-[12px] text-[#6B7280]">Search by Product Name, SKU, or Category for instant statistics</p>
+                      <p className="text-[12px] text-[#6B7280]">Search by Product Name or Category for instant statistics</p>
                     </div>
                     <span className="text-[11px] font-bold text-[#10B981] bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 self-start sm:self-auto">{analytics.topProducts.length} products</span>
                   </div>
@@ -3094,7 +3088,7 @@ export default function Dashboard() {
                   <div className="mb-4">
                     <input
                       type="text"
-                      placeholder="Search by Product Name, SKU, or Category..."
+                      placeholder="Search by Product Name or Category..."
                       value={productAnalyticsSearch}
                       onChange={e => setProductAnalyticsSearch(e.target.value)}
                       className="w-full px-4 py-2.5 bg-[#F9FAFB] border border-[#F3F4F6]/60 rounded-xl text-[13px] font-bold text-[#111111] placeholder:text-[#9CA3AF] focus:outline-none focus:border-primary-soft transition-colors"
@@ -3114,7 +3108,7 @@ export default function Dashboard() {
                             <tr>
                               <th className="px-4 py-2.5 font-black">#</th>
                               <th className="px-4 py-2.5 font-black">Product</th>
-                              <th className="px-4 py-2.5 font-black">Variant / SKU</th>
+                              <th className="px-4 py-2.5 font-black">Variant</th>
                               <th className="px-4 py-2.5 font-black">Qty Sold</th>
                               <th className="px-4 py-2.5 font-black">Revenue</th>
                               <th className="px-4 py-2.5 font-black">Cost</th>
@@ -3528,20 +3522,8 @@ export default function Dashboard() {
                           <p className="text-[#9CA3AF] uppercase text-[10px] sm:text-[11px] font-black leading-tight">Payment</p>
                           <p className="font-semibold text-[#374151] break-words">{formatPaymentLabel(o.payment_mode || o.payment_method, o.split_details) || '—'}</p>
                         </div>
-                        {(Boolean(o.reference_number) || Boolean(o.remarks) || Boolean(o.address)) && (
+                        {Boolean(o.address) && (
                           <div className="col-span-2 mt-1 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-[#F3F4F6] pt-3">
-                            {Boolean(o.reference_number) && (
-                              <div className="min-w-0">
-                                <p className="text-[#9CA3AF] uppercase text-[10px] sm:text-[11px] font-black leading-tight">Ref #</p>
-                                <p className="font-semibold text-[#111111] break-words">{o.reference_number}</p>
-                              </div>
-                            )}
-                            {Boolean(o.remarks) && (
-                              <div className="min-w-0">
-                                <p className="text-[#9CA3AF] uppercase text-[10px] sm:text-[11px] font-black leading-tight">Remarks</p>
-                                <p className="font-semibold text-[#374151] break-words">{o.remarks}</p>
-                              </div>
-                            )}
                             {Boolean(o.address) && (
                               <div className="col-span-2 min-w-0">
                                 <p className="text-[#9CA3AF] uppercase text-[10px] sm:text-[11px] font-black leading-tight">Address</p>
@@ -3652,7 +3634,7 @@ export default function Dashboard() {
                             <td colSpan={7} className="px-4 py-3.5">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-[#F3F4F6]/50 mb-3">
                                 <p className="text-[11px] font-black uppercase text-[#10B981] tracking-wider">
-                                  {l('Order Details & Remarks', 'ஆர்டர் விவரங்கள் மற்றும் குறிப்புகள்')}
+                                  {l('Order Details', 'ஆர்டர் விவரங்கள்')}
                                 </p>
                                 <button
                                   type="button"
@@ -3664,14 +3646,6 @@ export default function Dashboard() {
                                 </button>
                               </div>
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px]">
-                                <div>
-                                  <p className="text-[10px] font-black uppercase text-[#9CA3AF] tracking-wider mb-1">Reference No</p>
-                                  <p className="font-semibold text-[#111111] break-words">{o.reference_number || '—'}</p>
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-black uppercase text-[#9CA3AF] tracking-wider mb-1">Remarks</p>
-                                  <p className="font-semibold text-[#374151] break-words">{o.remarks || '—'}</p>
-                                </div>
                                 <div>
                                   <p className="text-[10px] font-black uppercase text-[#9CA3AF] tracking-wider mb-1">Customer</p>
                                   <p className="font-semibold text-[#111111] break-words">{o.customer_name || '—'}</p>
@@ -3791,11 +3765,6 @@ export default function Dashboard() {
                       className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary-soft rounded-xl text-[13px] font-bold outline-none transition-colors"
                       placeholder="Leave blank for no discount"
                       value={prodForm.offerPrice} onChange={e => setProdForm(f => ({...f, offerPrice: e.target.value}))} />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('SKU', 'SKU')}</label>
-                    <input className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary-soft rounded-xl text-[13px] font-bold outline-none transition-colors"
-                      placeholder="e.g. MP-100G" value={prodForm.sku} onChange={e => setProdForm(f => ({...f, sku: e.target.value}))} />
                   </div>
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Barcode', 'பார்கோடு')}</label>
@@ -4080,13 +4049,6 @@ export default function Dashboard() {
                           placeholder="40"
                           value={variantForm.price}
                           onChange={e => setVariantForm(f => ({...f, price: e.target.value}))} />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('SKU', 'SKU')}</label>
-                        <input className="w-full px-4 py-2.5 bg-white rounded-xl border border-[#E5E7EB] text-[13px] font-bold outline-none focus:border-primary-soft transition-colors shadow-sm"
-                          placeholder="SKU-123"
-                          value={variantForm.sku}
-                          onChange={e => setVariantForm(f => ({...f, sku: e.target.value}))} />
                       </div>
                       <div>
                         <label className="block text-[11px] font-black uppercase tracking-wider text-[#6B7280] mb-1">{l('Barcode', 'பார்கோடு')}</label>

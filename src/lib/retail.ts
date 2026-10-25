@@ -494,3 +494,18 @@ export const normalizeStructuredOrderItem = (raw: Record<string, unknown>): Stru
     note: raw.note ? String(raw.note) : (raw.manual_note ? String(raw.manual_note) : null),
   }
 }
+
+/**
+ * A product's special offer applies to its variants as the same percentage off, because each
+ * variant has its own price. Returns null when the product has no offer.
+ */
+export const variantOfferPrice = (
+  productPrice: number | null | undefined,
+  productOffer: number | null | undefined,
+  variantPrice: number,
+): number | null => {
+  const price = Number(productPrice) || 0
+  const offer = Number(productOffer) || 0
+  if (price <= 0 || offer <= 0 || offer >= price || variantPrice <= 0) return null
+  return Math.round(variantPrice * (offer / price) * 100) / 100
+}

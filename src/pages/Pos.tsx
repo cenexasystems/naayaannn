@@ -32,6 +32,7 @@ import {
   formatCurrency,
   formatQuantityDisplay,
   formatInvoiceNo,
+  variantOfferPrice,
 } from '../lib/retail'
 import { buildProfessionalWhatsAppMessage, buildAdvanceDepositWhatsAppMessage, publicInvoiceUrl } from '../lib/whatsappMessage'
 import { normalizePhone, toWhatsAppUrl } from '../lib/phone'
@@ -320,7 +321,7 @@ export default function Pos(props: PosProps = {}) {
         id: specificVariant.id,
         name: `${product.name} - ${specificVariant.variantName}`,
         price: specificVariant.price,
-        offerPrice: null,
+        offerPrice: variantOfferPrice(product.price, product.offerPrice, specificVariant.price),
         stock: specificVariant.stock,
         stockQuantity: specificVariant.stock,
         hasVariants: false,
@@ -383,7 +384,7 @@ export default function Pos(props: PosProps = {}) {
       id: selectedVariant.id,
       name: `${variantPickerProduct.name} - ${selectedVariant.variantName}`,
       price: selectedVariant.price,
-      offerPrice: null,
+      offerPrice: variantOfferPrice(variantPickerProduct.price, variantPickerProduct.offerPrice, selectedVariant.price),
       stock: selectedVariant.stock,
       stockQuantity: selectedVariant.stock,
       hasVariants: false,
@@ -486,7 +487,9 @@ export default function Pos(props: PosProps = {}) {
         name_ta: prod.name_ta,
         variant_name: varnt?.variant_name,
         price: price,
-        offer_price: prod.offer_price ? Number(prod.offer_price) : undefined,
+        offer_price: varnt
+          ? variantOfferPrice(Number(prod.price), Number(prod.offer_price), price) ?? undefined
+          : prod.offer_price ? Number(prod.offer_price) : undefined,
         stock: effectiveStock,
         barcode: clean,
         image_url: prod.image_url,
@@ -1810,7 +1813,14 @@ export default function Pos(props: PosProps = {}) {
                         {v.variantName}
                       </div>
                       <div className="flex items-center justify-between mt-2 pt-1 border-t border-gray-100 text-[11px]">
-                        <span className="font-black text-[#111111]">₹{v.price}</span>
+                        <span className="font-black text-[#111111]">
+                          {variantOfferPrice(variantPickerProduct.price, variantPickerProduct.offerPrice, v.price) != null ? (
+                            <>
+                              <span className="mr-1 text-[10px] font-bold text-gray-400 line-through">₹{v.price}</span>
+                              ₹{variantOfferPrice(variantPickerProduct.price, variantPickerProduct.offerPrice, v.price)}
+                            </>
+                          ) : `₹${v.price}`}
+                        </span>
                         <span className="text-[10px] text-emerald-700 font-bold">Stock: {v.stock}</span>
                       </div>
                     </div>
@@ -1848,7 +1858,7 @@ export default function Pos(props: PosProps = {}) {
                 onClick={addVariantToItems}
                 className="w-full py-3 rounded-2xl bg-primary hover:bg-primary-hover border border-primary-soft/50 text-primary-100 text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
-                Add to Order (₹{((selectedVariant?.price || variantPickerProduct.price || 0) * variantPickerQty).toFixed(2)})
+                Add to Order (₹{(((selectedVariant ? variantOfferPrice(variantPickerProduct.price, variantPickerProduct.offerPrice, selectedVariant.price) : null) ?? selectedVariant?.price ?? variantPickerProduct.price ?? 0) * variantPickerQty).toFixed(2)})
               </button>
             </div>
           </div>
