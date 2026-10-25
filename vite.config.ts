@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv, type Plugin, type PreviewServer, type ViteDevServer } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
 
 /**
  * Serves /api/* from server/router.ts during `npm run dev` and `npm run preview`, so local
@@ -37,99 +36,6 @@ export default defineConfig(({ mode }) => {
   plugins: [
     localApi(),
     react(),
-    VitePWA({
-      selfDestroying: true,
-      includeAssets: [
-        'naayan-logo.png',
-        'naayan-icon.png',
-        'naayan-icon-192.png',
-        'naayan-icon-512.png',
-        'naayan-icon-maskable-192.png',
-        'naayan-icon-maskable-512.png',
-        'apple-touch-icon.png',
-        'naayan-favicon.png',
-        'robots.txt',
-      ],
-      manifest: {
-        name: 'NAAYAN POS',
-        short_name: 'NAAYAN',
-        description: 'NAAYAN retail billing, barcode inventory, order, receipt, and invoice administration.',
-        theme_color: '#3F3F46',
-        background_color: '#3F3F46',
-        display: 'standalone',
-        orientation: 'any',
-        start_url: '/',
-        scope: '/',
-        icons: [
-          {
-            src: '/naayan-icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any',
-          },
-          {
-            src: '/naayan-icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any',
-          },
-          {
-            src: '/naayan-icon-maskable-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-          {
-            src: '/naayan-icon-maskable-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-        ],
-      },
-      devOptions: {
-        enabled: true,
-      },
-      workbox: {
-        cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpeg,jpg,woff,woff2}'],
-        navigateFallbackDenylist: [/^\/api/, /^\/admin/, /supabase/, /^\/assets\//, /\.[a-zA-Z0-9]+$/],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkOnly',
-          },
-          {
-            urlPattern: /\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 3,
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'google-fonts-stylesheets',
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              expiration: {
-                maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 365,
-              },
-            },
-          },
-        ],
-      },
-    }),
   ],
   build: {
     target: 'esnext',

@@ -6,6 +6,8 @@
   "background_color": "#F9FAFB",
   "display": "standalone",
   "orientation": "any",
+  "categories": ["business", "shopping"],
+  "id": "/",
   "start_url": "/",
   "scope": "/",
   "icons": [

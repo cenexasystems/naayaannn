@@ -5,7 +5,6 @@ import { useAdminAuthStore } from '../store/store'
 import { BRAND_EN, BRAND_TAGLINE, BRAND_LOGO } from '../lib/brand'
 import { useLangStore } from '../store/langStore'
 import { alarmSound } from '../lib/alarmAudio'
-import { InstallAppPrompt } from '../components/common/InstallAppPrompt'
 
 const fieldWrap =
   'flex items-center gap-2.5 rounded-xl border border-gray-300 bg-white px-3.5 h-[46px] transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15'
@@ -131,7 +130,6 @@ export default function AdminLogin() {
         </div>
       </div>
       <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{BRAND_EN} Terminal v1.0</p>
-      <InstallAppPrompt />
     </div>
   )
 }

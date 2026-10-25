@@ -8,6 +8,11 @@ import { captureInstallPrompt } from './lib/installPrompt'
 
 applyBrandToDocument()
 captureInstallPrompt()
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* install prompt is optional */ })
+  })
+}
 void syncBrandSettingsFromServer().catch(() => {
   // Offline or Supabase unavailable: keep the settings cached on this device
 })

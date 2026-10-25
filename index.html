@@ -30,25 +30,6 @@
           );
         };
 
-        // Proactively unregister any crashed or stale Service Worker registrations and purge workbox caches
-        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-          try {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              for (var i = 0; i < regs.length; i++) {
-                regs[i].unregister();
-              }
-            }).catch(function() {});
-            if ('caches' in window) {
-              caches.keys().then(function(names) {
-                for (var j = 0; j < names.length; j++) {
-                  caches.delete(names[j]);
-                }
-              }).catch(function() {});
-            }
-          } catch(e) {}
-        }
-
-
         window.onerror = function(message, source, lineno, colno, error) {
           var errStr = (error && (error.message || error.stack)) || '';
           if (isBenign(message, source) || isBenign(errStr, source)) {
