@@ -30,7 +30,7 @@ export function InstallAppPrompt() {
   const [dismissed, setDismissed] = useState(recentlyDismissed)
   const ios = isIos()
 
-  if (dismissed || isStandalone() || (!offer && !ios)) return null
+  if (dismissed || isStandalone()) return null
   const deferred = offer
 
   const install = async () => {
@@ -54,7 +54,11 @@ export function InstallAppPrompt() {
         <div className="min-w-0 flex-1">
           <p className="truncate text-[12.5px] font-black uppercase tracking-tight">Install {BRAND_EN}</p>
           <p className={`text-[11px] font-semibold text-white/75 ${deferred ? 'truncate' : ''}`}>
-            {deferred ? 'Add app to your phone or desktop' : <>Tap <Share size={11} className="inline -mt-0.5" /> Share, then "Add to Home Screen"</>}
+            {deferred
+              ? 'Add app to your phone or desktop'
+              : ios
+                ? <>Tap <Share size={11} className="inline -mt-0.5" /> Share, then "Add to Home Screen"</>
+                : 'Open your browser menu and choose "Install app"'}
           </p>
         </div>
         {deferred && (

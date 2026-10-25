@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Lock, Eye, EyeOff, AlertCircle, ChevronRight } from 'lucide-react'
 import { useAdminAuthStore } from '../store/store'
+import { InstallAppPrompt } from '../components/common/InstallAppPrompt'
 import { BRAND_EN, BRAND_TAGLINE, BRAND_LOGO } from '../lib/brand'
 import { useLangStore } from '../store/langStore'
 import { alarmSound } from '../lib/alarmAudio'
@@ -130,6 +131,7 @@ export default function AdminLogin() {
         </div>
       </div>
       <p className="mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{BRAND_EN} Terminal v1.0</p>
+      <InstallAppPrompt />
     </div>
   )
 }
