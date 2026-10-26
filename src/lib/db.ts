@@ -442,6 +442,12 @@ export const db = {
   removeChannel: (channel: Channel) => channel.unsubscribe(),
 }
 
+/** Changes the signed-in user's password (the admin may also change the staff password). */
+export async function changePortalPassword(input: { currentPassword: string; newPassword: string; target?: 'admin' | 'staff' }) {
+  const { error } = await post<{ ok: true }>('change-password', input)
+  return { error: error ? (error.message || 'Could not change the password') : null }
+}
+
 /** Signs in a portal user on the server and returns the role and session token. */
 export async function loginPortal(id: string, password: string) {
   const { json, error } = await post<{ role: 'admin' | 'staff'; token: string }>('auth', { id, password })

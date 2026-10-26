@@ -4,7 +4,7 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { ConfigError, query } from './db.js'
-import { checkCredentials, createToken, verifyToken, type Session } from './auth.js'
+import { changePassword, checkCredentials, createToken, verifyToken, type Role, type Session } from './auth.js'
 import { ApiError, runDbRequest, splitTopLevel, type DbRequest, type Filter } from './query.js'
 import { runRpc } from './rpc.js'
 import { getObject, putObject, removeObjects } from './storage.js'
@@ -134,9 +134,19 @@ export async function route(req: Req, res: ServerResponse, routeName?: string) {
 
     switch (name) {
       case 'auth': {
-        const role = checkCredentials(String(body.id || ''), String(body.password || ''))
+        const role = await checkCredentials(String(body.id || ''), String(body.password || ''))
         if (!role) return send(res, 401, { message: 'Invalid Admin or Staff credentials', code: '401' })
         return send(res, 200, { role, token: createToken(role, String(body.id || role).trim()) })
+      }
+      case 'change-password': {
+        if (!session) throw new ApiError('Sign in to continue', '42501', 401)
+        const target: Role = body.target === 'staff' ? 'staff' : session.role
+        try {
+          await changePassword(session, target, String(body.currentPassword || ''), String(body.newPassword || ''))
+        } catch (err) {
+          throw new ApiError(err instanceof Error ? err.message : 'Could not change the password', '400', 400)
+        }
+        return send(res, 200, { ok: true })
       }
       case 'db': {
         const dbReq = body as unknown as DbRequest

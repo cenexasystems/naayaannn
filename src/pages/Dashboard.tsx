@@ -60,6 +60,7 @@ import { CategoryManagerView } from '../components/inventory/CategoryManagerView
 import { ExpensesView } from '../components/expenses/ExpensesView'
 import { BirthdaysView } from '../components/birthdays/BirthdaysView'
 import { ShopSettingsView } from '../components/settings/ShopSettingsView'
+import { ChangePasswordCard } from '../components/settings/ChangePasswordCard'
 import { expenseService, type ExpenseRecord } from '../services/expenseService'
 import { useNavigationStore } from '../store/navigationStore'
 import { useAlarmStore } from '../store/alarmStore'
@@ -347,7 +348,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (role === 'staff') {
-      const staffAllowedTabs: TabKey[] = ['billing', 'inventory', 'advance_orders', 'birthdays', 'expenses', 'history']
+      const staffAllowedTabs: TabKey[] = ['billing', 'inventory', 'advance_orders', 'birthdays', 'expenses', 'history', 'settings']
       if (!staffAllowedTabs.includes(tab)) {
         setTab('billing')
         navigate('/dashboard', { replace: true })
@@ -357,7 +358,7 @@ export default function Dashboard() {
 
   const handleTabClick = (tabKey: TabKey) => {
     if (role === 'staff') {
-      const staffAllowedTabs: TabKey[] = ['billing', 'inventory', 'advance_orders', 'birthdays', 'expenses', 'history']
+      const staffAllowedTabs: TabKey[] = ['billing', 'inventory', 'advance_orders', 'birthdays', 'expenses', 'history', 'settings']
       if (!staffAllowedTabs.includes(tabKey)) return
     }
     setTab(tabKey)
@@ -1884,6 +1885,7 @@ export default function Dashboard() {
         { id: 'inventory',      icon: <Boxes size={20} />,             label: 'Inventory', badge: lowStockCount },
         { id: 'expenses',       icon: <Wallet size={20} />,            label: 'Expense Tracker' },
         { id: 'birthdays',      icon: <Gift size={20} />,              label: 'Birthdays' },
+        { id: 'settings',       icon: <Settings2 size={20} />,         label: 'Settings' },
       ]
     : [
         { id: 'billing',        icon: <Receipt size={20} />,           label: 'Billing Panel' },
@@ -4579,8 +4581,11 @@ export default function Dashboard() {
         )}
 
         {/* ── SETTINGS TAB ── */}
-        {tab === 'settings' && role === 'admin' && (
-          <ShopSettingsView />
+        {tab === 'settings' && (
+          <div className="space-y-6">
+            {role === 'admin' && <ShopSettingsView />}
+            <ChangePasswordCard role={role === 'admin' ? 'admin' : 'staff'} />
+          </div>
         )}
         {/* Footer: sits at the end of the scrolling content, visible only when scrolled to the bottom */}
         <footer className="mt-4 border-t border-black/10 pt-4 pb-1 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-semibold uppercase tracking-wider text-[#000000] text-center print:hidden">
