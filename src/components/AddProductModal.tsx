@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { X, PackagePlus, Tag, Plus, Trash2 } from 'lucide-react'
 import { useProductStore } from '../store/store'
 import { db } from '../lib/db'
+import VariantOfferSummary from './inventory/VariantOfferSummary'
 import OfferFields from './inventory/OfferFields'
 import { normalizeBarcode } from '../lib/barcode'
 import { createPortal } from 'react-dom'
@@ -67,6 +68,20 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, onClose])
+
+  // With variants and no product price, the offer is entered against the first variant's price
+  const offerBasePrice = Number(form.price) || (hasVariants ? Number(variants.find(v => v.name.trim())?.price) || 0 : 0)
+
+  // When the price the offer is based on changes, keep the same % off (so every variant follows it)
+  const prevOfferBase = useRef(0)
+  useEffect(() => {
+    const prev = prevOfferBase.current
+    prevOfferBase.current = offerBasePrice
+    const op = Number(form.offerPrice)
+    if (!(prev > 0) || !(offerBasePrice > 0) || prev === offerBasePrice || !(op > 0 && op < prev)) return
+    setForm(f => ({ ...f, offerPrice: String(Math.round(offerBasePrice * (op / prev) * 100) / 100) }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offerBasePrice])
 
   if (!isOpen) return null
 
@@ -294,7 +309,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
 
           <OfferFields
             idPrefix="add-item-offer"
-            price={Number(form.price) || 0}
+            price={offerBasePrice}
             offerPrice={form.offerPrice}
             onChange={(v) => setForm(f => ({ ...f, offerPrice: v }))}
             inputClassName={input}
@@ -323,7 +338,8 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
                     const upd = (key: keyof VariantRow) => (e: React.ChangeEvent<HTMLInputElement>) =>
                       setVariants(rows => rows.map(r => (r.id === v.id ? { ...r, [key]: e.target.value } : r)))
                     return (
-                      <div key={v.id} className="grid grid-cols-2 sm:grid-cols-[1.4fr_1fr_1fr_0.8fr_1.4fr_auto] items-end gap-2 rounded-xl bg-gray-50 p-3">
+                      <div key={v.id}>
+                      <div className="grid grid-cols-2 sm:grid-cols-[1.4fr_1fr_1fr_0.8fr_1.4fr_auto] items-end gap-2 rounded-xl bg-gray-50 p-3">
                         <label className="block"><span className={label}>Variant {i + 1}</span><input className={input} value={v.name} onChange={upd('name')} placeholder="e.g., M / 32 / Red" /></label>
                         <label className="block"><span className={label}>Price (₹)</span><input className={input} value={v.price} onChange={upd('price')} inputMode="decimal" placeholder={form.price || '0.00'} /></label>
                         <label className="block"><span className={label}>Cost (₹)</span><input className={input} value={v.cost} onChange={upd('cost')} inputMode="decimal" placeholder={form.cost || '0.00'} /></label>
@@ -331,6 +347,8 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
                         <label className="block"><span className={label}>Barcode</span><input className={input} value={v.barcode} onChange={upd('barcode')} placeholder="Optional" /></label>
                         <button type="button" onClick={() => setVariants(rows => rows.filter(r => r.id !== v.id))} aria-label="Remove variant"
                           className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-[#DC2626]"><Trash2 size={17} /></button>
+                      </div>
+                      <VariantOfferSummary productPrice={offerBasePrice} offerPrice={form.offerPrice} variantPrice={Number(v.price) || Number(form.price) || offerBasePrice} />
                       </div>
                     )
                   })}

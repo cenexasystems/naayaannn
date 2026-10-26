@@ -17,6 +17,7 @@ import { normalizeBarcode } from '../../lib/barcode'
 import { db } from '../../lib/db'
 import { confirmDelete } from '../../lib/confirmDelete'
 import OfferFields from './OfferFields'
+import VariantOfferSummary from './VariantOfferSummary'
 
 export const STANDARD_LETTER_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', 'Free Size'] as const
 export const STANDARD_NUMERIC_SIZES = ['28', '30', '32', '34', '36', '38', '40', '42', '44', '46', '48'] as const
@@ -63,6 +64,19 @@ export const AddEditProductView: React.FC<{
 
   // Variants Rows for dynamic addition
   const [variantRows, setVariantRows] = useState<VariantInputRow[]>([])
+  // With variants the product price is the first variant's price, so the offer is entered against that
+  const offerBasePrice = hasVariants ? Number(variantRows.find((v) => v.variantName.trim())?.price) || 0 : parseFloat(price) || 0
+
+  // When the price the offer is based on changes, keep the same % off (so every variant follows it)
+  const prevOfferBase = useRef(0)
+  useEffect(() => {
+    const prev = prevOfferBase.current
+    prevOfferBase.current = offerBasePrice
+    const op = Number(offerPrice)
+    if (!(prev > 0) || !(offerBasePrice > 0) || prev === offerBasePrice || !(op > 0 && op < prev)) return
+    setOfferPrice(String(Math.round(offerBasePrice * (op / prev) * 100) / 100))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offerBasePrice])
 
   const [loading, setLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -1089,7 +1103,7 @@ export const AddEditProductView: React.FC<{
             {/* Special offer */}
             <OfferFields
               idPrefix="prod-offer"
-              price={parseFloat(price) || 0}
+              price={offerBasePrice}
               offerPrice={offerPrice}
               onChange={setOfferPrice}
               inputClassName="w-full h-10 px-3.5 rounded-xl border bg-white text-xs font-bold text-gray-900 outline-none focus:border-[#111111]"
@@ -1304,8 +1318,8 @@ export const AddEditProductView: React.FC<{
                   ) : (
                     <div className="space-y-2.5">
                     {variantRows.map((v) => (
+                      <div key={v.id}>
                       <div
-                        key={v.id}
                         className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 p-3 rounded-xl bg-[#FAFAFA] border border-gray-200 items-center"
                       >
                         <div className="sm:col-span-3">
@@ -1391,6 +1405,8 @@ export const AddEditProductView: React.FC<{
                             <Trash2 size={14} />
                           </button>
                         </div>
+                      </div>
+                      <VariantOfferSummary productPrice={offerBasePrice} offerPrice={offerPrice} variantPrice={Number(v.price) || offerBasePrice} />
                       </div>
                     ))}
                     </div>
