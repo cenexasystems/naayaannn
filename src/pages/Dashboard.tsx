@@ -54,7 +54,7 @@ import { createVariant, updateVariant, deleteVariant, setDefaultVariant, type Pr
 import { useVariantStore } from '../store/store'
 import Pos from './Pos'
 import AdvanceOrders from './AdvanceOrders'
-import type { AdvanceOrder } from '../services/advanceOrderService'
+import { listAdvanceOrders, type AdvanceOrder } from '../services/advanceOrderService'
 import { InventoryTable } from '../components/inventory/InventoryTable'
 import { CategoryManagerView } from '../components/inventory/CategoryManagerView'
 import { ExpensesView } from '../components/expenses/ExpensesView'
@@ -447,6 +447,23 @@ export default function Dashboard() {
     setSearchResults(current => [completed, ...current.filter(order => order.id !== completed.id)].slice(0, 100))
     setOrderItems(current => [...completedItems.map(item => ({ order_id: completed.id, product_name: String(item.name || 'Product'), category: String(item.category || advance.category || ''), quantity: Number(item.quantity || 1), line_total: Number(item.line_total || 0), is_manual: false })), ...current.filter(row => row.order_id !== completed.id)])
   }, [user?.id])
+
+  // Advance orders feed the value / paid / balance boxes on the revenue tab
+  const [advanceOrders, setAdvanceOrders] = useState<AdvanceOrder[]>([])
+  useEffect(() => { void listAdvanceOrders().then(setAdvanceOrders).catch(() => setAdvanceOrders([])) }, [])
+  const advanceSummary = useMemo(() => {
+    const live = advanceOrders.filter(o =>
+      o.status !== 'cancelled' &&
+      (!analyticsDateFrom || toLocalDateKey(o.created_at) >= analyticsDateFrom) &&
+      (!analyticsDateTo || toLocalDateKey(o.created_at) <= analyticsDateTo))
+    return {
+      value: live.reduce((s, o) => s + o.total_amount, 0),
+      // a completed order has had its balance collected, so it counts as paid in full
+      paid: live.reduce((s, o) => s + (o.status === 'completed' ? o.total_amount : o.deposit_amount), 0),
+      balance: live.filter(o => o.status !== 'completed').reduce((s, o) => s + o.remaining_balance, 0),
+      count: live.length,
+    }
+  }, [advanceOrders, analyticsDateFrom, analyticsDateTo])
 
   // Analytics (date-aware)
   const analytics = useMemo(() => {
@@ -1128,11 +1145,13 @@ export default function Dashboard() {
         lineTotal: item.line_total,
       })),
       subtotal,
+      couponCode: order.coupon_code || undefined,
       couponDiscount: order.discount_amount,
       manualDiscountAmount: order.manual_discount_amount,
       gstAmount: order.total_gst,
       shipping: order.delivery_charge,
       total: order.total,
+      paymentMode: formatPaymentLabel(order.payment_mode || order.payment_method, order.split_details) || order.payment_mode || order.payment_method,
     })
     return { items, subtotal, message, fileName: `Invoice-${order.invoice_no || order.id}.pdf` }
   }
@@ -2357,6 +2376,11 @@ export default function Dashboard() {
                             lineTotal: item.line_total,
                           })),
                           subtotal: normalizedItems.reduce((sum, item) => sum + item.line_total, 0),
+                          couponCode: order.coupon_code || undefined,
+                          couponDiscount: order.discount_amount,
+                          manualDiscountAmount: order.manual_discount_amount,
+                          shipping: order.delivery_charge,
+                          gstAmount: order.total_gst,
                           total: getOrderTotal(order),
                           paymentMode: formatPaymentLabel(order.payment_mode || order.payment_method, order.split_details) || order.payment_mode || order.payment_method,
                         })
@@ -2846,6 +2870,30 @@ export default function Dashboard() {
                       color: 'text-gray-500',
                       bg: 'bg-gray-50',
                     }] : []),
+                    {
+                      label: 'Advance Order Value',
+                      helper: `${advanceSummary.count} advance orders`,
+                      value: formatCurrency(advanceSummary.value),
+                      icon: <RMIcon size={16} />,
+                      color: 'text-gray-500',
+                      bg: 'bg-gray-50',
+                    },
+                    {
+                      label: 'Advance Amount Paid',
+                      helper: 'Deposits + collected balances',
+                      value: formatCurrency(advanceSummary.paid),
+                      icon: <Banknote size={16} />,
+                      color: 'text-emerald-500',
+                      bg: 'bg-emerald-50',
+                    },
+                    {
+                      label: 'Advance Balance Due',
+                      helper: 'Still to collect',
+                      value: formatCurrency(advanceSummary.balance),
+                      icon: <RMIcon size={16} />,
+                      color: 'text-red-500',
+                      bg: 'bg-red-50',
+                    },
                     {
                       label: 'Top Product',
                       helper: 'Most sold item',

@@ -324,6 +324,7 @@ export default function DigitalInvoice() {
       invoiceDate: invoice.created_at,
       items,
       subtotal,
+      couponCode: invoice.coupon_code || undefined,
       couponDiscount: invoice.discount_amount,
       manualDiscountAmount: invoice.manual_discount_amount,
       shipping: invoice.delivery_charge,
