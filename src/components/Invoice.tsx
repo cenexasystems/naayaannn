@@ -301,15 +301,16 @@ export const Invoice: React.FC<InvoiceProps> = ({
           {sumRow(<>Subtotal{isGst && <span style={{ fontSize: 9, color: MUTED, marginLeft: 5, letterSpacing: 0.5 }}>EXCL. GST</span>}</>, formatCurrency(subtotal))}
           {discountAmount > 0 && sumRow(`Coupon${couponCode ? ` (${couponCode})` : ''}`, `−${formatCurrency(discountAmount)}`)}
           {manualDiscountAmount > 0 && sumRow('Discount', `−${formatCurrency(manualDiscountAmount)}`)}
+          {effectiveDelivery > 0 && sumRow('Delivery', formatCurrency(effectiveDelivery))}
           {isGst && (
             <>
               <div style={{ borderTop: `1px dashed ${LINE}`, marginTop: 4 }} />
               {sumRow('Taxable Value', formatCurrency(taxable), { small: true, muted: true })}
               {sumRow(`CGST${halfRate(cgst) ? ` (${halfRate(cgst)})` : ''}`, formatCurrency(cgst))}
               {sumRow(`SGST${halfRate(sgst) ? ` (${halfRate(sgst)})` : ''}`, formatCurrency(sgst))}
+              {sumRow(`Total GST${halfRate(cgst + sgst) ? ` (${halfRate(cgst + sgst)})` : ''}`, formatCurrency(Math.round((cgst + sgst) * 100) / 100))}
             </>
           )}
-          {effectiveDelivery > 0 && sumRow('Delivery', formatCurrency(effectiveDelivery))}
           <div style={{ height: 2, background: accent, margin: '8px 0 10px' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
             <span style={{ fontSize: 14.5, fontWeight: 800, color: accent }}>TOTAL</span>

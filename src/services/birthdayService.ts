@@ -38,17 +38,49 @@ const writeLocal = (key: string, value: unknown) => {
 
 const phoneKey = (phone: string) => normalizePhoneForWhatsApp(phone) || phone.trim()
 
+export interface KnownCustomer { name: string; phone: string }
+
 export const birthdayService = {
   async list(): Promise<CustomerBirthday[]> {
+    const local = readLocal<CustomerBirthday[]>(LOCAL_KEY, [])
     if (isDatabaseConfigured) {
       const { data, error } = await db
         .from('customer_birthdays')
         .select('id, name, phone, birth_date, created_at')
         .order('name', { ascending: true })
-      if (!error && data) return data as CustomerBirthday[]
+      if (!error && data) {
+        // Birthdays that could not be saved to the database at billing time are cached on this device; keep them visible
+        const remote = data as CustomerBirthday[]
+        const known = new Set(remote.map(b => phoneKey(b.phone)))
+        return [...remote, ...local.filter(b => !known.has(phoneKey(b.phone)))]
+      }
       console.warn('Birthday fetch failed, using local cache:', error?.message)
     }
-    return readLocal<CustomerBirthday[]>(LOCAL_KEY, [])
+    return local
+  },
+
+  /** Customers who have bought (billing + advance orders) but have no birthday saved yet. */
+  async listWithoutBirthday(withBirthday: CustomerBirthday[]): Promise<KnownCustomer[]> {
+    const have = new Set(withBirthday.map(b => phoneKey(b.phone)))
+    const found = new Map<string, KnownCustomer>()
+    const add = (name: unknown, phone: unknown) => {
+      const raw = String(phone || '').trim()
+      if (!raw) return
+      const key = phoneKey(raw)
+      if (!key || have.has(key)) return
+      const nm = String(name || '').trim()
+      const prev = found.get(key)
+      if (!prev || (!prev.name && nm)) found.set(key, { name: nm, phone: key })
+    }
+    if (isDatabaseConfigured) {
+      const [orders, advance] = await Promise.all([
+        db.from('orders').select('customer_name, phone').not('phone', 'is', null).limit(5000),
+        db.from('advance_orders').select('customer_name, phone').not('phone', 'is', null).limit(5000),
+      ])
+      for (const r of (orders.data || []) as Array<Record<string, unknown>>) add(r.customer_name, r.phone)
+      for (const r of (advance.data || []) as Array<Record<string, unknown>>) add(r.customer_name, r.phone)
+    }
+    return [...found.values()].sort((a, b) => (a.name || '~').localeCompare(b.name || '~'))
   },
 
   /** Insert or update the birthday for a phone number. Never throws: billing must not fail because of this. */

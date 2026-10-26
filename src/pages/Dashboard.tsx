@@ -66,7 +66,7 @@ import { useAlarmStore } from '../store/alarmStore'
 import { useHardwareBarcodeScanner } from '../hooks/useHardwareBarcodeScanner'
 import { BarcodeRedirectDialog } from '../components/pos/BarcodeRedirectDialog'
 import { YearTrendCard, OrderSourceCard, TopItemsCard, WeekTrendCard } from '../components/analytics/RevenueCharts'
-import { exportAnalyticsToCSV, exportAnalyticsToPDF } from '../services/analyticsExport'
+import { exportAnalyticsToCSV } from '../services/analyticsExport'
 import { BRAND_EN, BRAND_ICON, BRAND_TAGLINE } from '../lib/brand'
 import {
   ResponsiveContainer,
@@ -241,7 +241,6 @@ export default function Dashboard() {
   }
 
   const [posAnalyticsTab, setPosAnalyticsTab] = useState<PosAnalyticsTab>('revenue')
-  const [exportingPdf, setExportingPdf] = useState(false)
   const [inventorySearch, setInventorySearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [imageUploading, setImageUploading] = useState(false)
@@ -2622,35 +2621,6 @@ export default function Dashboard() {
                   <span>Export CSV</span>
                 </button>
 
-                <button
-                  type="button"
-                  disabled={exportingPdf}
-                  onClick={async () => {
-                    try {
-                      setExportingPdf(true)
-                      await exportAnalyticsToPDF({
-                        data: analytics,
-                        activeTab: posAnalyticsTab,
-                        datePreset: analyticsDatePreset,
-                        dateFrom: analyticsDateFrom,
-                        dateTo: analyticsDateTo,
-                      })
-                    } catch (err) {
-                      console.error('PDF export error:', err)
-                    } finally {
-                      setExportingPdf(false)
-                    }
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary border border-primary-soft/60 text-primary-100 font-black text-xs hover:bg-primary-hover shadow-md transition-all cursor-pointer hover:scale-[1.02] disabled:opacity-60"
-                  title="Export formatted executive PDF with chart diagrams"
-                >
-                  {exportingPdf ? (
-                    <RefreshCw size={14} className="animate-spin text-primary-hover" />
-                  ) : (
-                    <FileText size={14} className="text-primary-hover" />
-                  )}
-                  <span>{exportingPdf ? 'Generating PDF...' : 'Export PDF (Charts)'}</span>
-                </button>
               </div>
             </div>
 
@@ -3663,7 +3633,10 @@ export default function Dashboard() {
                                 if (o.manual_discount_amount > 0) rows.push(['Discount', `-${formatCurrency(o.manual_discount_amount)}`, 'text-emerald-700'])
                                 if (o.total_gst > 0) {
                                   const cgst = Math.round((o.total_gst / 2) * 100) / 100
-                                  rows.push(['CGST', formatCurrency(cgst)], ['SGST', formatCurrency(Math.round((o.total_gst - cgst) * 100) / 100)])
+                                  const sgst = Math.round((o.total_gst - cgst) * 100) / 100
+                                  const taxable = Math.max(0, (itemsSubtotal > 0 ? itemsSubtotal : o.total - o.delivery_charge - o.total_gst + o.discount_amount + o.manual_discount_amount) - o.discount_amount - o.manual_discount_amount)
+                                  const pct = (a: number) => (taxable > 0 ? ` (${Math.round((a / taxable) * 10000) / 100}%)` : '')
+                                  rows.push([`CGST${pct(cgst)}`, formatCurrency(cgst)], [`SGST${pct(sgst)}`, formatCurrency(sgst)], [`Total GST${pct(o.total_gst)}`, formatCurrency(o.total_gst)])
                                 }
                                 rows.push(['Delivery Charges', o.delivery_charge > 0 ? formatCurrency(o.delivery_charge) : 'Free (₹0)'])
                                 return (

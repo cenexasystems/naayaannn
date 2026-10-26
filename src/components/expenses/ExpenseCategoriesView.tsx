@@ -106,7 +106,7 @@ export const ExpenseCategoriesView: React.FC<ExpenseCategoriesViewProps> = ({
       )}
 
       {/* 2-Column Grid matching reference UI */}
-      <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start">
+      <div className="grid grid-cols-1 gap-6 items-start">
         {/* LEFT COLUMN: Add / Edit Category Card */}
         <div className={`bg-white border rounded-3xl p-6 shadow-xs space-y-4 transition-all ${
           editingCategory ? 'border-primary-soft ring-2 ring-primary-soft/20' : 'border-gray-200'

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Gift, Cake, Trash2, Plus, Pencil, Save, MessageCircle, Download, UserPlus, X } from 'lucide-react'
 import {
   birthdayService, buildBirthdayMessage, birthdayInWindow, birthMonthDay, formatBirthDate, rangeToDates, toMonthDay,
-  type BirthdayOffer, type BirthdayRange, type CustomerBirthday,
+  type BirthdayOffer, type BirthdayRange, type CustomerBirthday, type KnownCustomer,
 } from '../../services/birthdayService'
 import { toWhatsAppUrl, formatPhoneDisplay, normalizePhone } from '../../lib/phone'
 import { downloadCsv } from '../../lib/exportCsv'
@@ -89,9 +89,9 @@ const PeopleList: React.FC<{
   )
 }
 
-const AddCustomerModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ onClose, onSaved }) => {
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
+const AddCustomerModal: React.FC<{ onClose: () => void; onSaved: () => void; initial?: { name: string; phone: string } }> = ({ onClose, onSaved, initial }) => {
+  const [name, setName] = useState(initial?.name || '')
+  const [phone, setPhone] = useState(initial?.phone || '')
   const [birthDate, setBirthDate] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -154,7 +154,9 @@ const AddCustomerModal: React.FC<{ onClose: () => void; onSaved: () => void }> =
 }
 
 export const BirthdaysView: React.FC = () => {
-  const [tab, setTab] = useState<'calendar' | 'customers'>('calendar')
+  const [tab, setTab] = useState<'calendar' | 'customers' | 'no birthday'>('calendar')
+  const [others, setOthers] = useState<KnownCustomer[]>([])
+  const [prefill, setPrefill] = useState<KnownCustomer | null>(null)
   const [people, setPeople] = useState<CustomerBirthday[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -178,6 +180,14 @@ export const BirthdaysView: React.FC = () => {
   }, [])
 
   const reloadPeople = () => { void birthdayService.list().then(setPeople) }
+
+  // Customers who have bought but have no birthday on file
+  useEffect(() => {
+    if (tab !== 'no birthday') return
+    let cancelled = false
+    void birthdayService.listWithoutBirthday(people).then(list => { if (!cancelled) setOthers(list) }).catch(() => { if (!cancelled) setOthers([]) })
+    return () => { cancelled = true }
+  }, [tab, people])
 
   const offer = offers.find(o => o.id === offerId) || offers[0]
   const applyRange = (r: BirthdayRange) => { const d = rangeToDates(r); setRange(r); setFrom(d.from); setTo(d.to) }
@@ -268,10 +278,10 @@ export const BirthdaysView: React.FC = () => {
           <UserPlus size={16} /> Add Customer
         </button>
       </div>
-      {addOpen && <AddCustomerModal onClose={() => setAddOpen(false)} onSaved={() => { setAddOpen(false); reloadPeople() }} />}
+      {(addOpen || prefill) && <AddCustomerModal initial={prefill || undefined} onClose={() => { setAddOpen(false); setPrefill(null) }} onSaved={() => { setAddOpen(false); setPrefill(null); reloadPeople() }} />}
 
       <div className="flex gap-6 border-b border-gray-200">
-        {(['calendar', 'customers'] as const).map(t => (
+        {(['calendar', 'customers', 'no birthday'] as const).map(t => (
           <button key={t} type="button" onClick={() => setTab(t)}
             className={`pb-2 text-[13px] font-black capitalize border-b-2 -mb-px ${tab === t ? 'border-primary-hover text-primary-hover' : 'border-transparent text-gray-500 hover:text-[#111111]'}`}>
             {t}
@@ -358,6 +368,25 @@ export const BirthdaysView: React.FC = () => {
             </div>
 
           </div>
+        </div>
+      ) : tab === 'no birthday' ? (
+        <div className={`${card} p-2 md:p-4`}>
+          <p className="px-2 pb-2 text-[13px] font-black text-[#111111]">Customers without a birthday ({others.length})</p>
+          {!others.length ? (
+            <p className="text-[12px] text-gray-500 p-3">Every customer who has bought has a birthday saved.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {others.map(c => (
+                <div key={c.phone} className="flex items-center gap-3 py-2.5 px-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-black text-[#111111] truncate">{c.name || 'Customer'}</p>
+                    <p className="text-[11px] text-gray-500">{formatPhoneDisplay(c.phone)}</p>
+                  </div>
+                  <button type="button" onClick={() => setPrefill(c)} className="flex items-center gap-1 px-3 h-8 rounded-lg bg-gray-100 text-[#111111] text-[10px] font-black uppercase hover:bg-gray-200"><UserPlus size={13} /> Add Birthday</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

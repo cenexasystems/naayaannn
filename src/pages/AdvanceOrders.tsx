@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Download, Eye, Plus, FileText, MessageCircle, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Check } from 'lucide-react'
+import { Download, Eye, Plus, FileText, MessageCircle, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Check, Receipt, Wallet } from 'lucide-react'
 import { formatCurrency, formatInvoiceNo } from '../lib/retail'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
@@ -139,16 +139,35 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     try { const history = await getAdvanceOrderHistory(order.id); setTimeline(history.timeline); setPayments(history.payments) } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load order details') }
   }
 
-  const analytics = useMemo(() => ({
-    total: orders.length,
-    pending: orders.filter(o => o.status === 'pending_deposit' || o.status === 'waiting_final_payment').length,
-    deposits: orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + o.deposit_amount, 0),
-    outstanding: orders.filter(o => !['completed', 'cancelled'].includes(o.status)).reduce((sum, o) => sum + o.remaining_balance, 0),
-    ready: orders.filter(o => o.status === 'ready_for_delivery').length,
-    completed: orders.filter(o => o.status === 'completed').length,
-  }), [orders])
+  // The period / date-range filter drives the summary boxes as well as the table
+  const inPeriod = useMemo(() => orders.filter(order => {
+    if (dateFilter === 'all') return true
+    const created = new Date(order.created_at); const now = new Date()
+    if (dateFilter === 'today') return dateKey(created) === dateKey(now)
+    if (dateFilter === 'week') return created >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
+    if (dateFilter === 'month') return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()
+    if (dateFilter === 'year') return created.getFullYear() === now.getFullYear()
+    const key = dateKey(created)
+    if (dateFrom && key < dateFrom) return false
+    if (dateTo && key > dateTo) return false
+    return true
+  }), [orders, dateFilter, dateFrom, dateTo])
 
-  const filtered = useMemo(() => orders.filter(order => {
+  const analytics = useMemo(() => {
+    const live = inPeriod.filter(o => o.status !== 'cancelled')
+    return {
+      total: inPeriod.length,
+      pending: inPeriod.filter(o => o.status === 'pending_deposit' || o.status === 'waiting_final_payment').length,
+      orderValue: live.reduce((sum, o) => sum + o.total_amount, 0),
+      // a completed order has had its balance collected, so it is paid in full
+      paid: live.reduce((sum, o) => sum + (o.status === 'completed' ? o.total_amount : o.deposit_amount), 0),
+      outstanding: live.filter(o => o.status !== 'completed').reduce((sum, o) => sum + o.remaining_balance, 0),
+      ready: inPeriod.filter(o => o.status === 'ready_for_delivery').length,
+      completed: inPeriod.filter(o => o.status === 'completed').length,
+    }
+  }, [inPeriod])
+
+  const filtered = useMemo(() => inPeriod.filter(order => {
     const query = search.trim().toLowerCase()
     const searchable = [order.deposit_id, order.customer_name, order.phone, order.product_name, STATUS_LABELS[order.status]].join(' ').toLowerCase()
     if (query && !searchable.includes(query)) return false
@@ -156,20 +175,8 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     if (statusFilter === 'ready' && order.status !== 'ready_for_delivery') return false
     if (statusFilter === 'completed' && order.status !== 'completed') return false
     if (statusFilter === 'cancelled' && order.status !== 'cancelled') return false
-    if (dateFilter !== 'all') {
-      const created = new Date(order.created_at); const now = new Date()
-      if (dateFilter === 'today' && dateKey(created) !== dateKey(now)) return false
-      if (dateFilter === 'week' && created < new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)) return false
-      if (dateFilter === 'month' && (created.getMonth() !== now.getMonth() || created.getFullYear() !== now.getFullYear())) return false
-      if (dateFilter === 'year' && created.getFullYear() !== now.getFullYear()) return false
-      if (dateFilter === 'custom') {
-        const key = dateKey(created)
-        if (dateFrom && key < dateFrom) return false
-        if (dateTo && key > dateTo) return false
-      }
-    }
     return true
-  }), [orders, search, statusFilter, dateFilter, dateFrom, dateTo])
+  }), [inPeriod, search, statusFilter])
 
   const formTotals = useMemo(() => computeAdvanceTotals({ subtotal: Number(form.totalAmount) || 0, deliveryCharge: Number(form.deliveryCharge) || 0, discount: Number(form.discount) || 0, gstRate: form.gstEnabled ? Number(form.gstRate) || 0 : 0 }), [form.totalAmount, form.deliveryCharge, form.discount, form.gstEnabled, form.gstRate])
 
@@ -280,13 +287,21 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     window.open(toWhatsAppUrl(order.phone, message), '_blank', 'noopener,noreferrer')
   }
 
-  const whatsappInvoice = (order: AdvanceOrder) => {
+  const whatsappInvoice = async (order: AdvanceOrder) => {
     const invNum = order.invoice_number || order.deposit_id
+    const b = advanceBreakdown(order)
+    const props = advanceDocumentProps(order, await paymentsFor(order))
     const message = buildProfessionalWhatsAppMessage({
       customerName: order.customer_name,
       phone: order.phone,
       invoiceNumber: invNum,
       invoiceUrl: publicInvoiceUrl(invNum),
+      paymentMode: props.paymentMode,
+      subtotal: b.subtotal,
+      manualDiscountAmount: b.discount,
+      shipping: b.deliveryCharge,
+      gstAmount: b.gstTotal,
+      total: order.total_amount,
     })
     window.open(toWhatsAppUrl(order.phone, message), '_blank', 'noopener,noreferrer')
   }
@@ -296,7 +311,9 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   }
 
   const cards = [
-    { label: 'Outstanding Balance', value: formatCurrency(analytics.outstanding), icon: <IndianRupee size={22} strokeWidth={1.75} />, tile: 'bg-red-100 text-[#DC2626]' },
+    { label: 'Total Order Value', value: formatCurrency(analytics.orderValue), icon: <Receipt size={22} strokeWidth={1.75} />, tile: 'bg-gray-100 text-[#111111]' },
+    { label: 'Amount Paid', value: formatCurrency(analytics.paid), icon: <Wallet size={22} strokeWidth={1.75} />, tile: 'bg-emerald-100 text-emerald-600' },
+    { label: 'Balance Due', value: formatCurrency(analytics.outstanding), icon: <IndianRupee size={22} strokeWidth={1.75} />, tile: 'bg-red-100 text-[#DC2626]' },
     { label: 'Ready for Collection', value: String(analytics.ready), icon: <Box size={22} strokeWidth={1.75} />, tile: 'bg-blue-100 text-blue-600' },
     { label: 'Completed Deposits', value: String(analytics.completed), icon: <Check size={22} strokeWidth={2} />, tile: 'bg-emerald-100 text-emerald-600' },
   ]
@@ -427,7 +444,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
     {notice && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
 
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
       {cards.map(card => (
         <div key={card.label} className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm">
           <div>

@@ -133,6 +133,14 @@ const makePosItem = (p: Product, qty?: number): PosItem => {
   }
 }
 
+/** Drops untouched custom lines (no name, no price) so adding a real product doesn't leave an empty box behind. */
+const withoutBlankCustom = (cur: PosItem[]) =>
+  cur.filter(i => !(i.source === 'manual' && !String(i.name || '').trim() && !Number(i.basePrice)))
+
+/** " (2.5%)" – a GST part as a share of the taxable value; empty when there is nothing to tax. */
+const gstPctLabel = (part: number, taxable: number) =>
+  taxable > 0 ? ` (${Math.round((part / taxable) * 10000) / 100}%)` : ''
+
 // item.name may already end with the variant ("Shirt - XS"); never append it twice
 const itemDisplayName = (item: { name: string; variantName?: string }) =>
   item.variantName && !item.name.trim().toLowerCase().endsWith(item.variantName.trim().toLowerCase())
@@ -329,7 +337,8 @@ export default function Pos(props: PosProps = {}) {
         baseQuantity: 1,
         unitLabel: specificVariant.sizeLabel || specificVariant.variantName || 'piece',
       }
-      setItems(cur => {
+      setItems(prev => {
+        const cur = withoutBlankCustom(prev)
         const ex = cur.find(i => (i.variantId === specificVariant.id || String(i.id) === String(specificVariant.id)))
         if (!ex) {
           const item = makePosItem(variantProduct, 1)
@@ -369,7 +378,8 @@ export default function Pos(props: PosProps = {}) {
     }
 
     // Standard non-variant product
-    setItems(cur => {
+    setItems(prev => {
+      const cur = withoutBlankCustom(prev)
       const ex = cur.find(i => String(i.id) === String(product.id))
       if (!ex) return [makePosItem(product), ...cur]
       return cur.map(i => String(i.id) === String(product.id) ? recalc(i, i.qty + 1) : i)
@@ -393,7 +403,8 @@ export default function Pos(props: PosProps = {}) {
       unitLabel: selectedVariant.sizeLabel || variantPickerProduct.unitLabel || 'piece',
     }
     const addQty = Math.max(1, variantPickerQty)
-    setItems(cur => {
+    setItems(prev => {
+      const cur = withoutBlankCustom(prev)
       const ex = cur.find(i => (i.variantId === selectedVariant.id || String(i.id) === String(selectedVariant.id)))
       if (!ex) {
         const item = makePosItem(variantProduct, addQty)
@@ -416,7 +427,8 @@ export default function Pos(props: PosProps = {}) {
     setError('')
     const targetId = scanned.variant_id ? scanned.variant_id : scanned.product_id
 
-    setItems(cur => {
+    setItems(prev => {
+      const cur = withoutBlankCustom(prev)
       const ex = cur.find(i => (scanned.variant_id ? i.variantId === scanned.variant_id : i.id === scanned.product_id))
       if (!ex) {
         const item = makePosItem({
@@ -1095,6 +1107,38 @@ export default function Pos(props: PosProps = {}) {
               )}
             </div>
 
+            {/* Bill breakdown */}
+            {(() => {
+              const gst = invoice.gstAmount || 0
+              const cgst = Math.round((gst / 2) * 100) / 100
+              const sgst = Math.round((gst - cgst) * 100) / 100
+              const taxable = Math.max(0, invoice.subtotal - (invoice.couponDiscount || 0) - (invoice.manualDiscountAmount || 0))
+              const rows: Array<[string, string, string?]> = [
+                [l('Subtotal', 'துணை மொத்தம்'), formatCurrency(invoice.subtotal)],
+                ...(invoice.couponDiscount > 0 ? [[`Coupon${invoice.couponCode ? ` (${invoice.couponCode})` : ''}`, `−${formatCurrency(invoice.couponDiscount)}`, 'text-emerald-600'] as [string, string, string]] : []),
+                ...(invoice.manualDiscountAmount > 0 ? [['Discount', `−${formatCurrency(invoice.manualDiscountAmount)}`, 'text-emerald-600'] as [string, string, string]] : []),
+                ...(invoice.shipping > 0 ? [['Delivery', formatCurrency(invoice.shipping)] as [string, string]] : []),
+                ...(gst > 0 ? [[`CGST${gstPctLabel(cgst, taxable)}`, formatCurrency(cgst)], [`SGST${gstPctLabel(sgst, taxable)}`, formatCurrency(sgst)], [`Total GST${gstPctLabel(gst, taxable)}`, formatCurrency(gst)]] as Array<[string, string]> : []),
+              ]
+              return (
+                <div className="mt-4 rounded-2xl border border-gray-200 p-5">
+                  <p className="border-b border-gray-100 pb-3 text-[11px] font-black uppercase tracking-[0.14em] text-gray-400">{l('Bill Summary', 'பில் சுருக்கம்')}</p>
+                  <div className="space-y-2.5 pt-3 text-sm">
+                    {rows.map(([k, v, tone]) => (
+                      <div key={k} className="flex items-center justify-between">
+                        <span className="font-semibold text-gray-600">{k}</span>
+                        <span className={`font-bold tabular-nums ${tone || 'text-[#111111]'}`}>{v}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+                      <span className="font-black text-[#111111]">{l('Grand Total', 'மொத்த தொகை')}</span>
+                      <span className="text-lg font-black tabular-nums text-[#111111]">{formatCurrency(invoice.total)}</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Actions */}
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <button type="button" onClick={() => setBillPrintOpen(true)} className={actionBtn}>
@@ -1570,10 +1614,16 @@ export default function Pos(props: PosProps = {}) {
                 <span>Subtotal ({items.length} items)</span>
                 <span className="font-black">{formatCurrency(subtotal)}</span>
               </div>
-              {billGstEnabled && totalGst > 0 && (
+              {couponDiscount > 0 && (
                 <div className="flex items-center justify-between text-sm text-[#111111]">
-                  <span>GST Amount</span>
-                  <span className="font-black">{formatCurrency(totalGst)}</span>
+                  <span>Coupon{appliedCoupon?.code ? ` (${appliedCoupon.code})` : ''}</span>
+                  <span className="font-black text-emerald-600">−{formatCurrency(couponDiscount)}</span>
+                </div>
+              )}
+              {manualDiscountAmount > 0 && (
+                <div className="flex items-center justify-between text-sm text-[#111111]">
+                  <span>Discount</span>
+                  <span className="font-black text-emerald-600">−{formatCurrency(manualDiscountAmount)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-sm text-[#111111]">
@@ -1588,6 +1638,22 @@ export default function Pos(props: PosProps = {}) {
                   className="h-10 w-24 rounded-xl border border-gray-200 px-3 text-right text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
                 />
               </div>
+              {billGstEnabled && totalGst > 0 && (
+                <>
+                  <div className="flex items-center justify-between text-sm text-[#111111]">
+                    <span>CGST{gstPctLabel(totalGst / 2, discountedSubtotal)}</span>
+                    <span className="font-black">{formatCurrency(Math.round((totalGst / 2) * 100) / 100)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-[#111111]">
+                    <span>SGST{gstPctLabel(totalGst / 2, discountedSubtotal)}</span>
+                    <span className="font-black">{formatCurrency(Math.round((totalGst - Math.round((totalGst / 2) * 100) / 100) * 100) / 100)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-[#111111]">
+                    <span>Total GST{gstPctLabel(totalGst, discountedSubtotal)}</span>
+                    <span className="font-black">{formatCurrency(totalGst)}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Non-GST bill / GST invoice */}

@@ -77,6 +77,9 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData, width: Thermal
   const cgst = data.cgst ?? ((data.totalGst || 0) > 0 ? Math.round(((data.totalGst || 0) / 2) * 100) / 100 : 0)
   const sgst = data.sgst ?? ((data.totalGst || 0) > 0 ? Math.round(((data.totalGst || 0) - cgst) * 100) / 100 : 0)
   const isGst = cgst + sgst > 0
+  const taxable = Math.max(0, data.subtotal - (data.couponDiscount || 0) - (data.manualDiscount || 0))
+  const pct = (amount: number) => (taxable > 0 ? ` (${Math.round((amount / taxable) * 10000) / 100}%)` : '')
+  const gstTotal = Math.round((cgst + sgst) * 100) / 100
 
   const row = (label: string, value: string, style = '') =>
     `<tr style="${style}"><td class="l">${label}</td><td class="r">${value}</td></tr>`
@@ -163,8 +166,8 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData, width: Thermal
     ${row('Subtotal:', esc(money(data.subtotal)))}
     ${(data.couponDiscount || 0) > 0 ? row('Coupon:', `-${esc(money(data.couponDiscount || 0))}`) : ''}
     ${(data.manualDiscount || 0) > 0 ? row('Discount:', `-${esc(money(data.manualDiscount || 0))}`) : ''}
-    ${isGst ? row('CGST:', esc(money(cgst))) + row('SGST:', esc(money(sgst))) : ''}
     ${data.shipping > 0 ? row('Delivery:', esc(money(data.shipping))) : ''}
+    ${isGst ? row(`CGST${pct(cgst)}:`, esc(money(cgst))) + row(`SGST${pct(sgst)}:`, esc(money(sgst))) + row(`Total GST${pct(gstTotal)}:`, esc(money(gstTotal)), 'font-weight:bold;') : ''}
   </table>
   <div class="dash"></div>
   <table>
