@@ -1638,22 +1638,6 @@ export default function Pos(props: PosProps = {}) {
                   className="h-10 w-24 rounded-xl border border-gray-200 px-3 text-right text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
                 />
               </div>
-              {billGstEnabled && totalGst > 0 && (
-                <>
-                  <div className="flex items-center justify-between text-sm text-[#111111]">
-                    <span>CGST{gstPctLabel(totalGst / 2, discountedSubtotal)}</span>
-                    <span className="font-black">{formatCurrency(Math.round((totalGst / 2) * 100) / 100)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-[#111111]">
-                    <span>SGST{gstPctLabel(totalGst / 2, discountedSubtotal)}</span>
-                    <span className="font-black">{formatCurrency(Math.round((totalGst - Math.round((totalGst / 2) * 100) / 100) * 100) / 100)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-[#111111]">
-                    <span>Total GST{gstPctLabel(totalGst, discountedSubtotal)}</span>
-                    <span className="font-black">{formatCurrency(totalGst)}</span>
-                  </div>
-                </>
-              )}
             </div>
 
             {/* Non-GST bill / GST invoice */}
@@ -1687,6 +1671,22 @@ export default function Pos(props: PosProps = {}) {
                   placeholder={gstType === 'percent' ? 'GST % e.g. 5' : 'GST amount'}
                   className={`${posInput} text-right !font-black`}
                 />
+              </div>
+            )}
+            {billGstEnabled && totalGst > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm text-[#111111]">
+                  <span>CGST{gstPctLabel(totalGst / 2, discountedSubtotal)}</span>
+                  <span className="font-black">{formatCurrency(Math.round((totalGst / 2) * 100) / 100)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-[#111111]">
+                  <span>SGST{gstPctLabel(totalGst / 2, discountedSubtotal)}</span>
+                  <span className="font-black">{formatCurrency(Math.round((totalGst - Math.round((totalGst / 2) * 100) / 100) * 100) / 100)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-[#111111]">
+                  <span>Total GST{gstPctLabel(totalGst, discountedSubtotal)}</span>
+                  <span className="font-black">{formatCurrency(totalGst)}</span>
+                </div>
               </div>
             )}
 
