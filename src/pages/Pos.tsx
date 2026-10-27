@@ -1577,6 +1577,24 @@ export default function Pos(props: PosProps = {}) {
               {appliedCoupon && <p className="mt-1 text-[12px] font-bold text-emerald-600">Applied: -{formatCurrency(couponDiscount)}</p>}
             </div>
 
+            {/* Total after coupon */}
+            <div className="space-y-4 border-t border-gray-200 pt-5">
+              <div className="flex items-center justify-between text-sm text-[#111111]">
+                <span>Subtotal ({items.length} items)</span>
+                <span className="font-black">{formatCurrency(subtotal)}</span>
+              </div>
+              {couponDiscount > 0 && (
+                <div className="flex items-center justify-between text-sm text-[#111111]">
+                  <span>Coupon{appliedCoupon?.code ? ` (${appliedCoupon.code})` : ''}</span>
+                  <span className="font-black text-emerald-600">−{formatCurrency(couponDiscount)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-sm font-black text-[#111111]">
+                <span>Total</span>
+                <span>{formatCurrency(Math.max(0, subtotal - couponDiscount))}</span>
+              </div>
+            </div>
+
             {/* Manual Discount */}
             <div>
               <label htmlFor="pos-manual-discount-value" className={posSideLabel}>Manual Discount</label>
@@ -1608,37 +1626,19 @@ export default function Pos(props: PosProps = {}) {
               </div>
             </div>
 
-            {/* Totals */}
-            <div className="space-y-4 border-t border-gray-200 pt-5">
-              <div className="flex items-center justify-between text-sm text-[#111111]">
-                <span>Subtotal ({items.length} items)</span>
-                <span className="font-black">{formatCurrency(subtotal)}</span>
-              </div>
-              {couponDiscount > 0 && (
-                <div className="flex items-center justify-between text-sm text-[#111111]">
-                  <span>Coupon{appliedCoupon?.code ? ` (${appliedCoupon.code})` : ''}</span>
-                  <span className="font-black text-emerald-600">−{formatCurrency(couponDiscount)}</span>
-                </div>
-              )}
-              {manualDiscountAmount > 0 && (
+            {/* Total after manual discount */}
+            {manualDiscountAmount > 0 && (
+              <div className="space-y-4">
                 <div className="flex items-center justify-between text-sm text-[#111111]">
                   <span>Discount</span>
                   <span className="font-black text-emerald-600">−{formatCurrency(manualDiscountAmount)}</span>
                 </div>
-              )}
-              <div className="flex items-center justify-between text-sm text-[#111111]">
-                <label htmlFor="pos-shipping-input">Delivery</label>
-                <input
-                  id="pos-shipping-input"
-                  name="shippingFee"
-                  type="number"
-                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                  value={shipping}
-                  onChange={e => setShipping(e.target.value)}
-                  className="h-10 w-24 rounded-xl border border-gray-200 px-3 text-right text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
-                />
+                <div className="flex items-center justify-between text-sm font-black text-[#111111]">
+                  <span>Total after discount</span>
+                  <span>{formatCurrency(discountedSubtotal)}</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Non-GST bill / GST invoice */}
             <div className="grid grid-cols-2 gap-1.5 rounded-full border border-gray-200 p-1.5" role="tablist" aria-label="Bill type">
@@ -1676,19 +1676,41 @@ export default function Pos(props: PosProps = {}) {
             {billGstEnabled && totalGst > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-sm text-[#111111]">
-                  <span>CGST{gstPctLabel(totalGst / 2, discountedSubtotal)}</span>
-                  <span className="font-black">{formatCurrency(Math.round((totalGst / 2) * 100) / 100)}</span>
+                  <span>Total GST{gstPctLabel(totalGst, discountedSubtotal)}</span>
+                  <span className="font-black">{formatCurrency(totalGst)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-[#111111]">
                   <span>SGST{gstPctLabel(totalGst / 2, discountedSubtotal)}</span>
                   <span className="font-black">{formatCurrency(Math.round((totalGst - Math.round((totalGst / 2) * 100) / 100) * 100) / 100)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-[#111111]">
-                  <span>Total GST{gstPctLabel(totalGst, discountedSubtotal)}</span>
-                  <span className="font-black">{formatCurrency(totalGst)}</span>
+                  <span>CGST{gstPctLabel(totalGst / 2, discountedSubtotal)}</span>
+                  <span className="font-black">{formatCurrency(Math.round((totalGst / 2) * 100) / 100)}</span>
                 </div>
               </div>
             )}
+
+            {/* Delivery */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm text-[#111111]">
+                <label htmlFor="pos-shipping-input">Delivery</label>
+                <input
+                  id="pos-shipping-input"
+                  name="shippingFee"
+                  type="number"
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  value={shipping}
+                  onChange={e => setShipping(e.target.value)}
+                  className="h-10 w-24 rounded-xl border border-gray-200 px-3 text-right text-[14px] font-black text-[#111111] focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Grand total */}
+            <div className="flex items-center justify-between border-t border-gray-200 pt-5">
+              <span className="text-base font-black tracking-tight uppercase tracking-wide text-[#111111]">Grand Total</span>
+              <span className="text-xl font-black tracking-tight text-primary">{formatCurrency(total)}</span>
+            </div>
 
             {/* Financial option */}
             <div>
@@ -1709,11 +1731,6 @@ export default function Pos(props: PosProps = {}) {
               </div>
             </div>
 
-            {/* Grand total */}
-            <div className="flex items-center justify-between border-t border-gray-200 pt-5">
-              <span className="text-base font-black tracking-tight uppercase tracking-wide text-[#111111]">Grand Total</span>
-              <span className="text-xl font-black tracking-tight text-primary">{formatCurrency(total)}</span>
-            </div>
 
             {ordermode !== 'online' && paymentType === 'split' && (
               <SplitPaymentInputs idPrefix="pos-split" total={total} value={splitForm} onChange={setSplitForm} allowChange />
