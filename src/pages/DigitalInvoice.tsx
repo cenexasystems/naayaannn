@@ -6,7 +6,6 @@ import { printBill, thermalPreviewHtml } from '../lib/billPrint'
 import { loadPrintSettings, type PrintSettings } from '../lib/printSettings'
 import { Printer, ArrowLeft, MessageCircle, Copy, Check, FileDown } from 'lucide-react'
 import { invoicePdfFileFromElement } from '../lib/invoicePdf'
-import { uploadInvoicePdf } from '../lib/storage'
 import { isUuid, normalizeStructuredOrderItem, formatInvoiceNo } from '../lib/retail'
 import { buildProfessionalWhatsAppMessage } from '../lib/whatsappMessage'
 import { toWhatsAppUrl } from '../lib/phone'
@@ -347,13 +346,8 @@ export default function DigitalInvoice() {
       paymentMode: formatPaymentLabel(invoice.payment_mode || invoice.payment_method, invoice.split_details) || invoice.payment_mode || invoice.payment_method,
     })
 
-    const invoiceUrl = window.location.href
-    const pdfUrl = invoice.pdf_url || invoice.invoice_pdf_url
-    const linkSection = pdfUrl
-      ? `\n\n📄 View Invoice: ${invoiceUrl}\n📥 Download PDF: ${pdfUrl}`
-      : `\n\n📄 View Invoice: ${invoiceUrl}`
-
-    const whatsappMessage = `${message}${linkSection}`
+    // The message already links this invoice page, which downloads the PDF in this same layout
+    const whatsappMessage = message
     const waUrl = toWhatsAppUrl(invoice.phone, whatsappMessage)
 
     // Open WhatsApp synchronously in user click gesture to avoid iOS Safari popup blocking
@@ -365,16 +359,6 @@ export default function DigitalInvoice() {
       window.location.href = waUrl
     } else {
       window.open(waUrl, '_blank', 'noopener,noreferrer')
-    }
-
-    // Proactively upload invoice PDF in background if needed
-    if (!pdfUrl && invoiceElementRef.current) {
-      void (async () => {
-        try {
-          const file = await invoicePdfFileFromElement(invoiceElementRef.current!, invoice.invoice_no)
-          await uploadInvoicePdf(file, invoice.invoice_no)
-        } catch { /* best-effort background upload */ }
-      })()
     }
   }
 

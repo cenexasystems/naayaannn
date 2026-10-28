@@ -16,10 +16,10 @@ import { normalizeBarcode } from '../lib/barcode'
 import { Invoice, type InvoiceProps } from '../components/Invoice'
 import InvoicePreviewModal from '../components/print/InvoicePreviewModal'
 import PrintSettingsModal from '../components/print/PrintSettingsModal'
-import { printBill } from '../lib/billPrint'
+import { invoicePdfFromProps, printBill } from '../lib/billPrint'
 import CatalogModal from '../components/CatalogModal'
 import AddProductModal from '../components/AddProductModal'
-import { invoicePdfFile, invoicePdfFileFromElement } from '../lib/invoicePdf'
+import { invoicePdfFileFromElement } from '../lib/invoicePdf'
 import { uploadInvoicePdf } from '../lib/storage'
 import { createOrderWithStock } from '../services/orderService'
 import { createAdvanceOrder, getAdvanceOrderHistory, type AdvanceOrder, type AdvancePaymentMethod } from '../services/advanceOrderService'
@@ -993,22 +993,7 @@ export default function Pos(props: PosProps = {}) {
     try {
       const file = invoicePdfRef.current
         ? await invoicePdfFileFromElement(invoicePdfRef.current, inv.invoiceNo)
-        : invoicePdfFile({
-        invoiceNo: inv.invoiceNo,
-        date: inv.date,
-        customerName: inv.customerName,
-        phone: inv.phone,
-        address: inv.address,
-        items: inv.items.map(item => ({ name: item.name, qty: item.qty, unit: item.selectedUnit, price: Number(item.basePrice) || 0, line_total: item.lineTotal })),
-        subtotal: inv.subtotal,
-        shipping: inv.shipping,
-        discountAmount: inv.couponDiscount,
-        manualDiscountAmount: inv.manualDiscountAmount,
-        gstAmount: inv.gstAmount,
-        couponCode: inv.couponCode,
-        paymentMode: inv.paymentMode,
-        total: inv.total,
-      })
+        : await invoicePdfFromProps(invoicePropsFor(inv))
       // Upload PDF and save its URL — total fields already saved immediately after RPC
       const url = await uploadInvoicePdf(file, inv.invoiceNo)
       await db.from('orders').update({ invoice_pdf_url: url }).eq('id', inv.id)
