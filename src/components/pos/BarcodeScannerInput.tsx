@@ -4,7 +4,6 @@ import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser'
 import { barcodeService } from '../../services/barcodeService'
 import { BRAND_EN } from '../../lib/brand'
 import { normalizeBarcode } from '../../lib/barcode'
-import { variantOfferPrice } from '../../lib/retail'
 
 export interface ScannedItemPayload {
   product_id: number
@@ -152,9 +151,7 @@ export const BarcodeScannerInput: React.FC<BarcodeScannerInputProps> = ({
         name_ta: prod.name_ta,
         variant_name: varnt?.variant_name,
         price: price,
-        offer_price: varnt
-          ? variantOfferPrice(Number(prod.price), Number(prod.offer_price), price) ?? undefined
-          : prod.offer_price ? Number(prod.offer_price) : undefined,
+        offer_price: undefined,
         stock: effectiveStock,
         barcode: clean,
         image_url: prod.image_url,

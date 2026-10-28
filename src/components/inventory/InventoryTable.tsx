@@ -204,10 +204,10 @@ export const InventoryTable: React.FC = () => {
 
   const exportInventoryCsv = () => {
     const q = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-    const header = ['Product', 'Variant', 'Category', 'Barcode', 'Stock', 'Low Stock Alert', 'Price', 'Offer Price', 'Cost Price', 'Active']
+    const header = ['Product', 'Variant', 'Category', 'Barcode', 'Stock', 'Low Stock Alert', 'Price', 'Cost Price', 'Active']
     const lines = filtered.map((i) => [
       i.name, i.variant_name || '', i.category || '', i.barcode || '',
-      i.stock, i.low_stock_threshold ?? '', i.price, i.offer_price ?? '', i.purchase_price ?? '', i.is_active ? 'Yes' : 'No',
+      i.stock, i.low_stock_threshold ?? '', i.price, i.purchase_price ?? '', i.is_active ? 'Yes' : 'No',
     ].map(q).join(','))
     void downloadCsv(`Inventory_${new Date().toISOString().slice(0, 10)}.csv`, [header.join(','), ...lines].join('\n'))
   }
@@ -375,7 +375,6 @@ export const InventoryTable: React.FC = () => {
                               <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-[13px] sm:grid-cols-3 lg:grid-cols-6">
                                 {[
                                   ['Category', item.category || 'General'],
-                                  ['Offer Price', item.offer_price ? formatCurrency(item.offer_price) : '—'],
                                   ['Cost Price', item.purchase_price ? formatCurrency(item.purchase_price) : '—'],
                                   ['Low Stock Alert', String(threshold)],
                                 ].map(([k, v]) => (
@@ -454,7 +453,6 @@ export const InventoryTable: React.FC = () => {
           variantName={printModalItem.variant_name}
           barcodeValue={printModalItem.barcode || ''}
           price={printModalItem.price}
-          mrp={printModalItem.offer_price}
           defaultQuantity={Math.max(1, printModalItem.stock)}
         />
       )}

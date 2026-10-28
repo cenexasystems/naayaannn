@@ -56,25 +56,11 @@ export const AddEditProductView: React.FC<{
   const [lowStockAlert, setLowStockAlert] = useState<string>('5')
   const [barcode, setBarcode] = useState<string>('')
   const [description, setDescription] = useState<string>('')
-  const [offerPrice, setOfferPrice] = useState<string>('')
   const [isActive, setIsActive] = useState<boolean>(true)
   const [hasVariants, setHasVariants] = useState<boolean>(false)
 
   // Variants Rows for dynamic addition
   const [variantRows, setVariantRows] = useState<VariantInputRow[]>([])
-  // With variants the product price is the first variant's price, so the offer is entered against that
-  const offerBasePrice = hasVariants ? Number(variantRows.find((v) => v.variantName.trim())?.price) || 0 : parseFloat(price) || 0
-
-  // When the price the offer is based on changes, keep the same % off (so every variant follows it)
-  const prevOfferBase = useRef(0)
-  useEffect(() => {
-    const prev = prevOfferBase.current
-    prevOfferBase.current = offerBasePrice
-    const op = Number(offerPrice)
-    if (!(prev > 0) || !(offerBasePrice > 0) || prev === offerBasePrice || !(op > 0 && op < prev)) return
-    setOfferPrice(String(Math.round(offerBasePrice * (op / prev) * 100) / 100))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offerBasePrice])
 
   const [loading, setLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -98,7 +84,6 @@ export const AddEditProductView: React.FC<{
     setLowStockAlert('5')
     setBarcode('')
     setDescription('')
-    setOfferPrice('')
     setIsActive(true)
     setHasVariants(false)
     setVariantRows([])
@@ -139,12 +124,6 @@ export const AddEditProductView: React.FC<{
     setLowStockAlert(p.lowStockAlert ? String(p.lowStockAlert) : '5')
     setBarcode(p.barcode || '')
     setDescription(p.description || '')
-    {
-      const base = Number(p.price) || 0
-      const op = Number(p.offerPrice) || 0
-      const hasOffer = op > 0 && base > 0 && op < base
-      setOfferPrice(hasOffer ? String(op) : '')
-    }
     setIsActive(p.isActive !== false)
     setHasVariants(Boolean(p.hasVariants))
     setStatusMessage(null)
@@ -342,12 +321,6 @@ export const AddEditProductView: React.FC<{
       return
     }
 
-    const offerInput = parseFloat(offerPrice) || 0
-    if (offerPrice && (offerInput <= 0 || offerInput >= priceNum)) {
-      setStatusMessage({ type: 'error', text: 'Offer price must be lower than the selling price' })
-      return
-    }
-    const offerNum = offerPrice ? offerInput : priceNum
 
     const selectedCat = categories.find((c) => Number(c.id) === Number(categoryId))
     const categoryName = selectedCat ? selectedCat.name_en : 'General'
@@ -379,7 +352,7 @@ export const AddEditProductView: React.FC<{
               category: categoryName,
               category_id: categoryId ? Number(categoryId) : null,
               price: priceNum,
-              offer_price: offerNum,
+              offer_price: null,
               purchase_price: costNum,
               low_stock_alert: alertThreshold,
               is_active: isActive,
@@ -514,7 +487,7 @@ export const AddEditProductView: React.FC<{
               category: categoryName,
               category_id: categoryId ? Number(categoryId) : null,
               price: priceNum,
-              offer_price: offerNum,
+              offer_price: null,
               purchase_price: costNum,
               low_stock_alert: alertThreshold,
               is_active: isActive,
@@ -544,7 +517,7 @@ export const AddEditProductView: React.FC<{
               category: categoryName,
               category_id: categoryId ? Number(categoryId) : null,
               price: priceNum,
-              offer_price: offerNum,
+              offer_price: null,
               purchase_price: costNum,
               low_stock_alert: alertThreshold,
               is_active: isActive,
@@ -608,7 +581,7 @@ export const AddEditProductView: React.FC<{
               category: categoryName,
               category_id: categoryId ? Number(categoryId) : null,
               price: priceNum,
-              offer_price: offerNum,
+              offer_price: null,
               purchase_price: costNum,
               low_stock_alert: alertThreshold,
               is_active: isActive,

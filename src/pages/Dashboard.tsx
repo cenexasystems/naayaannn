@@ -153,7 +153,7 @@ const toLocalDateKey = (value: string | Date): string => {
 
 const emptyForm = {
   name: '', nameTa: '', category: '', categoryId: null as string | number | null,
-  remedy: [] as string[], price: '' as string | number, offerPrice: '' as string | number,
+  remedy: [] as string[], price: '' as string | number,
   purchasePrice: '' as string | number, mrp: '' as string | number,
   sku: '', barcode: '',
   unitType: 'unit' as UnitType, unitLabel: 'piece', baseQuantity: 1,
@@ -1597,7 +1597,7 @@ export default function Dashboard() {
         name: prodForm.name.trim(), name_ta: prodForm.nameTa.trim(), tamil_name: prodForm.nameTa.trim(),
         category: prodForm.category.trim(), category_id: prodForm.categoryId || null,
         remedy: prodForm.remedy, price: toNumber(prodForm.price, 0),
-        offer_price: prodForm.offerPrice === '' ? null : toNumber(prodForm.offerPrice, 0),
+        offer_price: null,
         purchase_price: prodForm.purchasePrice === '' ? null : toNumber(prodForm.purchasePrice, 0),
         mrp: prodForm.mrp === '' ? null : toNumber(prodForm.mrp, 0),
         sku: prodForm.sku || null,
@@ -1632,7 +1632,7 @@ export default function Dashboard() {
     setProdForm({
       name: p.name, nameTa: p.nameTa || p.tamilName || '', category: p.category,
       categoryId: p.categoryId ?? null, remedy: p.remedy || [],
-      price: p.price, offerPrice: p.offerPrice || '',
+      price: p.price,
       purchasePrice: p.purchasePrice || '', mrp: p.mrp || '',
       sku: p.sku || '', barcode: p.barcode || '',
       unitType: p.unitType,
@@ -3781,13 +3781,6 @@ export default function Dashboard() {
                       className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary-soft rounded-xl text-[13px] font-bold outline-none transition-colors"
                       placeholder="Maximum Retail Price"
                       value={prodForm.mrp} onChange={e => setProdForm(f => ({...f, mrp: e.target.value}))} />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Offer Price (INR)', 'சலுகை விலை')}</label>
-                    <input type="number" min="0" step="0.01"
-                      className="w-full px-4 py-2.5 bg-[#FAFAFA] border border-[#F3F4F6] focus:border-primary-soft rounded-xl text-[13px] font-bold outline-none transition-colors"
-                      placeholder="Leave blank for no discount"
-                      value={prodForm.offerPrice} onChange={e => setProdForm(f => ({...f, offerPrice: e.target.value}))} />
                   </div>
                   <div>
                     <label className="block text-[11px] font-black uppercase text-[#6B7280] tracking-wider mb-1">{l('Barcode', 'பார்கோடு')}</label>
