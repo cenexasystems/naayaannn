@@ -152,6 +152,10 @@ export const Invoice: React.FC<InvoiceProps> = ({
   }
   const stateCode = shopStateCode()
   const mode = shortMode(paymentMode)
+  // "Split (Cash ₹1,000.00 + Card ₹200.00)" → one line per payment method
+  const splitParts = mode === 'SPLIT'
+    ? Array.from((paymentMode || '').matchAll(/(Cash|QR|Card)\s*₹\s*([\d,]+(?:\.\d+)?)/g)).map(m => [m[1], Number(m[2].replace(/,/g, ''))] as [string, number])
+    : []
   const received = amountReceived && amountReceived > 0 ? amountReceived : total
 
   const label: React.CSSProperties = { fontSize: 10.5, fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6 }
@@ -288,7 +292,13 @@ export const Invoice: React.FC<InvoiceProps> = ({
             {mode === 'SPLIT' ? 'Paid' : `${({ CASH: 'Cash', GPAY: 'GPay', CARD: 'Card', ONLINE: 'Online' } as Record<string, string>)[mode] || mode} Received`}:{' '}
             <span style={{ fontFamily: MONO, color: '#111111', fontWeight: 600 }}>{formatCurrency(received)}</span>
           </div>
-          {mode === 'SPLIT' && paymentMode && <div style={{ fontSize: 11.5, color: SOFT, marginTop: 4 }}>{paymentMode}</div>}
+          {splitParts.length > 0
+            ? splitParts.map(([name, amount]) => (
+                <div key={name} style={{ fontSize: 12, color: MUTED, marginTop: 4, paddingLeft: 10 }}>
+                  {name}: <span style={{ fontFamily: MONO, color: '#111111', fontWeight: 600 }}>{formatCurrency(amount)}</span>
+                </div>
+              ))
+            : mode === 'SPLIT' && paymentMode && <div style={{ fontSize: 11.5, color: SOFT, marginTop: 4 }}>{paymentMode}</div>}
           {notes && notes.trim() && (
             <div style={{ marginTop: 22 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>Terms &amp; Notes:</div>

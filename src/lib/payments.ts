@@ -53,7 +53,7 @@ export function paymentBreakdown(mode: unknown, splitRaw: unknown, amount: numbe
   return result
 }
 
-const inr = (n: number) => `₹${round2(n).toFixed(2)}`
+const inr = (n: number) => `₹${round2(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 /** Human readable label, e.g. "Cash", "QR", or "Split (Cash ₹500.00 + QR ₹300.00)". */
 export function formatPaymentLabel(mode: unknown, splitRaw?: unknown): string {
