@@ -6,6 +6,7 @@ import { printBill, thermalPreviewHtml } from '../lib/billPrint'
 import { loadPrintSettings, type PrintSettings } from '../lib/printSettings'
 import { Printer, ArrowLeft, MessageCircle, Copy, Check, FileDown } from 'lucide-react'
 import { invoicePdfFileFromElement } from '../lib/invoicePdf'
+import { loadAdvanceBillInfo } from '../lib/advanceBillInfo'
 import { isUuid, normalizeStructuredOrderItem, formatInvoiceNo } from '../lib/retail'
 import { buildProfessionalWhatsAppMessage } from '../lib/whatsappMessage'
 import { toWhatsAppUrl } from '../lib/phone'
@@ -189,15 +190,11 @@ export default function DigitalInvoice() {
 
         if (!row) throw new Error('Invoice not found')
 
-        // Bill completed from an advance order: show its deposit ID
-        if (!row.deposit_id && row.invoice_no) {
+        // Bill completed from an advance order: show its deposit ID and the deposit / balance payments
+        if (row.invoice_no) {
           try {
-            const { data: adv } = await db
-              .from('advance_orders')
-              .select('deposit_id')
-              .eq('invoice_number', row.invoice_no)
-              .maybeSingle()
-            if (adv?.deposit_id) row = { ...row, deposit_id: adv.deposit_id }
+            const adv = (await loadAdvanceBillInfo({ invoiceNo: String(row.invoice_no) }))[String(row.invoice_no)]
+            if (adv) row = { ...row, deposit_id: adv.depositId, advance_payment_rows: adv.paymentRows }
           } catch {
             // not an advance order
           }
@@ -384,6 +381,7 @@ export default function DigitalInvoice() {
     paymentMode: formatPaymentLabel(invoice.payment_mode || invoice.payment_method, invoice.split_details) || invoice.payment_mode || invoice.payment_method,
     channel: invoice.deposit_id ? 'advance order' : invoice.order_mode || 'offline',
     extraMeta: invoice.deposit_id ? [['Advance Order', String(invoice.deposit_id)]] : [],
+    ...(invoice.deposit_id ? { documentTitle: 'TAX INVOICE', paymentRows: invoice.advance_payment_rows } : {}),
   }
 
   const copyLink = async () => {

@@ -81,6 +81,7 @@ export function advanceFinalInvoiceProps(order: AdvanceOrder, payments: AdvanceP
     items: orderItems(order),
     ...totalsFor(order),
     status: 'completed',
+    documentTitle: 'TAX INVOICE',
     // Everything collected (deposit + balance), so a cash deposit and card balance reads as a split
     paymentMode: order.final_payment_method ? formatPaymentLabel(order.final_payment_method, advancePaymentSummary(order, payments).channels) : 'Paid',
     channel: 'advance order',

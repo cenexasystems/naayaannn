@@ -53,6 +53,7 @@ import { useVariantStore } from '../store/store'
 import Pos from './Pos'
 import AdvanceOrders from './AdvanceOrders'
 import { listAdvanceOrders, type AdvanceOrder } from '../services/advanceOrderService'
+import { loadAdvanceBillInfo, type AdvanceBillInfo } from '../lib/advanceBillInfo'
 import { InventoryTable } from '../components/inventory/InventoryTable'
 import { CategoryManagerView } from '../components/inventory/CategoryManagerView'
 import { ExpensesView } from '../components/expenses/ExpensesView'
@@ -382,26 +383,25 @@ export default function Dashboard() {
 
   const deletedOrderIds = React.useRef<Set<string>>(new Set())
 
-  // Deposit IDs of advance orders, keyed by the bill (order) that completed them
-  const [depositIdByOrder, setDepositIdByOrder] = useState<Record<string, string>>({})
-  const depositIdOf = (o: DashboardOrder) => o.deposit_id || depositIdByOrder[o.id] || ''
+  // Advance-order details (deposit ID, deposit / balance payments), keyed by the bill that completed them
+  const [advanceByOrder, setAdvanceByOrder] = useState<Record<string, AdvanceBillInfo | null>>({})
+  const depositIdOf = (o: DashboardOrder) => o.deposit_id || advanceByOrder[o.id]?.depositId || ''
   useEffect(() => {
     if (!isDatabaseConfigured) return
     const missing = Array.from(new Set([...orders, ...searchResults]
-      .filter(o => o.order_type === 'advance_order' && !o.deposit_id && !(o.id in depositIdByOrder))
+      .filter(o => o.order_type === 'advance_order' && !(o.id in advanceByOrder))
       .map(o => o.id)))
     if (missing.length === 0) return
     let cancelled = false
     void (async () => {
-      const { data } = await db.from('advance_orders').select('deposit_id, completed_order_id').in('completed_order_id', missing)
+      const info = await loadAdvanceBillInfo({ orderIds: missing }).catch(() => ({} as Record<string, AdvanceBillInfo>))
       if (cancelled) return
-      const found: Record<string, string> = {}
-      for (const id of missing) found[id] = ''
-      for (const r of data || []) if (r.completed_order_id) found[String(r.completed_order_id)] = String(r.deposit_id || '')
-      setDepositIdByOrder(prev => ({ ...prev, ...found }))
+      const found: Record<string, AdvanceBillInfo | null> = {}
+      for (const id of missing) found[id] = info[id] || null
+      setAdvanceByOrder(prev => ({ ...prev, ...found }))
     })()
     return () => { cancelled = true }
-  }, [orders, searchResults, depositIdByOrder])
+  }, [orders, searchResults, advanceByOrder])
 
   const toDashboardOrder = (row: Record<string, unknown>): DashboardOrder => ({
     id: String(row.id || ''), invoice_no: String(row.invoice_no || ''),
@@ -1219,6 +1219,8 @@ export default function Dashboard() {
       status: order.status,
       channel: depositIdOf(order) ? 'advance order' : normalizeOrderMode(order.order_mode),
       extraMeta: depositIdOf(order) ? [['Advance Order', depositIdOf(order)]] : [],
+      // A completed advance order is the final tax invoice, with the deposit and balance payments listed
+      ...(depositIdOf(order) ? { documentTitle: 'TAX INVOICE', paymentRows: advanceByOrder[order.id]?.paymentRows } : {}),
     }
   }
 
