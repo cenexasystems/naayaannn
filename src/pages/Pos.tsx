@@ -298,9 +298,14 @@ export default function Pos(props: PosProps = {}) {
         : (appliedCoupon.discount || 0))
     : 0
   const manualDiscountNumeric = Math.max(0, Number(manualDiscountValue) || 0)
-  const manualDiscountAmount = manualDiscountType === 'percent'
-    ? Math.max(0, Math.round((subtotal * manualDiscountNumeric / 100) * 100) / 100)
-    : manualDiscountNumeric
+  // The manual discount comes off the total after the coupon, and the two can never exceed the subtotal
+  const afterCoupon = Math.max(0, subtotal - couponDiscount)
+  const manualDiscountAmount = Math.min(
+    afterCoupon,
+    manualDiscountType === 'percent'
+      ? Math.max(0, Math.round((afterCoupon * manualDiscountNumeric / 100) * 100) / 100)
+      : manualDiscountNumeric,
+  )
 
   const discountedSubtotal = Math.max(0, subtotal - couponDiscount - manualDiscountAmount)
 

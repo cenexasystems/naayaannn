@@ -2262,7 +2262,7 @@ export default function Dashboard() {
                     <div className="bg-[#F9FAFB] p-4 rounded-xl flex justify-between items-center">
                       <span className="text-[13px] font-bold text-[#374151]">Discounts Applied</span>
                       <span className="text-sm font-black text-[#10B981]">
-                        {formatCurrency(searchResults.reduce((acc, o) => acc + (toNumber(o.discount_amount, 0)), 0))}
+                        {formatCurrency(searchResults.reduce((acc, o) => acc + toNumber(o.discount_amount, 0) + toNumber(o.manual_discount_amount, 0), 0))}
                       </span>
                     </div>
                   </div>
