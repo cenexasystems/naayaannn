@@ -88,6 +88,8 @@ type DashboardOrder = {
   created_at: string; total: number; status: string; order_mode: string; order_type: string; user_id: string | null; items: unknown
   coupon_code: string; discount_amount: number; manual_discount_amount: number; delivery_charge: number
   total_gst: number; payment_mode: string; payment_method?: string; split_details?: unknown; invoice_pdf_url: string; remarks?: string; reference_number?: string
+  /** Deposit ID of the advance order this bill completed */
+  deposit_id?: string
 }
 type DashboardOrderItem = { order_id: string; product_id?: string | null; variant_id?: string | null; product_name: string; category?: string; quantity: number; line_total: number; is_manual?: boolean | null }
 type DashboardCoupon = {
@@ -381,6 +383,27 @@ export default function Dashboard() {
 
   const deletedOrderIds = React.useRef<Set<string>>(new Set())
 
+  // Deposit IDs of advance orders, keyed by the bill (order) that completed them
+  const [depositIdByOrder, setDepositIdByOrder] = useState<Record<string, string>>({})
+  const depositIdOf = (o: DashboardOrder) => o.deposit_id || depositIdByOrder[o.id] || ''
+  useEffect(() => {
+    if (!isDatabaseConfigured) return
+    const missing = Array.from(new Set([...orders, ...searchResults]
+      .filter(o => o.order_type === 'advance_order' && !o.deposit_id && !(o.id in depositIdByOrder))
+      .map(o => o.id)))
+    if (missing.length === 0) return
+    let cancelled = false
+    void (async () => {
+      const { data } = await db.from('advance_orders').select('deposit_id, completed_order_id').in('completed_order_id', missing)
+      if (cancelled) return
+      const found: Record<string, string> = {}
+      for (const id of missing) found[id] = ''
+      for (const r of data || []) if (r.completed_order_id) found[String(r.completed_order_id)] = String(r.deposit_id || '')
+      setDepositIdByOrder(prev => ({ ...prev, ...found }))
+    })()
+    return () => { cancelled = true }
+  }, [orders, searchResults, depositIdByOrder])
+
   const toDashboardOrder = (row: Record<string, unknown>): DashboardOrder => ({
     id: String(row.id || ''), invoice_no: String(row.invoice_no || ''),
     customer_name: String(row.customer_name || ''), phone: String(row.phone || ''),
@@ -441,6 +464,7 @@ export default function Dashboard() {
       invoice_pdf_url: '',
       remarks: advance.remarks || '',
       reference_number: advance.reference_number || '',
+      deposit_id: advance.deposit_id,
     }
     setOrders(current => [completed, ...current.filter(order => order.id !== completed.id)])
     setSearchResults(current => [completed, ...current.filter(order => order.id !== completed.id)].slice(0, 100))
@@ -1193,7 +1217,8 @@ export default function Dashboard() {
       paymentMode: formatPaymentLabel(order.payment_mode, order.split_details) || order.payment_mode,
       total: order.total,
       status: order.status,
-      channel: normalizeOrderMode(order.order_mode),
+      channel: depositIdOf(order) ? 'advance order' : normalizeOrderMode(order.order_mode),
+      extraMeta: depositIdOf(order) ? [['Advance Order', depositIdOf(order)]] : [],
     }
   }
 
@@ -1455,6 +1480,18 @@ export default function Dashboard() {
       const effectiveDateFrom = overrideDates !== undefined ? (overrideDates.dateFrom ?? '') : search.dateFrom
       const effectiveDateTo = overrideDates !== undefined ? (overrideDates.dateTo ?? '') : search.dateTo
 
+      // Bills completed from advance orders whose deposit ID matches the search
+      const depositTerm = [qText, invInput].find(t => /dep/i.test(t)) || ''
+      let depositMatchIds: string[] = []
+      if (depositTerm) {
+        const { data: advRows } = await db.from('advance_orders')
+          .select('deposit_id, completed_order_id')
+          .ilike('deposit_id', `%${depositTerm}%`)
+          .not('completed_order_id', 'is', null)
+        depositMatchIds = (advRows || []).map(r => String(r.completed_order_id)).filter(Boolean)
+      }
+      const depositIdCond = depositMatchIds.length ? `,id.in.(${depositMatchIds.join(',')})` : ''
+
       let q = db.from('orders')
         .select('id, invoice_no, customer_name, phone, address, created_at, total, status, order_mode, order_type, items, coupon_code, discount_amount, manual_discount_amount, delivery_charge, total_gst, gst_amount, payment_mode, payment_method, split_details, remarks, reference_number')
         .neq('order_type', 'online_request')
@@ -1476,7 +1513,7 @@ export default function Dashboard() {
         if (nonZeroDigits && nonZeroDigits !== digitsOnly && nonZeroDigits !== qText) {
           conds.push(`invoice_no.ilike.%${nonZeroDigits}%`)
         }
-        q = q.or(conds.join(','))
+        q = q.or(conds.join(',') + (depositTerm === qText ? depositIdCond : ''))
       }
 
       if (invInput) {
@@ -1485,7 +1522,7 @@ export default function Dashboard() {
         const conds = [`invoice_no.ilike.%${invInput}%`]
         if (digitsOnly && digitsOnly !== invInput) conds.push(`invoice_no.ilike.%${digitsOnly}%`)
         if (nonZeroDigits && nonZeroDigits !== digitsOnly && nonZeroDigits !== invInput) conds.push(`invoice_no.ilike.%${nonZeroDigits}%`)
-        q = q.or(conds.join(','))
+        q = q.or(conds.join(',') + (depositTerm === invInput ? depositIdCond : ''))
       }
 
       if (phoneInput) {
@@ -1519,6 +1556,7 @@ export default function Dashboard() {
 
       // Client-side match filter to handle formatted invoice numbers and local calendar dates
       const matchOrder = (o: DashboardOrder) => {
+        const depositHit = depositMatchIds.includes(o.id)
         if (effectiveDateFrom && toLocalDateKey(o.created_at) < effectiveDateFrom) return false
         if (effectiveDateTo && toLocalDateKey(o.created_at) > effectiveDateTo) return false
 
@@ -1532,7 +1570,7 @@ export default function Dashboard() {
           const rawPhoneDigits = o.phone.replace(/\D/g, '')
           const matchInvDigits = Boolean(qDigits && (rawInvDigits.endsWith(qDigits) || rawInvDigits.includes(qDigits)))
           const matchPhoneDigits = Boolean(qDigits && qDigits.length >= 4 && rawPhoneDigits.includes(qDigits))
-          if (!matchInv && !matchCust && !matchPhone && !matchInvDigits && !matchPhoneDigits) return false
+          if (!depositHit && !matchInv && !matchCust && !matchPhone && !matchInvDigits && !matchPhoneDigits) return false
         }
         if (invInput) {
           const matchRaw = o.invoice_no.toLowerCase().includes(invInput.toLowerCase())
@@ -1541,7 +1579,7 @@ export default function Dashboard() {
           const invDigits = invInput.replace(/\D/g, '')
           const rawDigits = o.invoice_no.replace(/\D/g, '')
           const matchDigits = invDigits && (rawDigits.endsWith(invDigits) || rawDigits.includes(invDigits))
-          if (!matchRaw && !matchFmt && !matchId && !matchDigits) return false
+          if (!depositHit && !matchRaw && !matchFmt && !matchId && !matchDigits) return false
         }
         if (custInput) {
           const matchCust = o.customer_name.toLowerCase().includes(custInput.toLowerCase())
@@ -3525,6 +3563,7 @@ export default function Dashboard() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-[13px] font-black text-[#111111] break-words">{formatInvoiceNo(o.invoice_no)}</p>
+                          {depositIdOf(o) && <p className="text-[11px] font-bold text-amber-700 break-words">Advance: {depositIdOf(o)}</p>}
                           <p className="text-[13px] text-[#374151]">{new Date(o.created_at).toLocaleDateString('en-IN')}</p>
                         </div>
                         <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase ${billTypeClass}`}>{billTypeLabel}</span>
@@ -3620,7 +3659,10 @@ export default function Dashboard() {
                       return (
                         <React.Fragment key={o.id}>
                         <tr className="border-b border-gray-100">
-                          <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-[#111111]">{formatInvoiceNo(o.invoice_no)}</td>
+                          <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-[#111111]">
+                            {formatInvoiceNo(o.invoice_no)}
+                            {depositIdOf(o) && <span className="mt-0.5 block text-[11px] font-bold text-amber-700">Advance: {depositIdOf(o)}</span>}
+                          </td>
                           <td className="whitespace-nowrap px-4 py-4">
                             <p className="text-sm font-black text-[#111111]">{created.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                             <p className="text-[12.5px] text-gray-600">{created.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>

@@ -190,6 +190,20 @@ export default function DigitalInvoice() {
 
         if (!row) throw new Error('Invoice not found')
 
+        // Bill completed from an advance order: show its deposit ID
+        if (!row.deposit_id && row.invoice_no) {
+          try {
+            const { data: adv } = await db
+              .from('advance_orders')
+              .select('deposit_id')
+              .eq('invoice_number', row.invoice_no)
+              .maybeSingle()
+            if (adv?.deposit_id) row = { ...row, deposit_id: adv.deposit_id }
+          } catch {
+            // not an advance order
+          }
+        }
+
         setInvoice(row)
       } catch (err: unknown) {
         if (err instanceof Error) {
@@ -384,7 +398,8 @@ export default function DigitalInvoice() {
     total: invoice.total > 0 ? invoice.total : (subtotal + (invoice.delivery_charge || 0) + gstAmount - (invoice.discount_amount || 0) - (invoice.manual_discount_amount || 0)),
     status: invoice.status,
     paymentMode: formatPaymentLabel(invoice.payment_mode || invoice.payment_method, invoice.split_details) || invoice.payment_mode || invoice.payment_method,
-    channel: invoice.order_mode || 'offline',
+    channel: invoice.deposit_id ? 'advance order' : invoice.order_mode || 'offline',
+    extraMeta: invoice.deposit_id ? [['Advance Order', String(invoice.deposit_id)]] : [],
   }
 
   const copyLink = async () => {
