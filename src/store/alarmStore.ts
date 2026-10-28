@@ -21,16 +21,36 @@ interface AlarmState {
   resetSilencedState: () => void
 }
 
+// Silenced items are remembered across reloads and tabs, so an acknowledged alarm stays quiet
+const SILENCED_KEY = 'naayan-silenced-low-stock'
+const loadSilenced = (): Set<string | number> => {
+  try {
+    const raw = localStorage.getItem(SILENCED_KEY)
+    const ids = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(ids) ? ids.map(String) : [])
+  } catch {
+    return new Set()
+  }
+}
+const saveSilenced = (ids: Set<string | number>) => {
+  try {
+    localStorage.setItem(SILENCED_KEY, JSON.stringify(Array.from(ids, String)))
+  } catch {
+    // storage unavailable: silencing still works for this tab
+  }
+}
+
 export const useAlarmStore = create<AlarmState>((set, get) => ({
   lowStockItems: [],
   isAlarmActive: false,
-  silencedItemIds: new Set<string | number>(),
+  silencedItemIds: loadSilenced(),
 
   setLowStockItems: (items) => {
     // Forget silenced ids that are no longer low, so an item that recovers and drops again alarms as new
     const currentIds = new Set(items.map((item) => String(item.id)))
     const silencedItemIds = new Set(Array.from(get().silencedItemIds).filter((id) => currentIds.has(String(id))))
     set({ silencedItemIds })
+    saveSilenced(silencedItemIds)
     
     // Alarm triggers only if there is at least one low-stock item that has not been acknowledged
     const hasUnsilencedLowStock = items.some(
@@ -69,14 +89,14 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
   silenceAlarm: () => {
     const currentItemIds = get().lowStockItems.map((i) => String(i.id))
     alarmSound.stopAlert()
-    set({
-      isAlarmActive: false,
-      silencedItemIds: new Set(currentItemIds),
-    })
+    const silencedItemIds = new Set<string | number>(currentItemIds)
+    set({ isAlarmActive: false, silencedItemIds })
+    saveSilenced(silencedItemIds)
   },
 
   resetSilencedState: () => {
     set({ silencedItemIds: new Set() })
+    saveSilenced(new Set())
   },
 }))
 

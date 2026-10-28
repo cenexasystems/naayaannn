@@ -27,7 +27,6 @@ import { StockHistoryDrawer } from './StockHistoryDrawer'
 import { QuickPriceModal } from './QuickPriceModal'
 import { formatCurrency } from '../../lib/retail'
 import { useProductStore, useAdminAuthStore } from '../../store/store'
-import { useAlarmStore } from '../../store/alarmStore'
 import { CategoryManagerView } from './CategoryManagerView'
 import { InventoryAnalyticsView } from './InventoryAnalyticsView'
 import { AddEditProductView } from './AddEditProductView'
@@ -64,24 +63,6 @@ export const InventoryTable: React.FC = () => {
       void fetchProducts(true)
       const data = await inventoryService.fetchInventoryItems()
       setItems(data)
-
-      // Alert sound and modal when viewing inventory with low stock
-      const lowStockFlagged = data
-        .filter((i) => i.is_active && i.stock <= (i.low_stock_threshold || 5))
-        .map((i) => ({
-          id: i.variant_id ? `v-${i.variant_id}` : `p-${i.product_id}`,
-          name: i.name,
-          variantName: i.variant_name || undefined,
-          stock: i.stock,
-          alertThreshold: i.low_stock_threshold || 5,
-          barcode: i.barcode || undefined,
-          category: i.category || undefined,
-        }))
-
-      // The store decides whether to sound: silenced items stay silent until a new low-stock item appears
-      if (lowStockFlagged.length > 0) {
-        useAlarmStore.getState().setLowStockItems(lowStockFlagged)
-      }
     } catch (err) {
       console.error('Failed to load inventory items:', err)
     } finally {
