@@ -1,9 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { X, PackagePlus, Tag, Plus, Trash2 } from 'lucide-react'
 import { useProductStore } from '../store/store'
 import { db } from '../lib/db'
-import VariantOfferSummary from './inventory/VariantOfferSummary'
-import OfferFields from './inventory/OfferFields'
 import { normalizeBarcode } from '../lib/barcode'
 import { createPortal } from 'react-dom'
 
@@ -26,7 +24,6 @@ const emptyForm = {
   price: '',
   cost: '',
   stock: '0',
-  offerPrice: '',
   active: true,
 }
 
@@ -69,20 +66,6 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, onClose])
 
-  // With variants and no product price, the offer is entered against the first variant's price
-  const offerBasePrice = Number(form.price) || (hasVariants ? Number(variants.find(v => v.name.trim())?.price) || 0 : 0)
-
-  // When the price the offer is based on changes, keep the same % off (so every variant follows it)
-  const prevOfferBase = useRef(0)
-  useEffect(() => {
-    const prev = prevOfferBase.current
-    prevOfferBase.current = offerBasePrice
-    const op = Number(form.offerPrice)
-    if (!(prev > 0) || !(offerBasePrice > 0) || prev === offerBasePrice || !(op > 0 && op < prev)) return
-    setForm(f => ({ ...f, offerPrice: String(Math.round(offerBasePrice * (op / prev) * 100) / 100) }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offerBasePrice])
-
   if (!isOpen) return null
 
   const set = (key: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -98,8 +81,6 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
     const price = Number(form.price) || (useVariants ? Number(validVariants[0].price) || 0 : 0)
     if (!form.name.trim()) return setError('Product name is required')
     if (!price || price <= 0) return setError('Price must be greater than 0')
-    const offerPrice = Number(form.offerPrice)
-    if (form.offerPrice && (offerPrice <= 0 || offerPrice >= price)) return setError('Offer price must be lower than the price')
 
     setLoading(true)
     setError('')
@@ -133,7 +114,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
           category: categoryName || 'General',
           category_id: categoryId,
           price,
-          offer_price: form.offerPrice ? offerPrice : null,
+          offer_price: null,
           purchase_price: Number(form.cost) || 0,
           stock: stockNum,
           stock_quantity: stockNum,
@@ -307,15 +288,6 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
               </label>
           </div>
 
-          <OfferFields
-            idPrefix="add-item-offer"
-            price={offerBasePrice}
-            offerPrice={form.offerPrice}
-            onChange={(v) => setForm(f => ({ ...f, offerPrice: v }))}
-            inputClassName={input}
-            labelClassName="mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-amber-800"
-          />
-
             <div className="rounded-2xl border border-gray-200 p-5">
               <label className="flex items-center justify-between gap-4 cursor-pointer">
                 <span>
@@ -348,7 +320,6 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
                         <button type="button" onClick={() => setVariants(rows => rows.filter(r => r.id !== v.id))} aria-label="Remove variant"
                           className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-[#DC2626]"><Trash2 size={17} /></button>
                       </div>
-                      <VariantOfferSummary productPrice={offerBasePrice} offerPrice={form.offerPrice} variantPrice={Number(v.price) || Number(form.price) || offerBasePrice} />
                       </div>
                     )
                   })}
