@@ -4733,12 +4733,12 @@ export default function Dashboard() {
       {/* Edit Order Details Modal */}
       {editingOrder && (
         createPortal(<div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-3 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-0 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200"
           role="dialog"
           aria-modal="true"
           aria-label={`Edit Order ${editingOrder.invoice_no || editingOrder.id}`}
         >
-          <div className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-gray-100">
+          <div className="flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col overflow-hidden rounded-none bg-white shadow-2xl border-0 sm:h-auto sm:max-h-[92dvh] sm:rounded-2xl sm:border border-gray-100">
             <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3.5 bg-[#FAFAFA]">
               <div>
                 <h3 className="text-base font-black text-[#111111]">{l('Edit Order Details', 'ஆர்டர் விவரங்களை திருத்து')}</h3>
@@ -4754,7 +4754,7 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <form onSubmit={saveOrderEdit} className="flex-1 overflow-y-auto p-5 space-y-4">
+            <form onSubmit={saveOrderEdit} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 pb-0 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-500 block mb-1">
@@ -4836,7 +4836,7 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
+              <div className="sticky bottom-0 z-10 -mx-5 flex items-center justify-end gap-2.5 border-t border-gray-100 bg-white px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 <button
                   type="button"
                   onClick={() => setEditingOrder(null)}

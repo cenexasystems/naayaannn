@@ -285,7 +285,7 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setAddQuantity((q) => (typeof q === 'number' ? Math.max(0, q - 1) : 0))}
-                      className="w-10 h-10 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 font-black text-lg flex items-center justify-center border border-emerald-300 transition-colors"
+                      className="w-10 h-10 shrink-0 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 font-black text-lg flex items-center justify-center border border-emerald-300 transition-colors"
                     >
                       -
                     </button>
@@ -307,12 +307,12 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
                       onBlur={() => {
                         if (addQuantity === '') setAddQuantity(0)
                       }}
-                      className="flex-1 text-center font-black text-xl py-1.5 rounded-lg border-2 border-emerald-400 bg-white text-emerald-950 focus:border-emerald-600 outline-none shadow-sm"
+                      className="min-w-0 flex-1 text-center font-black text-xl py-1.5 rounded-lg border-2 border-emerald-400 bg-white text-emerald-950 focus:border-emerald-600 outline-none shadow-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setAddQuantity((q) => (typeof q === 'number' ? q + 1 : 1))}
-                      className="w-10 h-10 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 font-black text-lg flex items-center justify-center border border-emerald-300 transition-colors"
+                      className="w-10 h-10 shrink-0 rounded-lg bg-white hover:bg-emerald-100 text-emerald-900 font-black text-lg flex items-center justify-center border border-emerald-300 transition-colors"
                     >
                       +
                     </button>
@@ -398,7 +398,7 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setRemoveQuantity((q) => (typeof q === 'number' ? Math.max(0, q - 1) : 0))}
-                      className="w-10 h-10 rounded-lg bg-white hover:bg-rose-100 text-rose-900 font-black text-lg flex items-center justify-center border border-rose-300 transition-colors"
+                      className="w-10 h-10 shrink-0 rounded-lg bg-white hover:bg-rose-100 text-rose-900 font-black text-lg flex items-center justify-center border border-rose-300 transition-colors"
                     >
                       -
                     </button>
@@ -421,12 +421,12 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
                       onBlur={() => {
                         if (removeQuantity === '') setRemoveQuantity(0)
                       }}
-                      className="flex-1 text-center font-black text-xl py-1.5 rounded-lg border-2 border-rose-400 bg-white text-rose-950 focus:border-rose-600 outline-none shadow-sm"
+                      className="min-w-0 flex-1 text-center font-black text-xl py-1.5 rounded-lg border-2 border-rose-400 bg-white text-rose-950 focus:border-rose-600 outline-none shadow-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setRemoveQuantity((q) => (typeof q === 'number' ? Math.min(currentStock, q + 1) : 1))}
-                      className="w-10 h-10 rounded-lg bg-white hover:bg-rose-100 text-rose-900 font-black text-lg flex items-center justify-center border border-rose-300 transition-colors"
+                      className="w-10 h-10 shrink-0 rounded-lg bg-white hover:bg-rose-100 text-rose-900 font-black text-lg flex items-center justify-center border border-rose-300 transition-colors"
                     >
                       +
                     </button>
@@ -474,7 +474,7 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setCorrectedQuantity((q) => (typeof q === 'number' ? Math.max(0, q - 1) : 0))}
-                      className="w-10 h-10 rounded-lg bg-white hover:bg-amber-100 text-amber-950 font-black text-lg flex items-center justify-center border border-amber-300 transition-colors"
+                      className="w-10 h-10 shrink-0 rounded-lg bg-white hover:bg-amber-100 text-amber-950 font-black text-lg flex items-center justify-center border border-amber-300 transition-colors"
                     >
                       -
                     </button>
@@ -496,12 +496,12 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
                       onBlur={() => {
                         if (correctedQuantity === '') setCorrectedQuantity(0)
                       }}
-                      className="flex-1 text-center font-black text-xl py-1.5 rounded-lg border-2 border-primary-soft bg-white text-black focus:border-black outline-none shadow-sm"
+                      className="min-w-0 flex-1 text-center font-black text-xl py-1.5 rounded-lg border-2 border-primary-soft bg-white text-black focus:border-black outline-none shadow-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setCorrectedQuantity((q) => (typeof q === 'number' ? q + 1 : 1))}
-                      className="w-10 h-10 rounded-lg bg-white hover:bg-amber-100 text-amber-950 font-black text-lg flex items-center justify-center border border-amber-300 transition-colors"
+                      className="w-10 h-10 shrink-0 rounded-lg bg-white hover:bg-amber-100 text-amber-950 font-black text-lg flex items-center justify-center border border-amber-300 transition-colors"
                     >
                       +
                     </button>

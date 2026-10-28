@@ -1794,8 +1794,8 @@ export default function Pos(props: PosProps = {}) {
       </div>
 
       {depositOpen && (
-        createPortal(<div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-4">
-          <form onSubmit={saveDepositOrder} className="max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+        createPortal(<div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-0 sm:p-4">
+          <form onSubmit={saveDepositOrder} className="h-[100dvh] max-h-[100dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-none bg-white p-4 pb-0 shadow-2xl sm:h-auto sm:max-h-[94dvh] sm:rounded-3xl sm:p-6 sm:pb-0">
             <div className="mb-5 flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[.16em] text-gray-600">Advance payment only</p>
@@ -1818,7 +1818,7 @@ export default function Pos(props: PosProps = {}) {
               <label htmlFor="pos-deposit-remarks" className="block sm:col-span-2"><span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-[#6B7280]">Remarks</span><textarea id="pos-deposit-remarks" name="depositRemarks" value={depositForm.remarks} onChange={e => setDepositForm({...depositForm,remarks:e.target.value})} className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-gray-600" rows={2}/></label>
             </div>
             {error && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-600">{error}</div>}
-            <div className="mt-5 flex gap-3"><button type="button" onClick={() => { setDepositOpen(false); setError('') }} className="flex-1 rounded-xl border py-3 text-sm font-black">Cancel</button><button disabled={saving} className="flex-[1.5] rounded-xl bg-gray-700 py-3 text-sm font-black text-white disabled:opacity-50">{saving ? 'Saving…' : 'Confirm Deposit Order'}</button></div>
+            <div className="sticky bottom-0 z-10 -mx-4 mt-5 flex gap-3 border-t border-gray-100 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6 sm:pb-6"><button type="button" onClick={() => { setDepositOpen(false); setError('') }} className="flex-1 rounded-xl border py-3 text-sm font-black">Cancel</button><button disabled={saving} className="flex-[1.5] rounded-xl bg-gray-700 py-3 text-sm font-black text-white disabled:opacity-50">{saving ? 'Saving…' : 'Confirm Deposit Order'}</button></div>
           </form>
         </div>, document.body)
       )}

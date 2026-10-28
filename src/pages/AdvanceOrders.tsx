@@ -590,8 +590,8 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     </div>
 
     {createOpen && createPortal(
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-        <form onSubmit={create} className="max-h-full w-full max-w-4xl overflow-hidden overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl border border-[#F3F4F6]">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150">
+        <form onSubmit={create} className="h-[100dvh] max-h-[100dvh] w-full max-w-4xl overflow-y-auto overscroll-contain rounded-none bg-white p-4 pb-0 shadow-2xl sm:h-auto sm:max-h-full sm:rounded-3xl sm:border border-[#F3F4F6] sm:p-6 sm:pb-0">
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h3 className="text-xl font-black text-[#111111]">Create Advance Order</h3>
@@ -628,7 +628,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
             <div className="md:col-span-2"><Field label="Reference Number" htmlFor="adv-reference-number"><input id="adv-reference-number" name="referenceNumber" className={inputClass} value={form.reference_number} onChange={e=>setForm({...form,reference_number:e.target.value})} placeholder="e.g. PO-001, booking ref (optional)"/></Field></div>
             <div className="md:col-span-2"><Field label="Remarks" htmlFor="adv-remarks"><textarea id="adv-remarks" name="remarks" className={inputClass} value={form.remarks} onChange={e=>setForm({...form,remarks:e.target.value})} placeholder="e.g. special instructions, colour, size notes"/></Field></div>
           </div>
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="sticky bottom-0 z-10 -mx-4 mt-6 flex justify-end gap-3 border-t border-gray-100 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6 sm:pb-6">
             <button type="button" onClick={()=>setCreateOpen(false)} className="rounded-xl border border-gray-200 px-5 py-2.5 font-bold cursor-pointer hover:bg-gray-50 transition text-gray-700">Cancel</button>
             <button disabled={saving} className="rounded-xl bg-primary hover:bg-primary-hover px-5 py-2.5 font-black text-primary-100 border border-primary-soft/50 shadow-md disabled:opacity-50 cursor-pointer transition">{saving?'Creating...':'Create & Save Advance Receipt'}</button>
           </div>
@@ -638,8 +638,8 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     )}
 
     {paymentOrder && createPortal(
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-        <form onSubmit={receivePayment} className="w-full max-w-md max-h-full overflow-hidden overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl border border-[#F3F4F6]">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150">
+        <form onSubmit={receivePayment} className="h-[100dvh] max-h-[100dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-none bg-white p-4 pb-0 shadow-2xl sm:h-auto sm:max-h-full sm:rounded-3xl sm:border border-[#F3F4F6] sm:p-6 sm:pb-0">
           <div className="mb-5 flex items-start justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-wider text-emerald-600 font-mono">{paymentOrder.deposit_id}</p>
@@ -669,7 +669,9 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
               <textarea className={inputClass} value={paymentForm.remarks} onChange={e=>setPaymentForm({...paymentForm,remarks:e.target.value})} placeholder="Notes about this payment (optional)"/>
             </Field>
             <p className="mt-2 rounded-xl bg-amber-50 p-3 text-[11px] font-semibold text-amber-800">Confirmation marks the order Completed, creates one official invoice, and recognizes the full {formatCurrency(paymentOrder.total_amount)} as revenue.</p>
-            <button disabled={saving} className="mt-5 w-full rounded-xl bg-emerald-600 py-3.5 font-black text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 cursor-pointer hover:bg-emerald-700">
+          </div>
+          <div className="sticky bottom-0 z-10 -mx-4 mt-5 border-t border-gray-100 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6 sm:pb-6">
+            <button disabled={saving} className="w-full rounded-xl bg-emerald-600 py-3.5 font-black text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 disabled:opacity-50 cursor-pointer hover:bg-emerald-700">
               {saving?'Processing...':'Confirm Final Payment'}
             </button>
           </div>

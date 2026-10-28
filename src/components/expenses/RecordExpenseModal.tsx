@@ -114,9 +114,9 @@ export const RecordExpenseModal: React.FC<RecordExpenseModalProps> = ({
   }
 
   return createPortal(
-    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen h-[100dvh] z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-xs p-3 sm:p-4 overflow-hidden animate-in fade-in duration-150">
+    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen h-[100dvh] z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-xs p-0 sm:p-4 overflow-hidden animate-in fade-in duration-150">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative z-10 bg-white rounded-2xl sm:rounded-3xl max-w-md w-full max-h-[92dvh] border border-[#F3F4F6] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+      <div className="relative z-10 bg-white rounded-none sm:rounded-3xl max-w-md w-full h-[100dvh] max-h-[100dvh] sm:h-auto sm:max-h-[92dvh] border-0 sm:border border-[#F3F4F6] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="shrink-0 px-5 py-4 border-b border-primary-soft/30 flex items-center justify-between bg-primary text-white">
           <div className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export const RecordExpenseModal: React.FC<RecordExpenseModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto min-h-0 flex-1 p-4 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto overscroll-contain min-h-0 flex-1 p-4 pb-0 sm:p-6 sm:pb-0 space-y-4">
           {errorMsg && (
             <div className="flex items-center gap-2 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 p-3 rounded-xl">
               <AlertCircle size={15} className="text-rose-600 shrink-0" />
@@ -227,7 +227,7 @@ export const RecordExpenseModal: React.FC<RecordExpenseModalProps> = ({
           </div>
 
           {/* Modal Actions */}
-          <div className="flex items-center gap-3 pt-2">
+          <div className="sticky bottom-0 z-10 -mx-4 flex items-center gap-3 border-t border-gray-100 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6 sm:pb-6">
             <button
               type="button"
               onClick={onClose}

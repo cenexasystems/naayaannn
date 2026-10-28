@@ -216,15 +216,15 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
   }
 
   return (
-    createPortal(<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+    createPortal(<div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 p-0 sm:p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <form
         onSubmit={handleSubmit}
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-item-title"
-        className="flex max-h-[94dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-[26px] bg-white shadow-2xl"
+        className="flex h-[100dvh] max-h-[100dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-none bg-white shadow-2xl sm:h-auto sm:max-h-[94dvh] sm:rounded-[26px]"
       >
-        <div className="flex items-center gap-4 border-b border-gray-200 px-7 py-5">
+        <div className="flex shrink-0 items-center gap-4 border-b border-gray-200 px-5 py-4 sm:px-7 sm:py-5">
           <span className="flex h-10 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary"><PackagePlus size={24} strokeWidth={1.75} /></span>
           <div className="min-w-0 flex-1">
             <h2 id="add-item-title" className="text-base font-black tracking-tight text-[#111111]">Add New Product</h2>
@@ -233,7 +233,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
           <button type="button" onClick={onClose} aria-label="Close" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-500 hover:text-[#111111]"><X size={20} /></button>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-7 py-6">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7 sm:py-6">
           <label className="block">
             <span className={label}>Product name <span className="text-[#DC2626]">*</span></span>
             <input className={input} value={form.name} onChange={set('name')} autoFocus maxLength={120}
@@ -340,7 +340,7 @@ export default function AddProductModal({ isOpen, onClose, onSuccess }: AddProdu
           {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-[13px] font-bold text-[#B91C1C]">{error}</p>}
         </div>
 
-        <div className="border-t border-gray-100 px-7 py-5">
+        <div className="shrink-0 border-t border-gray-100 bg-white px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-7 sm:py-5">
           <button
             type="submit"
             disabled={loading}
