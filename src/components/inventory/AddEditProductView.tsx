@@ -31,6 +31,8 @@ export interface VariantInputRow {
   costPrice: number
   stock: number
   customBarcode?: string
+  /** Stock when the product was opened; only the change the user makes is applied on save */
+  loadedStock?: number
 }
 
 export const AddEditProductView: React.FC<{
@@ -66,6 +68,9 @@ export const AddEditProductView: React.FC<{
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const lastHandledInitialIdRef = useRef<string | number | null>(null)
+  // Stock and variant ids as they were when the product was opened
+  const loadedStockRef = useRef(0)
+  const loadedVariantIdsRef = useRef<string[]>([])
 
   useEffect(() => {
     void fetchProducts(true)
@@ -100,7 +105,7 @@ export const AddEditProductView: React.FC<{
     setMobileView('form')
   }
 
-  const startEditProduct = async (p: Product) => {
+  const startEditProduct = async (p: Product, keepStatus = false) => {
     setSelectedProductId(Number(p.id))
     setMobileView('form')
     setName(p.name || '')
@@ -121,16 +126,19 @@ export const AddEditProductView: React.FC<{
     setPrice(String(p.price || ''))
     setPurchasePrice(String(p.purchasePrice || ''))
     setStockQuantity(String(p.stockQuantity ?? p.stock ?? 0))
+    loadedStockRef.current = Number(p.stockQuantity ?? p.stock ?? 0) || 0
+    loadedVariantIdsRef.current = []
     setLowStockAlert(p.lowStockAlert ? String(p.lowStockAlert) : '5')
     setBarcode(p.barcode || '')
     setDescription(p.description || '')
     setIsActive(p.isActive !== false)
     setHasVariants(Boolean(p.hasVariants))
-    setStatusMessage(null)
+    if (!keepStatus) setStatusMessage(null)
 
     if (p.hasVariants) {
       try {
         const vars = await fetchVariantsByProduct(String(p.id))
+        loadedVariantIdsRef.current = vars.map((v) => String(v.id))
         setVariantRows(
           vars.map((v) => ({
             id: v.id,
@@ -139,6 +147,7 @@ export const AddEditProductView: React.FC<{
             price: v.price,
             costPrice: v.purchasePrice || 0,
             stock: v.stock || 0,
+            loadedStock: v.stock || 0,
             customBarcode: v.barcode || '',
           }))
         )
@@ -332,16 +341,17 @@ export const AddEditProductView: React.FC<{
       if (selectedProductId) {
         // UPDATE EXISTING PRODUCT
         if (!hasVariants) {
-          const inputStock = Math.max(0, parseInt(stockQuantity) || 0)
-
-          // Check previous stock
-          const { data: currentProd } = await db
+          // Apply only the stock change made in this form, so sales billed meanwhile are kept
+          const { data: currentProd, error: curErr } = await db
             .from('products')
             .select('stock_quantity, stock')
             .eq('id', selectedProductId)
             .single()
+          if (curErr) throw curErr
 
-          const prevStock = currentProd ? (currentProd.stock_quantity ?? currentProd.stock ?? 0) : 0
+          const prevStock = Number(currentProd?.stock_quantity ?? currentProd?.stock ?? 0) || 0
+          const formDelta = Math.max(0, parseInt(stockQuantity) || 0) - loadedStockRef.current
+          const inputStock = Math.max(0, prevStock + formDelta)
           const delta = inputStock - prevStock
 
           const { error: updErr } = await db
@@ -399,15 +409,25 @@ export const AddEditProductView: React.FC<{
           })
         } else {
           // Multi-variant update
+          // Variants removed from the form are switched off (kept for past bills)
+          const keptIds = new Set(validVariants.map((v) => v.id))
+          const removedIds = loadedVariantIdsRef.current.filter((id) => !keptIds.has(id))
+          if (removedIds.length > 0) {
+            const { error: rmErr } = await db
+              .from('product_variants')
+              .update({ is_active: false })
+              .in('id', removedIds)
+            if (rmErr) throw rmErr
+          }
+
           let totalVariantStock = 0
-          for (const v of variantRows) {
-            if (!v.variantName.trim()) continue
+          for (const v of validVariants) {
             const vPrice = Number(v.price) > 0 ? Number(v.price) : priceNum
-            const vCost = Number(v.costPrice) > 0 ? Number(v.costPrice) : costNum
-            const vStock = Math.max(0, Number(v.stock) || 0)
-            totalVariantStock += vStock
+            const vCost = Math.max(0, Number(v.costPrice) || 0)
+            let vStock = Math.max(0, Number(v.stock) || 0)
 
             if (v.id.startsWith('var_')) {
+              totalVariantStock += vStock
               // Insert new variant
               const { data: createdVar, error: vErr } = await db
                 .from('product_variants')
@@ -423,8 +443,21 @@ export const AddEditProductView: React.FC<{
                 })
                 .select()
                 .single()
+              if (vErr || !createdVar) throw vErr || new Error(`Could not add variant ${v.variantName.trim()}`)
 
-              if (!vErr && createdVar && vStock > 0) {
+              if (normalizeBarcode(v.customBarcode)) {
+                await db.from('barcode_registry').upsert(
+                  {
+                    barcode_value: normalizeBarcode(v.customBarcode),
+                    product_id: selectedProductId,
+                    variant_id: createdVar.id,
+                    is_active: true,
+                  },
+                  { onConflict: 'barcode_value' }
+                )
+              }
+
+              if (vStock > 0) {
                 await db.from('inventory_movements').insert({
                   product_id: selectedProductId,
                   variant_id: createdVar.id,
@@ -440,16 +473,20 @@ export const AddEditProductView: React.FC<{
               }
             } else {
               // Update existing variant
-              const { data: curVar } = await db
+              const { data: curVar, error: curVarErr } = await db
                 .from('product_variants')
                 .select('stock')
                 .eq('id', v.id)
                 .single()
+              if (curVarErr) throw curVarErr
 
-              const prevVarStock = curVar?.stock ?? 0
+              // Apply only the stock change made in this form, so sales billed meanwhile are kept
+              const prevVarStock = Number(curVar?.stock ?? 0) || 0
+              vStock = Math.max(0, prevVarStock + (vStock - (v.loadedStock ?? prevVarStock)))
               const varDelta = vStock - prevVarStock
+              totalVariantStock += vStock
 
-              await db
+              const { error: updVarErr } = await db
                 .from('product_variants')
                 .update({
                   variant_name: v.variantName.trim(),
@@ -460,6 +497,19 @@ export const AddEditProductView: React.FC<{
                   barcode: v.customBarcode?.trim() || null,
                 })
                 .eq('id', v.id)
+              if (updVarErr) throw updVarErr
+
+              if (normalizeBarcode(v.customBarcode)) {
+                await db.from('barcode_registry').upsert(
+                  {
+                    barcode_value: normalizeBarcode(v.customBarcode),
+                    product_id: selectedProductId,
+                    variant_id: v.id,
+                    is_active: true,
+                  },
+                  { onConflict: 'barcode_value' }
+                )
+              }
 
               if (varDelta !== 0) {
                 await db.from('inventory_movements').insert({
@@ -479,7 +529,7 @@ export const AddEditProductView: React.FC<{
           }
 
           // Update parent product
-          await db
+          const { error: parentErr } = await db
             .from('products')
             .update({
               name: trimmedName,
@@ -498,6 +548,7 @@ export const AddEditProductView: React.FC<{
               stock: totalVariantStock,
             })
             .eq('id', selectedProductId)
+          if (parentErr) throw parentErr
 
           setStatusMessage({
             type: 'success',
@@ -654,6 +705,11 @@ export const AddEditProductView: React.FC<{
       }
 
       await fetchProducts(true)
+      // Reload the saved product so the form shows what is now in the database
+      if (selectedProductId) {
+        const fresh = useProductStore.getState().products.find((p) => Number(p.id) === selectedProductId)
+        if (fresh) await startEditProduct(fresh, true)
+      }
       onStockUpdated?.()
     } catch (err: any) {
       console.error('Save Product Error:', err)
