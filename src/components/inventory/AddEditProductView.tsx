@@ -16,7 +16,6 @@ import { inventoryService, type CategoryRecord } from '../../services/inventoryS
 import { normalizeBarcode } from '../../lib/barcode'
 import { db } from '../../lib/db'
 import { confirmDelete } from '../../lib/confirmDelete'
-import OfferFields from './OfferFields'
 import VariantOfferSummary from './VariantOfferSummary'
 
 export const STANDARD_LETTER_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', 'Free Size'] as const
@@ -1099,16 +1098,6 @@ export const AddEditProductView: React.FC<{
                 </div>
               </div>
             )}
-
-            {/* Special offer */}
-            <OfferFields
-              idPrefix="prod-offer"
-              price={offerBasePrice}
-              offerPrice={offerPrice}
-              onChange={setOfferPrice}
-              inputClassName="w-full h-10 px-3.5 rounded-xl border bg-white text-xs font-bold text-gray-900 outline-none focus:border-[#111111]"
-              labelClassName="block text-[11px] font-bold text-amber-800 mb-1.5"
-            />
 
             {/* Active */}
             <label htmlFor="prod-is-active" className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700 cursor-pointer">

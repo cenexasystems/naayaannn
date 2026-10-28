@@ -128,6 +128,31 @@ export async function route(req: Req, res: ServerResponse, routeName?: string) {
       return res.end(obj.data)
     }
 
+    // Current shop logo for link previews (WhatsApp, etc.); falls back to the bundled logo
+    if (name === 'logo' && (req.method === 'GET' || req.method === 'HEAD')) {
+      let logo = ''
+      try {
+        const r = await query<{ logo_data: string | null }>('SELECT logo_data FROM public.store_settings WHERE id = 1')
+        logo = r.rows[0]?.logo_data || ''
+      } catch {
+        // Database unavailable: use the default logo
+      }
+      const m = /^data:(image\/(?:png|jpe?g|webp|gif));base64,(.+)$/i.exec(logo)
+      if (!m) {
+        res.statusCode = 302
+        res.setHeader('Location', '/naayan-logo.png')
+        res.setHeader('Cache-Control', 'public, max-age=300')
+        return res.end()
+      }
+      const data = Buffer.from(m[2], 'base64')
+      res.statusCode = 200
+      res.setHeader('Content-Type', m[1].toLowerCase())
+      res.setHeader('Content-Length', String(data.length))
+      res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300')
+      res.setHeader('X-Content-Type-Options', 'nosniff')
+      return res.end(req.method === 'HEAD' ? undefined : data)
+    }
+
     if (req.method !== 'POST') return send(res, 405, { message: 'Method not allowed', code: '405' })
     const body = (await readBody(req)) as Record<string, unknown>
     const session = sessionFrom(req)
