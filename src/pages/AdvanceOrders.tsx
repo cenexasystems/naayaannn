@@ -296,6 +296,20 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
       phone: order.phone,
       invoiceNumber: invNum,
       invoiceUrl: publicInvoiceUrl(invNum),
+      invoiceDate: order.completed_at || undefined,
+      items: (props.items || []).map((item) => {
+        const qty = Number(item.qty ?? 1) || 1
+        const rate = Number(item.price ?? 0) || 0
+        const raw = item as unknown as Record<string, unknown>
+        return {
+          name: String(item.name || 'Item'),
+          qty,
+          unit: String(raw.unit || 'piece'),
+          unitType: 'unit' as const,
+          rate,
+          lineTotal: Number(raw.line_total ?? rate * qty) || 0,
+        }
+      }),
       paymentMode: props.paymentMode,
       subtotal: b.subtotal,
       manualDiscountAmount: b.discount,

@@ -1,7 +1,7 @@
 // Advance orders → the shared invoice layout (A4 / A5 sheet, thermal roll, preview and PDF).
 import type { InvoiceItem, InvoiceProps } from '../components/Invoice'
 import type { AdvanceOrder, AdvancePayment } from '../services/advanceOrderService'
-import { advanceBreakdown } from './advanceBreakdown'
+import { advanceBreakdown, advancePaymentSummary } from './advanceBreakdown'
 import { paymentLines } from './advanceReceipt'
 import { formatPaymentLabel } from './payments'
 
@@ -81,7 +81,8 @@ export function advanceFinalInvoiceProps(order: AdvanceOrder, payments: AdvanceP
     items: orderItems(order),
     ...totalsFor(order),
     status: 'completed',
-    paymentMode: order.final_payment_method ? formatPaymentLabel(order.final_payment_method, order.split_details) : 'Paid',
+    // Everything collected (deposit + balance), so a cash deposit and card balance reads as a split
+    paymentMode: order.final_payment_method ? formatPaymentLabel(order.final_payment_method, advancePaymentSummary(order, payments).channels) : 'Paid',
     channel: 'advance order',
     amountReceived: order.total_amount,
     paymentRows: paymentLines(order, payments),

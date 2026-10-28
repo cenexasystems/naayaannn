@@ -299,7 +299,7 @@ export const Invoice: React.FC<InvoiceProps> = ({
 
         <div style={{ flex: '0 1 300px', minWidth: 240, marginLeft: 'auto' }}>
           {sumRow(<>Subtotal{isGst && <span style={{ fontSize: 9, color: MUTED, marginLeft: 5, letterSpacing: 0.5 }}>EXCL. GST</span>}</>, formatCurrency(subtotal))}
-          {discountAmount > 0 && sumRow(`Coupon${couponCode ? ` (${couponCode})` : ''}`, `−${formatCurrency(discountAmount)}`)}
+          {discountAmount > 0 && sumRow(couponCode ? `Coupon (${couponCode})` : 'Discount', `−${formatCurrency(discountAmount)}`)}
           {manualDiscountAmount > 0 && sumRow('Discount', `−${formatCurrency(manualDiscountAmount)}`)}
           {effectiveDelivery > 0 && sumRow('Delivery', formatCurrency(effectiveDelivery))}
           {isGst && (

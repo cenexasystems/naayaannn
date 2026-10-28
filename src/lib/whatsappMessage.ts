@@ -69,7 +69,7 @@ export const buildWhatsAppBreakdown = (input: BuildWhatsAppMessageInput) => {
   const cgst = Math.round((gst / 2) * 100) / 100
   const sgst = Math.round((gst - cgst) * 100) / 100
   const lines = [`🧮 *Subtotal:* ${rupees(input.subtotal)}`]
-  if (coupon > 0) lines.push(`🏷️ *Coupon${input.couponCode ? ` (${input.couponCode})` : ''}:* -${rupees(coupon)}`)
+  if (coupon > 0) lines.push(`🏷️ *${input.couponCode ? `Coupon (${input.couponCode})` : 'Discount'}:* -${rupees(coupon)}`)
   if (manual > 0) lines.push(`🏷️ *Discount:* -${rupees(manual)}`)
   if (delivery > 0) lines.push(`🚚 *Delivery:* ${rupees(delivery)}`)
   if (gst > 0) {

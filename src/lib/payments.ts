@@ -57,7 +57,11 @@ const inr = (n: number) => `₹${round2(n).toFixed(2)}`
 
 /** Human readable label, e.g. "Cash", "QR", or "Split (Cash ₹500.00 + QR ₹300.00)". */
 export function formatPaymentLabel(mode: unknown, splitRaw?: unknown): string {
-  const normalized = normalizePaymentMode(mode)
+  // Money taken through more than one channel is a split, whatever single mode was stored
+  // (e.g. a completed advance order: cash deposit + card balance)
+  const channels = parseSplit(splitRaw)
+  const usedChannels = [channels.cash, channels.qr, channels.card].filter((v) => v > 0).length
+  const normalized = usedChannels > 1 ? 'split' : normalizePaymentMode(mode)
   if (normalized === 'split') {
     const s = parseSplit(splitRaw)
     const parts: string[] = []
