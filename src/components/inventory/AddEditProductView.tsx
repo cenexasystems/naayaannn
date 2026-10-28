@@ -16,7 +16,6 @@ import { inventoryService, type CategoryRecord } from '../../services/inventoryS
 import { normalizeBarcode } from '../../lib/barcode'
 import { db } from '../../lib/db'
 import { confirmDelete } from '../../lib/confirmDelete'
-import VariantOfferSummary from './VariantOfferSummary'
 
 export const STANDARD_LETTER_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', 'Free Size'] as const
 export const STANDARD_NUMERIC_SIZES = ['28', '30', '32', '34', '36', '38', '40', '42', '44', '46', '48'] as const
@@ -1395,7 +1394,6 @@ export const AddEditProductView: React.FC<{
                           </button>
                         </div>
                       </div>
-                      <VariantOfferSummary productPrice={offerBasePrice} offerPrice={offerPrice} variantPrice={Number(v.price) || offerBasePrice} />
                       </div>
                     ))}
                     </div>
