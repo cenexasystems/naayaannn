@@ -44,9 +44,8 @@ import { normalizeStructuredOrderItem, formatInvoiceNo } from '../lib/retail'
 import { type InvoiceProps } from '../components/Invoice'
 import InvoicePreviewModal from '../components/print/InvoicePreviewModal'
 import PrintSettingsModal from '../components/print/PrintSettingsModal'
-import { printBill } from '../lib/billPrint'
+import { invoicePdfFromProps, printBill } from '../lib/billPrint'
 import { buildProfessionalWhatsAppMessage, publicInvoiceUrl } from '../lib/whatsappMessage'
-import { invoicePdfFile } from '../lib/invoicePdf'
 import { formatPhoneDisplay, formatPhoneForCSV, toWhatsAppUrl } from '../lib/phone'
 import { downloadCsv } from '../lib/exportCsv'
 import { createVariant, updateVariant, deleteVariant, setDefaultVariant, type ProductVariant } from '../services/variantService'
@@ -1213,6 +1212,7 @@ export default function Dashboard() {
       deliveryCharge: order.delivery_charge,
       discountAmount: order.discount_amount,
       manualDiscountAmount: order.manual_discount_amount,
+      couponCode: order.coupon_code || undefined,
       gstAmount: order.total_gst,
       paymentMode: formatPaymentLabel(order.payment_mode, order.split_details) || order.payment_mode,
       total: order.total,
@@ -1233,32 +1233,16 @@ export default function Dashboard() {
       return
     }
 
-    if (order.invoice_pdf_url) {
-      const link = document.createElement('a')
-      link.href = order.invoice_pdf_url
-      if (mode === 'download') link.download = `Invoice-${order.invoice_no || order.id}.pdf`
-      if (mode === 'download') { link.click(); return }
-      const opened = window.open(order.invoice_pdf_url, '_blank', 'noopener,noreferrer')
-      if (mode === 'print') opened?.addEventListener('load', () => opened.print())
+    // Same layout as the on-screen preview and the printed sheet
+    const props = orderInvoiceProps(order)
+    if (!props) { alert('This order has no invoice details available.'); return }
+    let file: File
+    try {
+      file = await invoicePdfFromProps(props, `Invoice-${formatInvoiceNo(order.invoice_no || order.id)}.pdf`)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Unable to create the PDF')
       return
     }
-    const preview = getOrderWhatsAppPreview(order)
-    if (!preview) { alert('This order has no invoice details available.'); return }
-    const file = invoicePdfFile({
-      invoiceNo: order.invoice_no || order.id,
-      date: order.created_at,
-      customerName: order.customer_name,
-      phone: order.phone,
-      address: order.address,
-      items: preview.items as unknown as Array<Record<string, unknown>>,
-      subtotal: preview.subtotal,
-      shipping: order.delivery_charge,
-      discountAmount: order.discount_amount,
-      manualDiscountAmount: order.manual_discount_amount,
-      gstAmount: order.total_gst,
-      paymentMode: formatPaymentLabel(order.payment_mode, order.split_details) || order.payment_mode,
-      total: order.total,
-    })
     const url = URL.createObjectURL(file)
     if (mode === 'download') {
       const link = document.createElement('a'); link.href = url; link.download = file.name; link.click()

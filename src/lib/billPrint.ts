@@ -24,6 +24,7 @@ export function invoiceToThermal(props: InvoiceProps): ThermalReceiptData {
     subtotal: props.subtotal,
     shipping: props.deliveryCharge || props.shipping || 0,
     couponDiscount: props.discountAmount || 0,
+    couponCode: props.couponCode,
     manualDiscount: props.manualDiscountAmount || 0,
     totalGst: props.gstAmount || 0,
     cgst: props.cgstAmount,

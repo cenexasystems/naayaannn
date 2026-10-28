@@ -21,6 +21,7 @@ export interface ThermalReceiptData {
   subtotal: number
   shipping: number
   couponDiscount?: number
+  couponCode?: string
   manualDiscount?: number
   totalGst?: number
   /** When either is set they replace the single GST row. */
@@ -164,7 +165,7 @@ export function buildThermalReceiptHtml(data: ThermalReceiptData, width: Thermal
 
   <table>
     ${row('Subtotal:', esc(money(data.subtotal)))}
-    ${(data.couponDiscount || 0) > 0 ? row('Coupon:', `-${esc(money(data.couponDiscount || 0))}`) : ''}
+    ${(data.couponDiscount || 0) > 0 ? row(data.couponCode ? `Coupon (${esc(data.couponCode)}):` : 'Discount:', `-${esc(money(data.couponDiscount || 0))}`) : ''}
     ${(data.manualDiscount || 0) > 0 ? row('Discount:', `-${esc(money(data.manualDiscount || 0))}`) : ''}
     ${data.shipping > 0 ? row('Delivery:', esc(money(data.shipping))) : ''}
     ${isGst ? row(`CGST${pct(cgst)}:`, esc(money(cgst))) + row(`SGST${pct(sgst)}:`, esc(money(sgst))) + row(`Total GST${pct(gstTotal)}:`, esc(money(gstTotal)), 'font-weight:bold;') : ''}
