@@ -47,9 +47,8 @@ import PrintSettingsModal from '../components/print/PrintSettingsModal'
 import { printBill } from '../lib/billPrint'
 import { buildProfessionalWhatsAppMessage, publicInvoiceUrl } from '../lib/whatsappMessage'
 import { invoicePdfFile } from '../lib/invoicePdf'
-import { formatPhoneDisplay, formatPhoneForCSV } from '../lib/phone'
+import { formatPhoneDisplay, formatPhoneForCSV, toWhatsAppUrl } from '../lib/phone'
 import { downloadCsv } from '../lib/exportCsv'
-// toWhatsAppUrl removed - using direct link building in handlers
 import { createVariant, updateVariant, deleteVariant, setDefaultVariant, type ProductVariant } from '../services/variantService'
 import { useVariantStore } from '../store/store'
 import Pos from './Pos'
@@ -1154,6 +1153,23 @@ export default function Dashboard() {
       paymentMode: formatPaymentLabel(order.payment_mode || order.payment_method, order.split_details) || order.payment_mode || order.payment_method,
     })
     return { items, subtotal, message, fileName: `Invoice-${order.invoice_no || order.id}.pdf` }
+  }
+
+  /** Opens WhatsApp with the invoice message for this bill, addressed to the customer. */
+  const shareOrderOnWhatsApp = (order: DashboardOrder) => {
+    const message = getOrderWhatsAppPreview(order)?.message ?? buildProfessionalWhatsAppMessage({
+      customerName: order.customer_name,
+      phone: order.phone,
+      invoiceNumber: order.invoice_no || order.id,
+      invoiceDate: order.created_at,
+      total: order.total,
+    })
+    const waUrl = toWhatsAppUrl(order.phone || '', message)
+    const isMobile =
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    if (isMobile) window.location.href = waUrl
+    else window.open(waUrl, '_blank', 'noopener,noreferrer')
   }
 
 
@@ -3558,7 +3574,7 @@ export default function Dashboard() {
                           <button onClick={() => void openOrderInvoice(o, 'view')} className="inline-flex h-10 sm:min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#F3F4F6]/60 px-2 sm:px-3 text-[12px] font-black text-[#111111] transition-colors hover:bg-white cursor-pointer" title="View Invoice">
                             <Eye size={14} /> View
                           </button>
-                          <button onClick={() => window.open(`/invoice/${o.id}`, '_blank')} className="inline-flex h-10 sm:min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-500 px-2 sm:px-3 text-[12px] font-black text-white transition-colors hover:bg-green-600 cursor-pointer" title="Invoice & Share">
+                          <button onClick={() => shareOrderOnWhatsApp(o)} className="inline-flex h-10 sm:min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-500 px-2 sm:px-3 text-[12px] font-black text-white transition-colors hover:bg-green-600 cursor-pointer" title="Invoice & Share">
                             <MessageCircle size={14} /> Share
                           </button>
                           <button onClick={() => startEditOrder(o)} className="inline-flex h-10 sm:min-h-[44px] px-3 items-center justify-center gap-1.5 rounded-xl border border-primary-soft/50 bg-primary-soft/10 text-[12px] font-black text-primary transition-colors hover:bg-primary-soft/20 cursor-pointer" title="Edit Order Details">
@@ -3629,7 +3645,7 @@ export default function Dashboard() {
                                 <option value="completed">{l('Completed', 'முடிந்தது')}</option>
                                 <option value="pending">{l('Pending', 'நிலுவை')}</option>
                               </select>
-                              <button type="button" onClick={() => window.open(`/invoice/${o.id}`, '_blank')} className={`${actionBtn} bg-emerald-50 text-emerald-600 hover:bg-emerald-100`} title="Invoice & WhatsApp share" aria-label="Share invoice on WhatsApp">
+                              <button type="button" onClick={() => shareOrderOnWhatsApp(o)} className={`${actionBtn} bg-emerald-50 text-emerald-600 hover:bg-emerald-100`} title="Invoice & WhatsApp share" aria-label="Share invoice on WhatsApp">
                                 <MessageCircle size={19} strokeWidth={1.75} />
                               </button>
                               <button type="button" onClick={() => void openOrderInvoice(o, 'view')} className={`${actionBtn} bg-gray-100 text-[#111111] hover:bg-gray-200`} title="View invoice" aria-label="View invoice">
