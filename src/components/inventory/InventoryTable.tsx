@@ -117,8 +117,9 @@ export const InventoryTable: React.FC = () => {
   }
 
   useEffect(() => {
-    void loadData()
-  }, [loadData])
+    // Reload whenever the Stock List is shown, so edits and sales made elsewhere appear
+    if (activeTab === 'stock') void loadData()
+  }, [loadData, activeTab])
 
   // Filter items for Stock Management view
   const filtered = items.filter((item) => {
@@ -494,7 +495,7 @@ export const InventoryTable: React.FC = () => {
                   : it
               )
             )
-            void fetchProducts()
+            void loadData()
           }}
         />
       )}

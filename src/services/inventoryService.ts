@@ -12,7 +12,6 @@ export interface InventoryStockItem {
   barcode?: string
   stock: number
   price: number
-  offer_price?: number
   purchase_price?: number
   cost_price?: number
   unit?: string
@@ -95,7 +94,7 @@ export const inventoryService = {
     // 1. Fetch products
     const { data: products, error: prodErr } = await db
       .from('products')
-      .select('id, name, name_ta, price, offer_price, purchase_price, stock_quantity, low_stock_alert, unit, unit_type, category, category_id, image_url, barcode, sku, is_active, updated_at')
+      .select('id, name, name_ta, price, purchase_price, stock_quantity, low_stock_alert, unit, unit_type, category, category_id, image_url, barcode, sku, is_active, updated_at')
       .order('name', { ascending: true })
 
     if (prodErr) {
@@ -171,6 +170,9 @@ export const inventoryService = {
       if (prodVariants && prodVariants.length > 0) {
         // Multi-variant product: each variant is a sellable SKU
         for (const v of prodVariants) {
+          // Variants removed in the product editor are switched off, not deleted
+          if (v.is_active === false) continue
+          const variantCost = v.purchase_price != null ? Number(v.purchase_price) : (p.purchase_price != null ? Number(p.purchase_price) : undefined)
           items.push({
             id: `var-${v.id}`,
             product_id: p.id,
@@ -184,9 +186,8 @@ export const inventoryService = {
             stock: Number(v.stock) || 0,
             low_stock_threshold: threshold,
             price: Number(v.price) || Number(p.price) || 0,
-            offer_price: p.offer_price ? Number(p.offer_price) : undefined,
-            purchase_price: v.purchase_price ? Number(v.purchase_price) : (p.purchase_price ? Number(p.purchase_price) : undefined),
-            cost_price: v.purchase_price ? Number(v.purchase_price) : (p.purchase_price ? Number(p.purchase_price) : undefined),
+            purchase_price: variantCost,
+            cost_price: variantCost,
             unit: p.unit,
             unit_type: p.unit_type,
             category: resolvedCategory,
@@ -210,9 +211,8 @@ export const inventoryService = {
           stock: Number(p.stock_quantity) || 0,
           low_stock_threshold: threshold,
           price: Number(p.price) || 0,
-          offer_price: p.offer_price ? Number(p.offer_price) : undefined,
-          purchase_price: p.purchase_price ? Number(p.purchase_price) : undefined,
-          cost_price: p.purchase_price ? Number(p.purchase_price) : undefined,
+          purchase_price: p.purchase_price != null ? Number(p.purchase_price) : undefined,
+          cost_price: p.purchase_price != null ? Number(p.purchase_price) : undefined,
           unit: p.unit,
           unit_type: p.unit_type,
           category: resolvedCategory,
