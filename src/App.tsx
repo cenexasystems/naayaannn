@@ -7,6 +7,7 @@ import { clearLocalOrders } from './lib/ordersFallback'
 import { LowStockAlarmModal } from './components/dashboard/LowStockAlarmModal'
 import { ConfirmDeleteHost } from './components/common/ConfirmDeleteDialog'
 import { useLowStockMonitor } from './hooks/useLowStockMonitor'
+import { alarmSound } from './lib/alarmAudio'
 import { db, isDatabaseConfigured } from './lib/db'
 import { supabaseAuth, isSupabaseAuthConfigured } from './lib/supabaseAuth'
 
@@ -96,7 +97,14 @@ function AppShell() {
   const { isLoggedIn, role } = useAdminAuthStore()
 
   const hasStaffOrAdminAccess = Boolean(isLoggedIn && (role === 'admin' || role === 'staff'))
-  useLowStockMonitor(hasStaffOrAdminAccess, role)
+  // The invoice page is what customers see, so the low-stock alarm never shows or sounds there
+  const { pathname } = useLocation()
+  const onCustomerPage = pathname.startsWith('/invoice')
+  const stockAlarmEnabled = hasStaffOrAdminAccess && !onCustomerPage
+  useLowStockMonitor(stockAlarmEnabled, role)
+  useEffect(() => {
+    if (onCustomerPage) alarmSound.stopAlert()
+  }, [onCustomerPage])
 
   useEffect(() => {
     document.title = BRAND_EN
@@ -219,7 +227,7 @@ function AppShell() {
       </main>
 
       {/* Global Low Stock Sound & Visual Alarm for Admin and Staff Panels */}
-      {hasStaffOrAdminAccess && <LowStockAlarmModal />}
+      {stockAlarmEnabled && <LowStockAlarmModal />}
       <ConfirmDeleteHost />
     </div>
   )
