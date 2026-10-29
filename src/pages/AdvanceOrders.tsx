@@ -15,7 +15,7 @@ import { downloadFile, paymentLines } from '../lib/advanceReceipt'
 import { advanceBreakdown, advanceBreakdownRows, computeAdvanceTotals } from '../lib/advanceBreakdown'
 import { useAdminAuthStore, useProductStore } from '../store/store'
 import {
-  addAdvanceEvent, completeAdvanceOrder, createAdvanceOrder, getAdvanceOrderHistory, listAdvanceOrders, updateAdvanceStatus, deleteAdvanceOrder,
+  addAdvanceEvent, completeAdvanceOrder, updateAdvanceInternalNotes, createAdvanceOrder, getAdvanceOrderHistory, listAdvanceOrders, updateAdvanceStatus, deleteAdvanceOrder,
   type AdvanceOrder, type AdvancePayment, type AdvancePaymentMethod, type AdvanceStatus, type AdvanceTimeline,
 } from '../services/advanceOrderService'
 import { confirmDelete } from '../lib/confirmDelete'
@@ -64,6 +64,12 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [selected, setSelected] = useState<AdvanceOrder | null>(null)
+  // Shop-only reference number / remarks being edited in the details drawer
+  const [internalNotes, setInternalNotes] = useState({ reference: '', remarks: '' })
+  const [savingNotes, setSavingNotes] = useState(false)
+  useEffect(() => {
+    setInternalNotes({ reference: selected?.reference_number || '', remarks: selected?.remarks || '' })
+  }, [selected?.id, selected?.reference_number, selected?.remarks])
   const [timeline, setTimeline] = useState<AdvanceTimeline[]>([])
   const [payments, setPayments] = useState<AdvancePayment[]>([])
   const [paymentOrder, setPaymentOrder] = useState<AdvanceOrder | null>(null)
@@ -318,6 +324,17 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
       total: order.total_amount,
     })
     window.open(toWhatsAppUrl(order.phone, message), '_blank', 'noopener,noreferrer')
+  }
+
+  const saveInternalNotes = async (order: AdvanceOrder) => {
+    setSavingNotes(true); setError('')
+    try {
+      await updateAdvanceInternalNotes(order.id, internalNotes.reference, internalNotes.remarks)
+      const updated = { ...order, reference_number: internalNotes.reference.trim(), remarks: internalNotes.remarks.trim() }
+      setOrders(rows => rows.map(row => row.id === order.id ? updated : row))
+      setSelected(current => current?.id === order.id ? updated : current)
+      setNotice(`Internal notes saved for ${order.deposit_id}.`)
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save notes') } finally { setSavingNotes(false) }
   }
 
   const addEvent = async (order: AdvanceOrder, eventType: string, label: string) => {
@@ -625,8 +642,8 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
             {form.paymentMethod === 'split' && (<div className="md:col-span-2"><SplitPaymentInputs idPrefix="adv-deposit-split" total={Number(form.depositAmount) || 0} value={depositSplit} onChange={setDepositSplit} /></div>)}
             <Field label="Expected Delivery Date *" htmlFor="adv-delivery-date"><input id="adv-delivery-date" name="deliveryDate" required type="date" className={inputClass} value={form.expectedDeliveryDate} onChange={e=>setForm({...form,expectedDeliveryDate:e.target.value})}/></Field>
             <Field label="Order Status" htmlFor="adv-status"><select id="adv-status" name="orderStatus" disabled className={inputClass} value="pending_deposit"><option value="pending_deposit">Pending Deposit</option></select></Field>
-            <div className="md:col-span-2"><Field label="Reference Number" htmlFor="adv-reference-number"><input id="adv-reference-number" name="referenceNumber" className={inputClass} value={form.reference_number} onChange={e=>setForm({...form,reference_number:e.target.value})} placeholder="e.g. PO-001, booking ref (optional)"/></Field></div>
-            <div className="md:col-span-2"><Field label="Remarks" htmlFor="adv-remarks"><textarea id="adv-remarks" name="remarks" className={inputClass} value={form.remarks} onChange={e=>setForm({...form,remarks:e.target.value})} placeholder="e.g. special instructions, colour, size notes"/></Field></div>
+            <div className="md:col-span-2"><Field label="Reference Number (Internal)" htmlFor="adv-reference-number"><input id="adv-reference-number" name="referenceNumber" className={inputClass} value={form.reference_number} onChange={e=>setForm({...form,reference_number:e.target.value})} placeholder="e.g. PO-001, booking ref (optional)"/></Field></div>
+            <div className="md:col-span-2"><Field label="Remarks (Internal)" htmlFor="adv-remarks"><textarea id="adv-remarks" name="remarks" className={inputClass} value={form.remarks} onChange={e=>setForm({...form,remarks:e.target.value})} placeholder="e.g. special instructions, colour, size notes"/></Field></div>
           </div>
           <div className="sticky bottom-0 z-10 -mx-4 mt-6 flex justify-end gap-3 border-t border-gray-100 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:-mx-6 sm:px-6 sm:pb-6">
             <button type="button" onClick={()=>setCreateOpen(false)} className="rounded-xl border border-gray-200 px-5 py-2.5 font-bold cursor-pointer hover:bg-gray-50 transition text-gray-700">Cancel</button>
@@ -734,6 +751,31 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
                   <p className="mt-1 break-words text-sm font-bold text-gray-900">{v}</p>
                 </div>
               ))}
+            </div>
+
+            {/* Shop-only notes: never printed on receipts / invoices or sent on WhatsApp */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h4 className="text-xs font-black uppercase tracking-wide text-[#111111]">Internal Notes</h4>
+                <span className="text-[10px] font-bold text-gray-500">Not shown to the customer</span>
+              </div>
+              <div className="space-y-3">
+                <Field label="Reference Number" htmlFor="adv-internal-reference">
+                  <input id="adv-internal-reference" className={inputClass} value={internalNotes.reference} maxLength={60} placeholder="e.g. REF-1002"
+                    onChange={e => setInternalNotes(n => ({ ...n, reference: e.target.value }))} />
+                </Field>
+                <Field label="Remarks" htmlFor="adv-internal-remarks">
+                  <textarea id="adv-internal-remarks" className={inputClass} rows={2} value={internalNotes.remarks} maxLength={500} placeholder="Shop notes only"
+                    onChange={e => setInternalNotes(n => ({ ...n, remarks: e.target.value }))} />
+                </Field>
+                <div className="flex justify-end">
+                  <button type="button" disabled={savingNotes || (internalNotes.reference === (selected.reference_number || '') && internalNotes.remarks === (selected.remarks || ''))}
+                    onClick={() => void saveInternalNotes(selected)}
+                    className="rounded-xl bg-primary px-4 py-2 text-xs font-black text-primary-100 hover:bg-primary-hover disabled:opacity-40 cursor-pointer">
+                    {savingNotes ? 'Saving…' : 'Save Notes'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="rounded-2xl border-2 border-primary-soft/50 bg-[#FAFAFA] p-4">

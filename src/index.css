@@ -462,3 +462,19 @@ input[type="time"],
 input[type="month"] {
   font-weight: 500 !important;
 }
+
+/* iPhone Safari draws date / time pickers wider than their box and collapses empty ones;
+   keep them inside the form width and at a normal height */
+@supports (-webkit-touch-callout: none) {
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='time'] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.75rem;
+    text-align: left;
+  }
+}

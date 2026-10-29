@@ -3583,12 +3583,24 @@ export default function Dashboard() {
                           <p className="text-[#9CA3AF] uppercase text-[10px] sm:text-[11px] font-black leading-tight">Payment</p>
                           <p className="font-semibold text-[#374151] break-words">{formatPaymentLabel(o.payment_mode || o.payment_method, o.split_details) || '—'}</p>
                         </div>
-                        {Boolean(o.address) && (
+                        {Boolean(o.address || o.reference_number || o.remarks) && (
                           <div className="col-span-2 mt-1 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-[#F3F4F6] pt-3">
                             {Boolean(o.address) && (
                               <div className="col-span-2 min-w-0">
                                 <p className="text-[#9CA3AF] uppercase text-[10px] sm:text-[11px] font-black leading-tight">Address</p>
                                 <p className="font-semibold text-[#374151] break-words">{o.address}</p>
+                              </div>
+                            )}
+                            {Boolean(o.reference_number) && (
+                              <div className="col-span-2 min-w-0">
+                                <p className="text-[#9CA3AF] uppercase text-[10px] sm:text-[11px] font-black leading-tight">Reference No. (internal)</p>
+                                <p className="font-semibold text-[#374151] break-words">{o.reference_number}</p>
+                              </div>
+                            )}
+                            {Boolean(o.remarks) && (
+                              <div className="col-span-2 min-w-0">
+                                <p className="text-[#9CA3AF] uppercase text-[10px] sm:text-[11px] font-black leading-tight">Remarks (internal)</p>
+                                <p className="font-semibold text-[#374151] break-words whitespace-pre-line">{o.remarks}</p>
                               </div>
                             )}
                           </div>
@@ -3717,6 +3729,14 @@ export default function Dashboard() {
                                 <div>
                                   <p className="text-[10px] font-black uppercase text-[#9CA3AF] tracking-wider mb-1">Address</p>
                                   <p className="font-semibold text-[#374151] break-words">{o.address || '—'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black uppercase text-[#9CA3AF] tracking-wider mb-1">Reference No. (internal)</p>
+                                  <p className="font-semibold text-[#374151] break-words">{o.reference_number || '—'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black uppercase text-[#9CA3AF] tracking-wider mb-1">Remarks (internal)</p>
+                                  <p className="font-semibold text-[#374151] break-words whitespace-pre-line">{o.remarks || '—'}</p>
                                 </div>
                               </div>
                               {(() => {
@@ -4771,7 +4791,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-500 block mb-1">
-                    {l('Reference Number', 'குறிப்பு எண்')}
+                    {l('Reference Number (Internal)', 'குறிப்பு எண்')}
                   </label>
                   <input
                     type="text"

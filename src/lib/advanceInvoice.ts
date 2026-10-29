@@ -66,7 +66,8 @@ export function advanceReceiptProps(order: AdvanceOrder, payments: AdvancePaymen
     extraMeta: [['Delivery', deliveryDate(order)]],
     wordsAmount: order.deposit_amount,
     wordsLabel: 'Advance Received in Words',
-    notes: ['Advance payment only — this is not a final tax invoice.', order.remarks].filter(Boolean).join('\n'),
+    // Remarks and the reference number are internal: never printed for the customer
+    notes: 'Advance payment only — this is not a final tax invoice.',
   }
 }
 

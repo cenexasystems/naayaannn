@@ -61,6 +61,20 @@ const PUBLIC_LOOKUPS: Record<string, string[]> = {
   advance_order_timeline: ['advance_order_id'],
 }
 const PUBLIC_RPCS = new Set(['get_public_invoice_by_number'])
+
+// Shop-only fields: never sent to someone who is not signed in (e.g. a customer opening an invoice link)
+const INTERNAL_FIELDS = ['remarks', 'reference_number']
+function stripInternal(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripInternal)
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (!INTERNAL_FIELDS.includes(k)) out[k] = stripInternal(v)
+    }
+    return out
+  }
+  return value
+}
 const ADMIN_ONLY_WRITES = new Set(['store_settings', 'profiles'])
 
 const isKeyLookup = (f: Filter, keys: string[]): boolean => {
@@ -177,13 +191,13 @@ export async function route(req: Req, res: ServerResponse, routeName?: string) {
         const dbReq = body as unknown as DbRequest
         authorizeDb(session, dbReq)
         const result = await runDbRequest(dbReq)
-        return send(res, 200, result)
+        return send(res, 200, session ? result : stripInternal(result))
       }
       case 'rpc': {
         const fn = String(body.fn || '')
         if (!session && !PUBLIC_RPCS.has(fn)) throw new ApiError('Sign in to continue', '42501', 401)
         const data = await runRpc(fn, (body.args || {}) as Record<string, unknown>)
-        return send(res, 200, { data })
+        return send(res, 200, { data: session ? data : stripInternal(data) })
       }
       case 'versions': {
         if (!session) throw new ApiError('Sign in to continue', '42501', 401)

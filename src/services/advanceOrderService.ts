@@ -303,6 +303,17 @@ export async function createAdvanceOrder(input: {
   return createdOrder
 }
 
+/** Saves the shop-only reference number and remarks of an advance order. */
+export async function updateAdvanceInternalNotes(orderId: string, referenceNumber: string, remarks: string): Promise<void> {
+  const patch = { reference_number: referenceNumber.trim(), remarks: remarks.trim(), updated_at: new Date().toISOString() }
+  if (isDatabaseConfigured) {
+    const { error } = await db.from('advance_orders').update(patch).eq('id', orderId)
+    if (error) throw new Error(error.message)
+    return
+  }
+  saveLocalOrders(loadLocalOrders().map(o => (o.id === orderId ? { ...o, ...patch } : o)))
+}
+
 export async function updateAdvanceStatus(orderId: string, status: AdvanceStatus, remarks = ''): Promise<AdvanceOrder> {
   let updatedOrder: AdvanceOrder | null = null
 
