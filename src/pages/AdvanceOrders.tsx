@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Download, Eye, Plus, FileText, MessageCircle, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Wallet, Clock } from 'lucide-react'
+import { Download, Eye, Plus, FileText, MessageCircle, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Check, Receipt, Wallet, Clock } from 'lucide-react'
 import { formatCurrency, formatInvoiceNo } from '../lib/retail'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
@@ -347,10 +347,12 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   }
 
   const cards = [
-    { label: 'Pending Deposit Amount Received', value: formatCurrency(analytics.openDeposits), note: `${analytics.openCount} bills with pending deposits`, icon: <IndianRupee size={18} strokeWidth={2} />, tile: 'bg-emerald-50 text-emerald-700' },
-    { label: 'Needed to Receive (Pending)', value: formatCurrency(analytics.outstanding), note: `${analytics.openBalanceCount} bills with balance due`, icon: <Wallet size={18} strokeWidth={2} />, tile: 'bg-amber-50 text-amber-700' },
-    { label: 'Total Advance Orders Value', value: formatCurrency(analytics.orderValue), note: `${analytics.total - inPeriod.filter(o => o.status === 'cancelled').length} total advance orders`, icon: <FileText size={18} strokeWidth={2} />, tile: 'bg-fuchsia-50 text-fuchsia-700' },
-    { label: 'Ready for Delivery', value: String(analytics.ready), note: 'Ready for customer pickup / delivery', icon: <Box size={18} strokeWidth={2} />, tile: 'bg-blue-50 text-blue-700' },
+    { label: 'Total Order Value', value: formatCurrency(analytics.orderValue), note: `${analytics.total - inPeriod.filter(o => o.status === 'cancelled').length} advance orders`, icon: <Receipt size={18} strokeWidth={2} />, tile: 'bg-gray-100 text-[#111111]' },
+    { label: 'Amount Paid', value: formatCurrency(analytics.paid), note: 'Deposits plus collected balances', icon: <Wallet size={18} strokeWidth={2} />, tile: 'bg-emerald-100 text-emerald-600' },
+    { label: 'Balance Due', value: formatCurrency(analytics.outstanding), note: `${analytics.openBalanceCount} bills with balance due`, icon: <IndianRupee size={18} strokeWidth={2} />, tile: 'bg-red-100 text-[#DC2626]' },
+    { label: 'Ready for Collection', value: String(analytics.ready), note: 'Ready for customer pickup / delivery', icon: <Box size={18} strokeWidth={2} />, tile: 'bg-blue-100 text-blue-600' },
+    { label: 'Completed Deposits', value: String(analytics.completed), note: 'Balance collected, invoice generated', icon: <Check size={18} strokeWidth={2} />, tile: 'bg-emerald-100 text-emerald-600' },
+    { label: 'Pending Deposit Amount Received', value: formatCurrency(analytics.openDeposits), note: `${analytics.openCount} bills with pending deposits`, icon: <IndianRupee size={18} strokeWidth={2} />, tile: 'bg-amber-50 text-amber-700' },
     { label: 'Pending Orders', value: String(analytics.pending), note: 'Awaiting balance or confirmation', icon: <Clock size={18} strokeWidth={2} />, tile: 'bg-red-50 text-red-600' },
   ]
   const periods: Array<[DateFilter, string]> = [['all', 'All Time'], ['today', 'Today'], ['week', 'This Week'], ['month', 'This Month'], ['year', 'This Year']]
@@ -466,6 +468,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => { setForm(initialForm); setDepositSplit(emptySplitInput()); setError(''); setCreateOpen(true) }} className="inline-flex h-10 items-center gap-2 rounded-2xl bg-primary px-5 text-sm font-black text-primary-100 shadow-md hover:bg-primary-hover cursor-pointer"><Plus size={17} strokeWidth={2.5} /> New Advance Order</button>
         <button type="button" onClick={() => void load()} title="Refresh" aria-label="Refresh" className="flex h-10 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 hover:text-[#111111]"><RefreshCw size={18} /></button>
         <div className="inline-flex flex-wrap items-center gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
           <label className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">From:</span>
@@ -480,7 +483,7 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
     {notice && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
 
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map(card => (
         <div key={card.label} className="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
