@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Download, Eye, Plus, FileText, MessageCircle, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Check, Receipt, Wallet } from 'lucide-react'
+import { Download, Eye, Plus, FileText, MessageCircle, Printer, RefreshCw, Search, X, Trash2, IndianRupee, Box, Wallet, Clock } from 'lucide-react'
 import { formatCurrency, formatInvoiceNo } from '../lib/retail'
 import SplitPaymentInputs from '../components/common/SplitPaymentInputs'
 import { emptySplitInput, formatPaymentLabel, splitInputToDetails, splitTotal, type SplitInputValue } from '../lib/payments'
@@ -161,7 +161,12 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
 
   const analytics = useMemo(() => {
     const live = inPeriod.filter(o => o.status !== 'cancelled')
+    // Orders still open (deposit taken, balance not yet collected)
+    const open = live.filter(o => o.status !== 'completed')
     return {
+      openCount: open.length,
+      openDeposits: open.reduce((sum, o) => sum + o.deposit_amount, 0),
+      openBalanceCount: open.filter(o => o.remaining_balance > 0).length,
       total: inPeriod.length,
       pending: inPeriod.filter(o => o.status === 'pending_deposit' || o.status === 'waiting_final_payment').length,
       orderValue: live.reduce((sum, o) => sum + o.total_amount, 0),
@@ -342,11 +347,11 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
   }
 
   const cards = [
-    { label: 'Total Order Value', value: formatCurrency(analytics.orderValue), icon: <Receipt size={22} strokeWidth={1.75} />, tile: 'bg-gray-100 text-[#111111]' },
-    { label: 'Amount Paid', value: formatCurrency(analytics.paid), icon: <Wallet size={22} strokeWidth={1.75} />, tile: 'bg-emerald-100 text-emerald-600' },
-    { label: 'Balance Due', value: formatCurrency(analytics.outstanding), icon: <IndianRupee size={22} strokeWidth={1.75} />, tile: 'bg-red-100 text-[#DC2626]' },
-    { label: 'Ready for Collection', value: String(analytics.ready), icon: <Box size={22} strokeWidth={1.75} />, tile: 'bg-blue-100 text-blue-600' },
-    { label: 'Completed Deposits', value: String(analytics.completed), icon: <Check size={22} strokeWidth={2} />, tile: 'bg-emerald-100 text-emerald-600' },
+    { label: 'Pending Deposit Amount Received', value: formatCurrency(analytics.openDeposits), note: `${analytics.openCount} bills with pending deposits`, icon: <IndianRupee size={18} strokeWidth={2} />, tile: 'bg-emerald-50 text-emerald-700' },
+    { label: 'Needed to Receive (Pending)', value: formatCurrency(analytics.outstanding), note: `${analytics.openBalanceCount} bills with balance due`, icon: <Wallet size={18} strokeWidth={2} />, tile: 'bg-amber-50 text-amber-700' },
+    { label: 'Total Advance Orders Value', value: formatCurrency(analytics.orderValue), note: `${analytics.total - inPeriod.filter(o => o.status === 'cancelled').length} total advance orders`, icon: <FileText size={18} strokeWidth={2} />, tile: 'bg-fuchsia-50 text-fuchsia-700' },
+    { label: 'Ready for Delivery', value: String(analytics.ready), note: 'Ready for customer pickup / delivery', icon: <Box size={18} strokeWidth={2} />, tile: 'bg-blue-50 text-blue-700' },
+    { label: 'Pending Orders', value: String(analytics.pending), note: 'Awaiting balance or confirmation', icon: <Clock size={18} strokeWidth={2} />, tile: 'bg-red-50 text-red-600' },
   ]
   const periods: Array<[DateFilter, string]> = [['all', 'All Time'], ['today', 'Today'], ['week', 'This Week'], ['month', 'This Month'], ['year', 'This Year']]
   const iconBtn = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors cursor-pointer'
@@ -475,14 +480,15 @@ export default function AdvanceOrders({ onOrderCompleted }: AdvanceOrdersProps =
     {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
     {notice && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
 
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
       {cards.map(card => (
-        <div key={card.label} className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-6 py-6 shadow-sm">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[#111111]">{card.label}</p>
-            <p className="mt-2 text-xl font-black text-[#111111]">{card.value}</p>
+        <div key={card.label} className="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <p className="min-h-[2.5em] text-[11px] font-bold uppercase leading-snug tracking-wider text-gray-600">{card.label}</p>
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.tile}`}>{card.icon}</span>
           </div>
-          <span className={`flex h-9 w-[52px] items-center justify-center rounded-xl ${card.tile}`}>{card.icon}</span>
+          <p className="mt-4 text-[26px] font-black leading-none text-[#111111]">{card.value}</p>
+          <p className="mt-4 border-t border-gray-100 pt-3 text-xs font-medium text-gray-500">{card.note}</p>
         </div>
       ))}
     </div>
