@@ -306,6 +306,11 @@ export default function Dashboard() {
   const [historyQuickSearch, setHistoryQuickSearch] = useState('')
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const [searchResults, setSearchResults] = useState<DashboardOrder[]>([])
+  // Order History loads 100 bills at a time; "Show more" fetches the next 100 for the same filters
+  const HISTORY_PAGE = 100
+  const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE)
+  const [historyTotal, setHistoryTotal] = useState<number | null>(null)
+  const [historyHasMore, setHistoryHasMore] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -980,7 +985,12 @@ export default function Dashboard() {
       const mappedOrders = (oRes.data || []).map(r => toDashboardOrder(r as Record<string, unknown>))
       setCats((cRes.data || []) as Category[])
       setOrders(mappedOrders)
-      setSearchResults(mappedOrders.filter(o => normalizeOrderType(o.order_type) !== 'online_request').slice(0, 100))
+      const posBills = mappedOrders.filter(o => normalizeOrderType(o.order_type) !== 'online_request')
+      setSearchResults(posBills.slice(0, HISTORY_PAGE))
+      setHistoryLimit(HISTORY_PAGE)
+      setHistoryHasMore(posBills.length > HISTORY_PAGE || mappedOrders.length >= 1000)
+      void db.from('orders').select('id', { count: 'exact', head: true }).neq('order_type', 'online_request')
+        .then(({ count }) => { if (typeof count === 'number') { setHistoryTotal(count); setHistoryHasMore(count > HISTORY_PAGE) } })
       setCoupons((couponRes.data || []) as DashboardCoupon[])
       setExpenses(expList || [])
 
@@ -1454,7 +1464,7 @@ export default function Dashboard() {
   }, [billTypeFilter, datePreset, search])
 
   // Order search - POS bills only (online_request excluded)
-  const runSearch = async (e?: FormEvent, overrideDates?: { dateFrom?: string; dateTo?: string }) => {
+  const runSearch = async (e?: FormEvent, overrideDates?: { dateFrom?: string; dateTo?: string }, limit = HISTORY_PAGE) => {
     e?.preventDefault()
     setSearchLoading(true)
     try {
@@ -1479,10 +1489,10 @@ export default function Dashboard() {
       const depositIdCond = depositMatchIds.length ? `,id.in.(${depositMatchIds.join(',')})` : ''
 
       let q = db.from('orders')
-        .select('id, invoice_no, customer_name, phone, address, created_at, total, status, order_mode, order_type, items, coupon_code, discount_amount, manual_discount_amount, delivery_charge, total_gst, gst_amount, payment_mode, payment_method, split_details, remarks, reference_number')
+        .select('id, invoice_no, customer_name, phone, address, created_at, total, status, order_mode, order_type, items, coupon_code, discount_amount, manual_discount_amount, delivery_charge, total_gst, gst_amount, payment_mode, payment_method, split_details, remarks, reference_number', { count: 'exact' })
         .neq('order_type', 'online_request')
         .order('created_at', { ascending: false })
-        .limit(hasQuery ? 1000 : 500)
+        .limit(limit)
 
       if (qText) {
         const digitsOnly = qText.replace(/\D/g, '')
@@ -1535,8 +1545,11 @@ export default function Dashboard() {
       }
 
 
-      const { data, error } = await q
+      const { data, error, count } = await q
       if (error) throw error
+      setHistoryLimit(limit)
+      setHistoryTotal(typeof count === 'number' ? count : null)
+      setHistoryHasMore(typeof count === 'number' ? count > (data || []).length : (data || []).length >= limit)
 
       let results = (data || []).map(r => toDashboardOrder(r as Record<string, unknown>))
 
@@ -1603,6 +1616,7 @@ export default function Dashboard() {
       setSearchResults(results.filter(o => !deletedOrderIds.current.has(o.id)))
     } catch (err) {
       console.error('Search error:', err)
+      setHistoryHasMore(false)
       setSearchResults([])
     } finally {
       setSearchLoading(false)
@@ -3537,11 +3551,13 @@ export default function Dashboard() {
               </div>
             </form>
 
-            <p className="px-1 text-[13px] font-bold text-gray-600">{filteredSearchResults.length} {l('bill(s)', 'பில்கள்')}</p>
+            <p className="px-1 text-[13px] font-bold text-gray-600">
+              {filteredSearchResults.length}{historyTotal !== null ? ` ${l('of', 'இல்')} ${historyTotal}` : ''} {l('bill(s)', 'பில்கள்')}
+            </p>
 
             <div className="space-y-3">
               <div className="space-y-3 md:hidden">
-                {filteredSearchResults.slice(0, 50).map(o => {
+                {filteredSearchResults.map(o => {
                   const billTypeLabel = normalizeOrderType(o.order_type) === 'manual_sale' ? 'MANUAL' : normalizeOrderMode(o.order_mode) === 'online' ? 'ONLINE' : 'OFFLINE'
                   const billTypeClass = normalizeOrderType(o.order_type) === 'manual_sale' ? 'bg-gray-50 text-gray-700' : normalizeOrderMode(o.order_mode) === 'online' ? 'bg-gray-50 text-gray-700' : 'bg-orange-50 text-orange-700'
                   return (
@@ -3649,7 +3665,7 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredSearchResults.slice(0, 50).map(o => {
+                    {filteredSearchResults.map(o => {
                       const sourceLabel = normalizeOrderType(o.order_type) === 'manual_sale' ? 'Manual' : normalizeOrderMode(o.order_mode) === 'online' ? 'Online' : 'Offline'
                       const created = new Date(o.created_at)
                       const completedStatus = normalizeStatus(o.status) === 'completed'
@@ -3775,6 +3791,22 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
+              {historyHasMore && (
+                <div className="flex flex-col items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={searchLoading}
+                    onClick={() => void runSearch(undefined, undefined, historyLimit + HISTORY_PAGE)}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-6 text-[11px] font-black uppercase tracking-wider text-[#111111] shadow-sm hover:bg-gray-50 disabled:opacity-60 cursor-pointer"
+                  >
+                    {searchLoading ? <RefreshCw size={14} className="animate-spin" /> : <ChevronDown size={14} />}
+                    {searchLoading ? l('Loading…', 'ஏற்றுகிறது…') : l(`Show more (${HISTORY_PAGE})`, `மேலும் காட்டு (${HISTORY_PAGE})`)}
+                  </button>
+                  {historyTotal !== null && (
+                    <p className="text-[12px] font-semibold text-gray-500">{l(`Showing ${filteredSearchResults.length} of ${historyTotal} bills`, `${historyTotal} பில்களில் ${filteredSearchResults.length} காட்டப்படுகிறது`)}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
