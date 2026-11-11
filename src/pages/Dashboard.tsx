@@ -79,6 +79,7 @@ import {
   Bar,
 } from 'recharts'
 import { db, isDatabaseConfigured } from '../lib/db'
+import { fetchAllOrders, fetchOrderItemsFor } from '../lib/fetchAllOrders'
 import { createPortal } from 'react-dom'
 import { confirmDelete } from '../lib/confirmDelete'
 
@@ -971,10 +972,7 @@ export default function Dashboard() {
       const productsPromise = fetchProducts(true)
       const [cRes, oRes, couponRes, expList] = await Promise.all([
         db.from('categories').select('id, name_en, name_ta, is_active, sort_order').order('sort_order'),
-        db.from('orders')
-          .select('id, invoice_no, customer_name, phone, address, created_at, total, status, order_mode, order_type, user_id, items, coupon_code, discount_amount, manual_discount_amount, delivery_charge, total_gst, gst_amount, payment_mode, payment_method, split_details, remarks, reference_number')
-          .order('created_at', { ascending: false })
-          .limit(1000),
+        fetchAllOrders('id, invoice_no, customer_name, phone, address, created_at, total, status, order_mode, order_type, user_id, items, coupon_code, discount_amount, manual_discount_amount, delivery_charge, total_gst, gst_amount, payment_mode, payment_method, split_details, remarks, reference_number'),
         db.from('coupons')
           .select('id, code, percentage, is_active, expiry_date, usage_limit, usage_count, min_order_value')
           .order('created_at', { ascending: false }),
@@ -988,7 +986,8 @@ export default function Dashboard() {
       const posBills = mappedOrders.filter(o => normalizeOrderType(o.order_type) !== 'online_request')
       setSearchResults(posBills.slice(0, HISTORY_PAGE))
       setHistoryLimit(HISTORY_PAGE)
-      setHistoryHasMore(posBills.length > HISTORY_PAGE || mappedOrders.length >= 1000)
+      setHistoryHasMore(posBills.length > HISTORY_PAGE)
+      setHistoryTotal(posBills.length)
       void db.from('orders').select('id', { count: 'exact', head: true }).neq('order_type', 'online_request')
         .then(({ count }) => { if (typeof count === 'number') { setHistoryTotal(count); setHistoryHasMore(count > HISTORY_PAGE) } })
       setCoupons((couponRes.data || []) as DashboardCoupon[])
@@ -996,20 +995,11 @@ export default function Dashboard() {
 
       const orderIds = mappedOrders.map(o => o.id).filter(Boolean)
       if (orderIds.length > 0) {
-        let oi: unknown[] | null = null
-        let orderItemsError: unknown = null
-        const orderItemsResult = await db
-          .from('order_items').select('order_id,product_id,variant_id,product_name,category,quantity,line_total,is_manual')
-          .in('order_id', orderIds)
-        oi = orderItemsResult.data
-        orderItemsError = orderItemsResult.error
-
-        if (orderItemsError) {
-          const fallbackItemsResult = await db
-            .from('order_items').select('order_id,product_id,variant_id,product_name,quantity,line_total,is_manual')
-            .in('order_id', orderIds)
-          oi = fallbackItemsResult.data
-        }
+        const oi = await fetchOrderItemsFor(
+          orderIds,
+          'order_id,product_id,variant_id,product_name,category,quantity,line_total,is_manual',
+          'order_id,product_id,variant_id,product_name,quantity,line_total,is_manual',
+        )
 
         setOrderItems((oi || []).map(r => ({
           order_id: String((r as Record<string,unknown>).order_id || ''),

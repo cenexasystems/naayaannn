@@ -44,6 +44,7 @@ import { formatCurrency, normalizeOrderMode, toNumber } from '../lib/retail'
 import { formatPhoneForCSV } from '../lib/phone'
 import { BRAND_EN, BRAND_ICON } from '../lib/brand'
 import { db, isDatabaseConfigured } from '../lib/db'
+import { fetchAllOrders, fetchOrderItemsFor } from '../lib/fetchAllOrders'
 
 type BillingOrder = {
   id: string
@@ -286,11 +287,7 @@ export default function BillingAnalytics() {
     setLoading(true)
     try {
       const [ordersRes] = await Promise.all([
-        db
-          .from('orders')
-          .select('id, invoice_no, customer_name, phone, address, created_at, total, status, order_mode, order_type, items, coupon_code, discount_amount, manual_discount_amount, delivery_charge')
-          .order('created_at', { ascending: false })
-          .limit(1000),
+        fetchAllOrders('id, invoice_no, customer_name, phone, address, created_at, total, status, order_mode, order_type, items, coupon_code, discount_amount, manual_discount_amount, delivery_charge'),
         fetchProducts(true),
       ])
 
@@ -299,19 +296,7 @@ export default function BillingAnalytics() {
 
       const orderIds = mappedOrders.map((order) => order.id).filter(Boolean)
       if (orderIds.length > 0) {
-        const itemsRes = await db
-          .from('order_items')
-          .select('order_id, product_name, quantity, line_total, is_manual')
-          .in('order_id', orderIds)
-
-        let rows: Array<Record<string, unknown>> = (itemsRes.data || []) as Array<Record<string, unknown>>
-        if (itemsRes.error) {
-          const fallbackRes = await db
-            .from('order_items')
-            .select('order_id, product_name, quantity, line_total')
-            .in('order_id', orderIds)
-          rows = (fallbackRes.data || []) as Array<Record<string, unknown>>
-        }
+        const rows = await fetchOrderItemsFor(orderIds, 'order_id, product_name, quantity, line_total, is_manual', 'order_id, product_name, quantity, line_total')
 
         setOrderItems(rows.map((row) => ({
           order_id: String((row as Record<string, unknown>).order_id || ''),
